@@ -56,7 +56,7 @@
          
             if (val < vec(1)) then
                loc = 0; return
-            else if (val == vec(1)) then
+            else if (val == vec(1) ) then
                loc = 1; return
             else if (val >= vec(n)) then
                loc = n; return

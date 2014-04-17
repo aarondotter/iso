@@ -90,7 +90,7 @@
       n = size(s) ! is the number of tracks
       allocate(skip(n))
 
-      !set mehtod and options for interpolation
+      !set method and options for interpolation
       !for interp_m3: average, quartic, or super_bee
       !interp_method = average
       !for interp_pm: piecewise_monotonic           

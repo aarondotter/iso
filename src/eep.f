@@ -131,7 +131,7 @@
       integer :: ieep
       t% EEP = 0 !initialize
       ieep=1
-      t% EEP(ieep) = PreMS(t,5.6d0,1); if(t% EEP(ieep)==0) return; ieep=ieep+1
+      t% EEP(ieep) = PreMS(t,5.0d0,1); if(t% EEP(ieep)==0) return; ieep=ieep+1
       t% EEP(ieep) = ZAMS(t,10); if(t% EEP(ieep)==0) return; ieep=ieep+1
       t% EEP(ieep) = TAMS(t,1d-1,t% EEP(ieep-1)); if(t% EEP(ieep)==0) return; ieep=ieep+1
       t% EEP(ieep) = TAMS(t,1d-4,t% EEP(ieep-1)); if(t% EEP(ieep)==0) return; ieep=ieep+1
@@ -172,6 +172,7 @@
             return
          endif
       enddo
+
       end function PreMS
 
       integer function ZAMS(t,guess)
@@ -246,7 +247,7 @@
       enddo
       ! Xc test fails so consider instead the age for low mass tracks
       ! if the age of the last point > Max_Age, accept it
-      !if(t% tr(i_age,t% ntrack) >= Max_Age) TAMS = t% ntrack
+      if(t% initial_mass <= 0.5d0) TAMS = t% ntrack
 
       !write(*,*) 'MADE IT HERE FOR MASS = ', t% initial_mass
       !write(*,*) "TAMS, T% NTRACK = ", tams, t% ntrack

@@ -337,7 +337,7 @@
       real(dp) function deltad(x1,x2,y1,y2,z1,z2,w1,w2)
       real(dp), intent(in) :: x1, x2, y1, y2, z1, z2, w1, w2
       real(dp), parameter :: Teff_scale=1d2, logL_scale=1.25d1
-      real(dp), parameter :: age_scale=2d1, Rhoc_scale=5d0
+      real(dp), parameter :: age_scale=2d1, Rhoc_scale=0d0
       deltad = sqrt( Teff_scale*(y2-y1)**2 + &
                      logL_scale*(x2-x1)**2 + &
                      Rhoc_scale*(z2-z1)**2 + & 
@@ -427,8 +427,6 @@
       col_name='center_he4'; i_Yc=locate_column(col_name,cols)
       col_name='he_core_mass'; i_he_core = locate_column(col_name,cols)
       col_name='c_core_mass'; i_co_core = locate_column(col_name,cols)
-      !col_name='h1_boundary_mass'; i_he_core = locate_column(col_name,cols)
-      !col_name='he4_boundary_mass'; i_co_core = locate_column(col_name,cols)
       end subroutine setup_columns
 
       end module iso_eep_support
