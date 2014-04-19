@@ -86,7 +86,7 @@
       logical, allocatable :: skip(:), valid(:)
 
       ierr = 0
-      jinc = 4
+      jinc = 6
       n = size(s) ! is the number of tracks
       allocate(skip(n))
 
@@ -113,9 +113,9 @@
 
          !determine tracks for which the ith eep is defined
          !the skip logical array determines whether or not a given
-         !track will be included in the ensuing interpolation steps
-         !count keeps track of how many tracks will be used.
-         !if fewer than 2 tracks satisfy the condition, skip the EEP
+         !track will be included in the ensuing interpolation steps.
+         !count keeps track of how many tracks will be used. if
+         !fewer than 2 tracks satisfy the condition, skip the EEP
          skip = .false.
          count = 0
          hi = max_eep
