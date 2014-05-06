@@ -80,7 +80,7 @@
       type(isochrone), intent(inout) :: iso
       integer :: count, eep, hi, ierr, index, j, k, lo, max_eep, n
       integer :: interp_method, jlo, jhi, jinc
-      real(dp) :: age, mass
+      real(dp) :: age, mass, alfa, beta
       real(dp), pointer :: ages(:)=>NULL(), masses(:)=>NULL()
       real(dp), allocatable :: result(:,:)
       logical, allocatable :: skip(:), valid(:)
@@ -178,7 +178,7 @@
             stop 99
          endif
          
-         if(.not.monotonic(ages(jlo:jhi))) then
+         if(iso_debug .and. .not.monotonic(ages(jlo:jhi))) then
             write(*,'(a8,i5)') '  eep = ', eep
             
             do k=jlo,jhi
@@ -194,6 +194,22 @@
                write(*,*) masses(k), ages(k), age
             enddo
          endif
+
+         if(.true.)then
+            j=0
+            do k=1,count-1
+               if(.not.skip(k))then
+                  if( ages(k) > ages(k+1) .and. ages(k) >= age .and. ages(k+1) < age )then
+                     j=j+1
+                     alfa = (age - ages(k+1))/(ages(k)-ages(k+1))
+                     beta = 1d0 - alfa
+                     mass = masses(k)*alfa + masses(k+1)*beta
+                     write(*,*) eep, j, age, mass
+                  endif
+               endif
+            enddo
+            mass = 0d0
+         endif
          
          !interpolate in age to find the EEP's initial mass
          index = i_Minit ! special case for iso_intepolate
@@ -207,22 +223,6 @@
          endif
          result(i_Minit,eep) = mass
 
-         !interpolate any other quantities to the appropriate mass
-         !results are stored in result array
-         if(iso_debug)then
-            write(*,*) '     ******************** '
-            write(*,*) '     ******************** '
-            write(*,*) '     ******************** '
-            write(*,*) '     ******************** '
-            write(*,*) '     ******************** '
-            write(*,*) '     mass = ', mass
-            write(*,*) '     ******************** '
-            write(*,*) '     ******************** '
-            write(*,*) '     ******************** '
-            write(*,*) '     ******************** '
-            write(*,*) '     ******************** '
-         endif
-
          do index=i_mass, ncol
             result(index,eep) = iso_interpolate(eep, interp_method, n, &
                                                 s, skip, count, index, &
@@ -232,21 +232,6 @@
                cycle
             endif
          enddo
-
-         if(iso_debug)then
-            write(*,*) '     ******************** '
-            write(*,*) '     ******************** '
-            write(*,*) '     ******************** ' 
-           write(*,*) '     ******************** '
-            write(*,*) '     ******************** '
-            write(*,*) '     mass = ', mass
-            write(*,*) '     ******************** '
-            write(*,*) '     ******************** '
-            write(*,*) '     ******************** '
-            write(*,*) '     ******************** '
-            write(*,*) '     ******************** '
-         endif
-
 
          !completed all interpolations, so this is a valid EEP
          valid(eep) = .true.
@@ -332,10 +317,6 @@
          write(*,*) ' count = ', count
          write(*,*) ' x = ', x
          write(*,*) ' x_array = ', x_array
-         !write(*,*) ' f(1,:) = ', f(1,:3)
-         !write(*,*) ' f(2,:) = ', f(2,:3)
-         !write(*,*) ' f(3,:) = ', f(3,:3)
-         !write(*,*) ' f(4,:) = ', f(4,:3)
       endif
 
       !perform the interpolation, y~f(x), using the input method
