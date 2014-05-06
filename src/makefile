@@ -44,8 +44,8 @@ phases.o: phases.f iso_eep_support.o
 iso_eep_support.o: iso_eep_support.f
 	$(FC) $(OMP) $(FFLAGS) $(INCLUDE) -c $<
 
-check: $(EEP)
-	cd ..; ./$(EEP)
+check: $(ISO) $(EEP)
+	cd ..; ./make_iso input.041214
 
 clean:
 	rm -f *.o *.mod *~ ../$(EEP) ../$(ISO) ../$(BLEND)
