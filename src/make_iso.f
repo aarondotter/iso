@@ -79,22 +79,23 @@
       type(track), intent(in) :: s(:)
       type(isochrone), intent(inout) :: iso
       integer :: count, eep, hi, ierr, index, j, k, lo, max_eep, n
-      integer :: interp_method, jlo, jhi, jinc
+      integer :: interp_method, jlo, jhi, double_check
+      integer, parameter :: jinc = 6
       real(dp) :: age, mass, alfa, beta
       real(dp), pointer :: ages(:)=>NULL(), masses(:)=>NULL()
-      real(dp), allocatable :: result(:,:)
-      logical, allocatable :: skip(:), valid(:)
+      real(dp), allocatable :: result1(:,:), result2(:,:)
+      logical, allocatable :: skip(:)
+      integer, allocatable :: valid(:)
 
       ierr = 0
-      jinc = 6
       n = size(s) ! is the number of tracks
       allocate(skip(n))
 
       !set method and options for interpolation
       !for interp_m3: average, quartic, or super_bee
-      interp_method = super_bee
+      !interp_method = average
       !for interp_pm: piecewise_monotonic           
-      !interp_method = piecewise_monotonic
+      interp_method = piecewise_monotonic
 
       !initialize some quantities
       age = iso% age
@@ -102,12 +103,14 @@
       mass=0d0
 
       !this is temporary storage for the isochrone data:
-      !result stores the data for all EEPs, valid tells
+      !result1 stores the data for all EEPs, valid tells
       !which ones are good and will be returned via the iso 
       !derived type
-      allocate(result(ncol,max_eep),valid(max_eep))
-      result = 0d0
-      valid = .false.
+      allocate(result1(ncol,max_eep),result2(ncol,max_eep),valid(max_eep))
+      result1 = 0d0
+      result2 = 0d0
+      valid = 0
+
 
       do eep=1,max_eep
 
@@ -135,7 +138,7 @@
 
          !allocate ages and masses that pass the above test
          !I use pointers here because they can be allocated
-         !and deallocated to the proper size at each iteration 
+         !and deallocated to the proper size at each EEP
          if(associated(ages)) then
             if(iso_debug) write(0,*) "ages was associated for eep ", eep
             deallocate(ages)
@@ -195,79 +198,137 @@
             enddo
          endif
 
+         !this block checks between two tracks at the current EEP to see if the 
+         !age lies in between the two. if it does, then it outputs a linear mass 
+         !interpolation. it is checking to see if this happens more than once.
+         !j gives the number of times that this happens for a given EEP.
          if(.true.)then
-            j=0
-            do k=1,count-1
+            double_check=0
+            k_loop: do k=1,count-1
+
                if(.not.skip(k))then
+
                   if( ages(k) > ages(k+1) .and. ages(k) >= age .and. ages(k+1) < age )then
-                     j=j+1
-                     alfa = (age - ages(k+1))/(ages(k)-ages(k+1))
-                     beta = 1d0 - alfa
-                     mass = masses(k)*alfa + masses(k+1)*beta
-                     write(*,*) eep, j, age, mass
+                     double_check = double_check + 1
+                     if(double_check==1)then
+                        alfa = (age - ages(k+1))/(ages(k)-ages(k+1))
+                        beta = 1d0 - alfa
+                        mass = masses(k)*alfa + masses(k+1)*beta
+                        write(*,'(2i5,f9.5,f14.9)') eep, double_check, age, mass
+                        result1(i_Minit,eep) = mass
+                        do index = 2, ncol
+                           result1(index,eep) = iso_interpolate(eep, interp_method, n, &
+                                                                s, skip, count, index, &
+                                                                masses, mass, ierr)
+                           if(ierr/=0) then
+                              write(0,*) ' mass interpolation failed for index = ', &
+                                                                    trim(cols(index))
+                              cycle
+                           endif
+                        enddo
+                        valid(eep)=valid(eep)+1
+
+                     else if(double_check==2)then
+                        alfa = (age - ages(k+1))/(ages(k)-ages(k+1))
+                        beta = 1d0 - alfa
+                        mass = masses(k)*alfa + masses(k+1)*beta
+                        write(*,'(2i5,f9.5,f14.9)') eep, double_check, age, mass
+                        result2(i_Minit,eep) = mass
+                        do index = 2, ncol
+                           result2(index,eep) = iso_interpolate(eep, interp_method, n, &
+                                                                s, skip, count, index, &
+                                                                masses, mass, ierr)
+                           if(ierr/=0) then
+                              write(0,*) ' mass interpolation failed for index = ', &
+                                                                    trim(cols(index))
+                              cycle
+                           endif
+                        enddo
+                        valid(eep)=valid(eep)+1
+                     endif
+
                   endif
+
                endif
-            enddo
-            mass = 0d0
-         endif
-         
-         !interpolate in age to find the EEP's initial mass
-         index = i_Minit ! special case for iso_intepolate
 
-         mass = iso_interpolate( eep, interp_method, n, &
-                                 s, skip, count, index, &
-                                 ages, age, ierr)
-         if(ierr/=0)then
-            write(0,*) ' interpolation failed in age->mass'
-            cycle
+            enddo k_loop
          endif
-         result(i_Minit,eep) = mass
 
-         do index=i_mass, ncol
-            result(index,eep) = iso_interpolate(eep, interp_method, n, &
-                                                s, skip, count, index, &
-                                                masses, mass, ierr)
-            if(ierr/=0) then
-               write(0,*) ' mass interpolation failed for index = ', trim(cols(index))
+         if(.false.)then ! single EEP case; this is the original method.
+           !interpolate in age to find the EEP's initial mass
+            index = i_Minit     ! special case for iso_intepolate
+
+            mass = iso_interpolate( eep, interp_method, n, &
+                                    s, skip, count, index, &
+                                    ages, age, ierr)
+            if(ierr/=0)then
+               write(0,*) ' interpolation failed in age->mass'
                cycle
             endif
-         enddo
+            result1(i_Minit,eep) = mass
 
-         !completed all interpolations, so this is a valid EEP
-         valid(eep) = .true.
+            do index = 2, ncol
+               result1(index,eep) = iso_interpolate(eep, interp_method, n, &
+                                                    s, skip, count, index, &
+                                                    masses, mass, ierr)
+               if(ierr/=0) then
+                  write(0,*) ' mass interpolation failed for index = ', trim(cols(index))
+                  cycle
+               endif
+            enddo
+
+            !completed all interpolations, so this is a valid EEP
+            !if validi > 0 then it is a valid EEP
+            valid(eep) = valid(eep)+1
+
+         endif
 
          ! clean up for each iteration
          deallocate(ages,masses)
          nullify(ages,masses)
       enddo
 
-      !now result and valid are full for all EEPs,
+      !now result1 and valid are full for all EEPs,
       !we can pass the data to the iso derived type
       iso% ncol = ncol
-      iso% neep = 0
-      do eep=1,max_eep
-         if(valid(eep)) iso% neep = iso% neep + 1
-      enddo
+      iso% neep = sum(valid)
+      !do eep=1,max_eep
+      !   iso% neep = iso% neep + valid(eep)
+      !enddo
       allocate(iso% data(iso% ncol, iso% neep), iso% eep(iso% neep))
       if(iso% has_phase) allocate(iso% phase(iso% neep))
       
-      j=1
+      j=0
       do eep=1,max_eep
-         if(valid(eep)) then
+         print *, eep, j, valid(eep)
+         if(valid(eep)>0) then
+            j=j+1
             iso% eep(j) = eep
-            iso% data(:,j) = result(:,eep)
+            iso% data(:,j) = result1(:,eep)
             if(iso% has_phase)then
                do k=1,n-1
                   if(iso% data(i_Minit,j) < s(k)% initial_mass) exit
                enddo
                iso% phase(j) = s(k)% phase(min(s(k)% ntrack,eep))
             endif
-            j=j+1
          endif
+         
+         if(valid(eep)==2) then
+            j=j+1
+            iso% eep(j) = eep
+            iso% data(:,j) = result2(:,eep)
+            if(iso% has_phase) then
+               do k=1,n-1
+                  if(iso% data(i_Minit,j) < s(k)% initial_mass) exit
+               enddo
+               iso% phase(j) = s(k)% phase(min(s(k)% ntrack,eep))
+            endif
+         endif
+
       enddo
 
       !all done
-      deallocate(result,skip,valid)
+      deallocate(result1,result2,skip,valid)
 
       end subroutine do_isochrone_for_age
 

@@ -2,13 +2,13 @@
 include $(MESA_DIR)/utils/makefile_header
 
 INCLUDE=-I$(MESASDK_ROOT)/include -I$(MESA_DIR)/include
-LOAD_MESA=-L$(MESA_LIB_DIR) -linterp_1d -lnum -lmtx -lutils
+LOAD_MESA=-L$(MESA_LIB_DIR) -linterp_1d -lnum -lmtx -lutils $(LOAD_BLAS) $(LOAD_LAPACK)
 
 FC=gfortran 
 DEBUG=-g -fbacktrace -fcheck=all 
 WARN=-Wall -Wextra -pedantic
 OMP=-fopenmp
-OPT=-O2
+OPT=-O0
 FFLAGS= -ffree-form $(OPT) $(WARN) $(DEBUG)
 
 ISO=make_iso
