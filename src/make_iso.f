@@ -86,6 +86,7 @@
       real(dp), allocatable :: result1(:,:), result2(:,:)
       logical, allocatable :: skip(:)
       integer, allocatable :: valid(:)
+      logical, parameter :: use_double_eep = .true.
 
       ierr = 0
       n = size(s) ! is the number of tracks
@@ -202,7 +203,7 @@
          !age lies in between the two. if it does, then it outputs a linear mass 
          !interpolation. it is checking to see if this happens more than once.
          !j gives the number of times that this happens for a given EEP.
-         if(.true.)then
+         if(use_double_eep)then
             double_check=0
             k_loop: do k=1,count-1
 
@@ -252,10 +253,10 @@
                endif
 
             enddo k_loop
-         endif
 
-         if(.false.)then ! single EEP case; this is the original method.
-           !interpolate in age to find the EEP's initial mass
+
+         else ! single EEP case; this is the original method.
+              !interpolate in age to find the EEP's initial mass
             index = i_Minit     ! special case for iso_intepolate
 
             mass = iso_interpolate( eep, interp_method, n, &

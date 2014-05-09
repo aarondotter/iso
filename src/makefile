@@ -2,7 +2,7 @@
 include $(MESA_DIR)/utils/makefile_header
 
 INCLUDE=-I$(MESASDK_ROOT)/include -I$(MESA_DIR)/include
-LOAD_MESA=-L$(MESA_LIB_DIR) -linterp_1d -lnum -lmtx -lutils $(LOAD_BLAS) $(LOAD_LAPACK)
+LOAD_MESA=-L$(MESA_LIB_DIR) -linterp_1d -lnum -lmtx -lutils
 
 FC=gfortran 
 DEBUG=-g -fbacktrace -fcheck=all 

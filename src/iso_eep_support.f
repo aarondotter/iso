@@ -316,13 +316,7 @@
       !compute distance along track
       allocate(t% dist(t% ntrack))
       t% dist(1) = 0d0
-      do j=2, t% ntrack
-         t% dist(j) = t% dist(j-1) + &
-                      deltad( t% tr(i_logTe,j-1), t% tr(i_logTe,j), &
-                              t% tr(i_logL, j-1), t% tr(i_logL, j), &
-                              t% tr(i_Rhoc, j-1), t% tr(i_Rhoc, j), &
-                              t% tr(i_age,  j-1), t% tr(i_age,  j)  )
-      enddo
+      call distance_along_track(t)
 
       deallocate(output)
 
@@ -333,16 +327,22 @@
 
       end subroutine read_history_file
 
-      !adapted from Peter Bergbusch
-      real(dp) function deltad(x1,x2,y1,y2,z1,z2,w1,w2)
-      real(dp), intent(in) :: x1, x2, y1, y2, z1, z2, w1, w2
+      subroutine distance_along_track(t)
+      type(track), intent(inout) :: t
       real(dp), parameter :: Teff_scale=1d2, logL_scale=1.25d1
       real(dp), parameter :: age_scale=2d1, Rhoc_scale=0d0
-      deltad = sqrt( Teff_scale*(y2-y1)**2 + &
-                     logL_scale*(x2-x1)**2 + &
-                     Rhoc_scale*(z2-z1)**2 + & 
-                     age_scale*(log10(w2)-log10(w1))**2 )
-      end function deltad
+      integer :: j
+      allocate(t% dist(t% ntrack))
+      t% dist(1) = 0d0
+      if(t% ntrack > 1)then
+         do j=2, t% ntrack
+            t% dist(j) = t% dist(j-1) + Teff_scale*(t% tr(i_logTe,j) - t% tr(i_logTe,j-1))**2 &
+                                      + logL_scale*(t% tr(i_logL, j) - t% tr(i_logL, j-1))**2 &
+                                      + Rhoc_scale*(t% tr(i_Rhoc, j) - t% tr(i_Rhoc, j-1))**2 &
+                                      +  age_scale*(log10(t% tr(i_age,j)) - log10(t% tr(i_age,j-1)))**2
+         enddo
+      endif
+      end subroutine distance_along_track
 
       subroutine dict(input,ncol,cols,output)
       character(len=*), intent(in) :: input

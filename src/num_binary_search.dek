@@ -14,6 +14,7 @@
          integer, intent(in) :: n, hint
          real(dp), intent(in) :: val
          real(dp), intent(in), pointer :: vec(:) ! (n)
+         real(dp), parameter :: tiny = 1d-14
          integer :: first, last, mid
          
          if (n <= 1) then
@@ -24,7 +25,7 @@
          
             if (val > vec(1)) then
                loc = 0; return
-            else if (val == vec(1)) then
+            else if (abs(val - vec(1)) < tiny) then
                loc = 1; return
             else if (val <= vec(n)) then
                loc = n; return
@@ -56,7 +57,7 @@
          
             if (val < vec(1)) then
                loc = 0; return
-            else if (val == vec(1)) then
+            else if (abs(val -vec(1)) < tiny) then
                loc = 1; return
             else if (val >= vec(n)) then
                loc = n; return
@@ -104,6 +105,7 @@
          integer, intent(in) :: n, hint
          real(sp), intent(in) :: val
          real(sp), intent(in), pointer :: vec(:) ! (n)
+         real(sp), parameter :: tiny = 1e-8
          integer :: first, last, mid
          
          if (n <= 1) then
@@ -114,7 +116,7 @@
          
             if (val > vec(1)) then
                loc = 0; return
-            else if (val == vec(1)) then
+            else if (abs(val - vec(1)) < tiny) then
                loc = 1; return
             else if (val <= vec(n)) then
                loc = n; return
@@ -146,7 +148,7 @@
          
             if (val < vec(1)) then
                loc = 0; return
-            else if (val == vec(1)) then
+            else if (abs(val - vec(1)) < tiny) then
                loc = 1; return
             else if (val >= vec(n)) then
                loc = n; return
