@@ -371,6 +371,7 @@
 
       subroutine set_eep_interval
       integer :: ierr, i, j, io, my_eep_interval, my_num_eep
+      character(len=6) :: eep_style
       io=alloc_iounit(ierr)
       open(unit=io,file='input.eep',iostat=ierr,status='old')
       if(ierr/=0) then
@@ -388,11 +389,7 @@
          read(io,'(i3,i5)') j, my_eep_interval
          eep_interval(j) = my_eep_interval
       enddo
-      if(.false.) then
-         do i=1,primary-1
-            write(*,*) '   eep_interval ', i, eep_interval(i)
-         enddo
-      endif
+      close(io)
       end subroutine set_eep_interval
 
       subroutine set_default_eep_interval

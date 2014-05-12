@@ -16,6 +16,8 @@
       type(track), allocatable :: s(:), q
       type(isochrone_set) :: set
       integer :: i_Minit
+
+      logical :: use_double_eep
       integer, parameter :: piecewise_monotonic =4
       logical, parameter :: iso_debug = .false.
       logical, parameter :: do_tracks = .false., do_isochrones = .true.
@@ -79,14 +81,13 @@
       type(track), intent(in) :: s(:)
       type(isochrone), intent(inout) :: iso
       integer :: count, eep, hi, ierr, index, j, k, lo, max_eep, n
-      integer :: interp_method, jlo, jhi, pass, new_count
+      integer :: interp_method, jlo, jhi, pass
       integer, parameter :: jinc = 6
-      real(dp) :: age, mass, alfa, beta
+      real(dp) :: age, mass
       real(dp), pointer :: ages(:)=>NULL(), masses(:)=>NULL()
       real(dp), allocatable :: result1(:,:), result2(:,:)
-      logical, allocatable :: skip(:), new_skip(:)
+      logical, allocatable :: skip(:)
       integer, allocatable :: valid(:)
-      logical, parameter :: use_double_eep = .true.
 
       ierr = 0
       n = size(s) ! is the number of tracks
@@ -211,21 +212,19 @@
                   if( ages(k) > ages(k+1) .and. ages(k) >= age .and. ages(k+1) < age )then
                      pass = pass + 1
                      if(pass==1)then
-                        alfa = (age - ages(k+1))/(ages(k)-ages(k+1))
-                        beta = 1d0 - alfa
-                        mass = masses(k)*alfa + masses(k+1)*beta
-                        
-                        call monotonic_mass_range(ages,k,jlo,jhi,new_count)
-                        write(*,*) mass, masses(jlo), masses(jhi)
+                        call monotonic_mass_range(ages,k,jlo,jhi)
+                        if(iso_debug) write(*,*) mass, masses(jlo), masses(jhi)
 
-                        mass=interp_x_from_y(interp_method,ages(jlo:jhi),masses(jlo:jhi),age,ierr)
+                        mass=interp_x_from_y(ages(jlo:jhi),masses(jlo:jhi),age,ierr)
                         if(ierr/=0)then
-                           write(0,*) ' age interpolation failed for eep = ', eep
+                           write(0,*) ' age interpolation failed for eep, pass = ', eep, pass
                            cycle eep_loop
-                        endif                  
+                        endif
 
-                        write(*,'(2i5,f9.5,f14.9)') eep, pass, age, mass
+                        write(*,'(2i5,f9.5,3f14.9)') eep, pass, age, mass, masses(jlo), masses(jhi)
+
                         result1(i_Minit,eep) = mass
+
                         do index = 2, ncol
                            result1(index,eep) = iso_interpolate(eep, interp_method, n, &
                                                                 s, skip, count, index, &
@@ -239,11 +238,19 @@
                         valid(eep)=valid(eep)+1
 
                      else if(pass==2)then
-                        alfa = (age - ages(k+1))/(ages(k)-ages(k+1))
-                        beta = 1d0 - alfa
-                        mass = masses(k)*alfa + masses(k+1)*beta
-                        write(*,'(2i5,f9.5,f14.9)') eep, pass, age, mass
+                        call monotonic_mass_range(ages,k,jlo,jhi)
+                        if(iso_debug) write(*,*) mass, masses(jlo), masses(jhi)
+
+                        mass=interp_x_from_y(ages(jlo:jhi),masses(jlo:jhi),age,ierr)
+                        if(ierr/=0)then
+                           write(0,*) ' age interpolation failed for eep, pass = ', eep, pass
+                           cycle eep_loop
+                        endif
+
+                        write(*,'(2i5,f9.5,3f14.9)') eep, pass, age, mass, masses(jlo), masses(jhi)
+
                         result2(i_Minit,eep) = mass
+
                         do index = 2, ncol
                            result2(index,eep) = iso_interpolate(eep, interp_method, n, &
                                                                 s, skip, count, index, &
@@ -296,7 +303,7 @@
          ! clean up for each iteration
          deallocate(ages,masses)
          nullify(ages,masses)
-      enddo
+      enddo eep_loop
 
       !now result1 and valid are full for all EEPs,
       !we can pass the data to the iso derived type
@@ -310,7 +317,6 @@
       
       j=0
       do eep=1,max_eep
-         print *, eep, j, valid(eep)
          if(valid(eep)>0) then
             j=j+1
             iso% eep(j) = eep
@@ -335,25 +341,22 @@
             endif
          endif
 
-      enddo eep_loop
+      enddo
 
       !all done
       deallocate(result1,result2,skip,valid)
 
       end subroutine do_isochrone_for_age
 
-      subroutine monotonic_mass_range(ages,k,jlo,jhi,count)
+      subroutine monotonic_mass_range(ages,k,jlo,jhi)
       !this subroutine determines the upper and lower limits that
       !should be used in the EEP interpolation for the case of 
       !double EEPs; default result is jlo=1, jhi=size(ages)
-      real(dp), intent(in) :: ages
+      real(dp), intent(in) :: ages(:)
       integer, intent(in) :: k
-      integer, intent(out) :: jlo, jhi, count
-      integer :: n
-      
+      integer, intent(out) :: jlo, jhi
+      integer :: j,n
       n=size(ages)
-      count = 0
-      
       !find lower limit:
       jlo=1
       lower_loop: do j=k,1,-1
@@ -362,50 +365,50 @@
          else
             exit lower_loop
          endif
-      enddo lower_loop
-      
+      enddo lower_loop      
       !find upper limit
-      jhi=count
-      upper_loop: do j=jlo+1,count
+      jhi=n
+      upper_loop: do j=jlo+1,n
          if(ages(j-1) > ages(j)) then
             jhi = j
          else
             exit upper_loop
          endif
       enddo upper_loop
-
-      count = jhi - jlo + 1
       end subroutine monotonic_mass_range
 
 
       real(dp) function interp_x_from_y(x,y,x_in,ierr)
-
-
-!      subroutine interpolate_vector_pm( &
-!               n_old, x_old, n_new, x_new, v_old, v_new, work1, str, ierr)
-!         use interp_1d_def, only: pm_work_size
-
-!         real(dp), intent(in) :: x_old(:) !(n_old)
-!         real(dp), intent(in) :: v_old(:) !(n_old)
-!         real(dp), intent(in) :: x_new(:) !(n_new)
-!         real(dp), intent(out) :: v_new(:) ! (n_new)
-!         real(dp), intent(inout), pointer :: work1(:) ! =(n_old, pm_work_size)
-
+!     subroutine interpolate_vector_pm( &
+!     n_old, x_old, n_new, x_new, v_old, v_new, work1, str, ierr)
+!     use interp_1d_def, only: pm_work_size
+      
+!     real(dp), intent(in) :: x_old(:) !(n_old)
+!     real(dp), intent(in) :: v_old(:) !(n_old)
+!     real(dp), intent(in) :: x_new(:) !(n_new)
+!     real(dp), intent(out) :: v_new(:) ! (n_new)
+!     real(dp), intent(inout), pointer :: work1(:) ! =(n_old, pm_work_size)
+      real(dp), intent(in) :: x(:), y(:), x_in
       integer, parameter :: n_new = 1
       real(dp) :: x0(n_new), y0(n_new)
       real(dp), pointer :: work1(:)
       integer, intent(out) :: ierr
       integer :: n_old
+      
+      ierr=0
 
       if(size(x)/=size(y))then
          ierr=-1
+         interp_x_from_y = 0d0
          return
       endif
-
+      
       n_old = size(x)
       x0(n_new) = x_in
+      allocate(work1(n_old*pm_work_size))
       call interpolate_vector_pm( n_old, x, n_new, x0, y, y0, work1, '', ierr )
-
+      deallocate(work1)
+      interp_x_from_y = y0(n_new)
       end function interp_x_from_y
 
       real(dp) function iso_interpolate( &
@@ -614,6 +617,7 @@
       integer, intent(out) :: ierr
       character(len=col_width) :: col_name
       character(len=10) :: list_type
+      character(len=6) :: eep_style
       integer :: i
       real(dp) :: age_low, age_high, age_step
       ierr=0
@@ -659,6 +663,13 @@
          enddo
       else
          stop ' make_iso: ages must be given as "list" or "min_max"'
+      endif
+
+      read(io,'(a6)') eep_style
+      if(eep_style=='double') then 
+         use_double_eep=.true.
+      else
+         use_double_eep=.false.
       endif
       close(io)
       call free_iounit(io)
