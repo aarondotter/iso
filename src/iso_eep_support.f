@@ -314,8 +314,6 @@
       call free_iounit(io)
 
       !compute distance along track
-      allocate(t% dist(t% ntrack))
-      t% dist(1) = 0d0
       call distance_along_track(t)
 
       deallocate(output)
@@ -329,7 +327,7 @@
 
       subroutine distance_along_track(t)
       type(track), intent(inout) :: t
-      real(dp), parameter :: Teff_scale=1d2, logL_scale=1.25d1
+      real(dp), parameter :: Teff_scale=5d2, logL_scale=1.25d1
       real(dp), parameter :: age_scale=2d1, Rhoc_scale=0d0
       integer :: j
       allocate(t% dist(t% ntrack))
