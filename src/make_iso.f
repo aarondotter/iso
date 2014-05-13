@@ -224,7 +224,6 @@
                         write(*,'(2i5,f9.5,3f14.9)') eep, pass, age, mass, masses(jlo), masses(jhi)
 
                         result1(i_Minit,eep) = mass
-
                         do index = 2, ncol
                            result1(index,eep) = iso_interpolate(eep, interp_method, n, &
                                                                 s, skip, count, index, &
@@ -250,7 +249,6 @@
                         write(*,'(2i5,f9.5,3f14.9)') eep, pass, age, mass, masses(jlo), masses(jhi)
 
                         result2(i_Minit,eep) = mass
-
                         do index = 2, ncol
                            result2(index,eep) = iso_interpolate(eep, interp_method, n, &
                                                                 s, skip, count, index, &
@@ -272,7 +270,7 @@
 
 
          else ! single EEP case; this is the original method.
-              !interpolate in age to find the EEP's initial mass
+              ! interpolate in age to find the EEP's initial mass
             index = i_Minit     ! special case for iso_intepolate
 
             mass = iso_interpolate( eep, interp_method, n, &

@@ -7,7 +7,7 @@
       implicit none
 
       integer, parameter :: col_width = 32, file_path = 256
-      logical, parameter :: verbose = .false.
+      logical, parameter :: verbose = .false., old_core_mass_names=.true.
 
       logical, parameter ::check_initial_mass = .true.
       real(dp) :: mass_eps = 1d-6
@@ -234,10 +234,12 @@
       subroutine read_history_file(t)
       type(track), intent(inout) :: t
       character(len=4096) :: line
+      character(len=file_path) :: binfile
       character(len=3) :: type_string(2)
       integer :: i, ilo, ihi, io, j, imass, iversion
       integer :: ierr
       integer, pointer :: output(:) !ncol
+      logical :: binfile_exists
 
       ierr = 0
       if(verbose)then
@@ -248,6 +250,36 @@
 
       type_string = (/ 'flt', 'int' /)
       
+      ! using unformatted binary files makes the process of creating
+      ! EEP files really fast. check to see if the .bin exists and,
+      ! if it does, read it and be done. otherwise read the .data
+      ! file and write a new .bin at the end.
+      ! time goes from 2min -> 1.5sec for 94 tracks. tight!
+      binfile=trim(data_dir) // '/' // trim(t% filename) // '.bin'
+      inquire(file=binfile,exist=binfile_exists)
+      
+      if(binfile_exists)then
+         print *, '    reading binfile:'
+         print *, '    ', trim(binfile)
+         io=alloc_iounit(ierr)
+         binfile = trim(data_dir) // '/' // trim(t% filename) // '.bin'
+         open(io,file=trim(binfile),form='unformatted')
+         read(io) t% filename
+         read(io) t% ncol, t% ntrack, t% neep, t% version_number
+         read(io) t% initial_mass
+         allocate(t% tr(t% ncol, t% ntrack),t% cols(t% ncol),t% dist(t% ntrack))
+         read(io) t% cols
+         read(io) t% tr
+         read(io) t% dist
+         close(io) 
+         call free_iounit(io)
+         return
+      endif
+
+      print *, '    reading file:'
+      print *, '    ', trim(t% filename)
+
+
       io=alloc_iounit(ierr)
       open(unit=io,file=trim(trim(data_dir) // '/' // t% filename),status='old')
       !read first 3 lines of header
@@ -292,7 +324,7 @@
 
       t% cols = cols(:)
 
-      !re-read file header
+      !skip file header, already read it once
       rewind(io)
       do i=1,6
          read(io,*)
@@ -323,12 +355,31 @@
          if(abs(t% initial_mass - t% tr(i_mass,1)) > mass_eps) t% initial_mass = t% tr(i_mass,1)
       endif
 
+      call write_history_bin(t)
+
       end subroutine read_history_file
+
+      subroutine write_history_bin(t)
+      type(track), intent(in) :: t
+      integer :: io, ierr
+      character(len=file_path) :: binfile
+      io=alloc_iounit(ierr)
+      binfile = trim(data_dir) // '/' // trim(t% filename) // '.bin'
+      open(io,file=trim(binfile),form='unformatted')
+      write(io) t% filename
+      write(io) t% ncol, t% ntrack, t% neep, t% version_number
+      write(io) t% initial_mass
+      write(io) t% cols
+      write(io) t% tr
+      write(io) t% dist
+      close(io) 
+      call free_iounit(io)
+      end subroutine write_history_bin
 
       subroutine distance_along_track(t)
       type(track), intent(inout) :: t
-      real(dp), parameter :: Teff_scale=5d2, logL_scale=1.25d1
-      real(dp), parameter :: age_scale=2d1, Rhoc_scale=0d0
+      real(dp), parameter :: Teff_scale=1d2, logL_scale=2.5d1
+      real(dp), parameter :: age_scale=2d1, Rhoc_scale=5d0
       integer :: j
       allocate(t% dist(t% ntrack))
       t% dist(1) = 0d0
@@ -371,7 +422,6 @@
 
       subroutine set_eep_interval
       integer :: ierr, i, j, io, my_eep_interval, my_num_eep
-      character(len=6) :: eep_style
       io=alloc_iounit(ierr)
       open(unit=io,file='input.eep',iostat=ierr,status='old')
       if(ierr/=0) then
@@ -407,7 +457,10 @@
       integer, intent(out) :: ierr
       character(len=col_width) :: col_name
       call process_history_columns(history_columns_list,cols,ierr)
-      if(ierr/=0) write(*,*) 'make_eeps: failed in process_history_columns'
+      if(ierr/=0) then
+         write(*,*) 'failed in process_history_columns'
+         return
+      endif
       ncol = size(cols) !'
       col_name = 'star_age'; i_age = locate_column(col_name,cols)
       col_name = 'star_mass'; i_mass= locate_column(col_name,cols)
@@ -420,8 +473,13 @@
       col_name='log_center_Rho'; i_Rhoc=locate_column(col_name,cols)
       col_name='center_h1'; i_Xc=locate_column(col_name,cols)
       col_name='center_he4'; i_Yc=locate_column(col_name,cols)
-      col_name='he_core_mass'; i_he_core = locate_column(col_name,cols)
-      col_name='c_core_mass'; i_co_core = locate_column(col_name,cols)
+      if(old_core_mass_names)then
+         col_name='h1_boundary_mass'; i_he_core = locate_column(col_name,cols)
+         col_name='he4_boundary_mass'; i_co_core = locate_column(col_name,cols)
+      else
+         col_name='he_core_mass'; i_he_core = locate_column(col_name,cols)
+         col_name='c_core_mass'; i_co_core = locate_column(col_name,cols)
+      endif
       end subroutine setup_columns
 
       end module iso_eep_support

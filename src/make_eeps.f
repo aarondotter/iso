@@ -25,7 +25,8 @@
       endif
 
       !read input file, set up columns, eeps, format specs
-      call read_input
+      call read_input(ierr)
+      if(ierr/=0) stop 'make_eeps: failed in read_input'
 
       ! allocate tracks for history files, read them in and convert to eep
       do i=1,num
@@ -46,7 +47,9 @@
 
       contains
 
-      subroutine read_input
+      subroutine read_input(ierr)
+      integer, intent(out) :: ierr
+      ierr=0
       call get_command_argument(1,input_file)
       io=alloc_iounit(ierr)
       open(unit=io,file=trim(input_file))

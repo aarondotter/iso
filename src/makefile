@@ -8,7 +8,7 @@ FC=gfortran
 DEBUG=-g -fbacktrace -fcheck=all 
 WARN=-Wall -Wextra -pedantic
 OMP=-fopenmp
-OPT=-O0
+OPT=-O3
 FFLAGS= -ffree-form $(OPT) $(WARN) $(DEBUG)
 
 ISO=make_iso
