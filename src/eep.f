@@ -178,12 +178,11 @@
       integer function ZAMS(t,guess)
       type(track), intent(in) :: t
       real(dp) :: Xmax, Xmin, Xc, LH, Lmin !g_max, 
-      real(dp), parameter :: Lfac = 9.9d-1 !Xfac = 9.8d-1
+      real(dp), parameter :: Lfac = 9.99d-1 !Xfac = 9.8d-1
       integer, intent(in) :: guess
       integer :: i, my_guess !, search_begin, search_end
       ZAMS = 0
       Xmax = t% tr(i_Xc,1)
-      !Xmin = Xfac * Xmax
       Xmin = Xmax - 1.5d-3
       if(guess < 1 .or. guess > t% ntrack) then 
          my_guess = 1
@@ -211,7 +210,7 @@
       enddo
 
       !set upper limit in case M < 0.1 and no H-burning occurs
-      ZAMS = min(i+1,t% ntrack)
+      if(t% initial_mass < 0.1d0) ZAMS = min(i+1,t% ntrack)
 
       !skip this for now
       !search_begin = i

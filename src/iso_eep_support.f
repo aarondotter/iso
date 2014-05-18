@@ -251,35 +251,21 @@
       type_string = (/ 'flt', 'int' /)
       
       ! using unformatted binary files makes the process of creating
-      ! EEP files really fast. check to see if the .bin exists and,
+      ! EEP files much faster. so check to see if the .bin exists and,
       ! if it does, read it and be done. otherwise read the .data
       ! file and write a new .bin at the end.
-      ! time goes from 2min -> 1.5sec for 94 tracks. tight!
+      ! time goes from t=2min to t<3sec for 94 tracks. tight!
       binfile=trim(data_dir) // '/' // trim(t% filename) // '.bin'
       inquire(file=binfile,exist=binfile_exists)
       
       if(binfile_exists)then
-         print *, '    reading binfile:'
-         print *, '    ', trim(binfile)
-         io=alloc_iounit(ierr)
-         binfile = trim(data_dir) // '/' // trim(t% filename) // '.bin'
-         open(io,file=trim(binfile),form='unformatted')
-         read(io) t% filename
-         read(io) t% ncol, t% ntrack, t% neep, t% version_number
-         read(io) t% initial_mass
-         allocate(t% tr(t% ncol, t% ntrack),t% cols(t% ncol),t% dist(t% ntrack))
-         read(io) t% cols
-         read(io) t% tr
-         read(io) t% dist
-         close(io) 
-         call free_iounit(io)
+         call read_history_bin(t)
+         call distance_along_track(t)
          return
       endif
 
-      print *, '    reading file:'
-      print *, '    ', trim(t% filename)
-
-
+      ! if the binfile does not exist, then we read the .data files and write new
+      ! .bins.  slow.
       io=alloc_iounit(ierr)
       open(unit=io,file=trim(trim(data_dir) // '/' // t% filename),status='old')
       !read first 3 lines of header
@@ -346,6 +332,7 @@
       call free_iounit(io)
 
       !compute distance along track
+      allocate(t% dist(t% ntrack))
       call distance_along_track(t)
 
       deallocate(output)
@@ -358,6 +345,24 @@
       call write_history_bin(t)
 
       end subroutine read_history_file
+
+      subroutine read_history_bin(t)
+      type(track), intent(inout) :: t
+      integer :: io, ierr
+      character(len=file_path) :: binfile
+      io=alloc_iounit(ierr)
+      binfile = trim(data_dir) // '/' // trim(t% filename) // '.bin'
+      open(io,file=trim(binfile),form='unformatted')
+      read(io) t% filename
+      read(io) t% ncol, t% ntrack, t% neep, t% version_number
+      read(io) t% initial_mass
+      allocate(t% tr(t% ncol, t% ntrack),t% cols(t% ncol),t% dist(t% ntrack))
+      read(io) t% cols
+      read(io) t% tr
+      read(io) t% dist
+      close(io) 
+      call free_iounit(io)
+      end subroutine read_history_bin
 
       subroutine write_history_bin(t)
       type(track), intent(in) :: t
@@ -378,10 +383,9 @@
 
       subroutine distance_along_track(t)
       type(track), intent(inout) :: t
-      real(dp), parameter :: Teff_scale=1d2, logL_scale=2.5d1
-      real(dp), parameter :: age_scale=2d1, Rhoc_scale=5d0
+      real(dp), parameter :: Teff_scale=1d1, logL_scale=5d0
+      real(dp), parameter :: age_scale=0d0, Rhoc_scale=0d0
       integer :: j
-      allocate(t% dist(t% ntrack))
       t% dist(1) = 0d0
       if(t% ntrack > 1)then
          do j=2, t% ntrack
