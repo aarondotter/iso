@@ -450,12 +450,12 @@
          endif
       enddo
 
-      if(iso_debug)then
-         write(*,*) '   BEFORE   '
-         write(*,*) ' count = ', count
-         write(*,*) ' x = ', x
-         write(*,*) ' x_array = ', x_array
-      endif
+      !if(iso_debug)then
+      !   write(*,*) '   BEFORE   '
+      !   write(*,*) ' count = ', count
+      !   write(*,*) ' x = ', x
+      !   write(*,*) ' x_array = ', x_array
+      !endif
 
       !perform the interpolation, y~f(x), using the input method
       if(method == piecewise_monotonic)then
@@ -467,27 +467,27 @@
       endif
 
 
-      if(iso_debug)then
-         write(*,*) '   AFTER 1 '
-         write(*,*) ' count = ', count
-         write(*,*) ' x = ', x
-         write(*,*) ' x_array = ', x_array
-      endif
+      !if(iso_debug)then
+      !   write(*,*) '   AFTER 1 '
+      !   write(*,*) ' count = ', count
+      !   write(*,*) ' x = ', x
+      !   write(*,*) ' x_array = ', x_array
+      !endif
 
       call interp_value(x_array,count,f1,x,y,ierr)      
 
-      if(iso_debug)then
-         write(*,*) '   AFTER 2 '
-         write(*,*) ' count = ', count
-         write(*,*) ' x = ', x
-         write(*,*) ' x_array = ', x_array
-      endif
+      !if(iso_debug)then
+      !   write(*,*) '   AFTER 2 '
+      !   write(*,*) ' count = ', count
+      !   write(*,*) ' x = ', x
+      !   write(*,*) ' x_array = ', x_array
+      !endif
 
       if(ierr/=0) return
       
       iso_interpolate = y
 
-      if(iso_debug) write(*,*) '   all done in iso_interpolate'
+      !if(iso_debug) write(*,*) '   all done in iso_interpolate'
 
       end function iso_interpolate
 

@@ -7,7 +7,7 @@
       implicit none
 
       integer, parameter :: col_width = 32, file_path = 256
-      logical, parameter :: verbose = .false., old_core_mass_names=.true.
+      logical, parameter :: verbose = .false., old_core_mass_names=.false.
 
       logical, parameter ::check_initial_mass = .true.
       real(dp) :: mass_eps = 1d-6
@@ -233,7 +233,7 @@
 
       subroutine read_history_file(t)
       type(track), intent(inout) :: t
-      character(len=4096) :: line
+      character(len=8192) :: line
       character(len=file_path) :: binfile
       character(len=3) :: type_string(2)
       integer :: i, ilo, ihi, io, j, imass, iversion
@@ -384,7 +384,7 @@
       subroutine distance_along_track(t)
       type(track), intent(inout) :: t
       real(dp), parameter :: Teff_scale=1d1, logL_scale=5d0
-      real(dp), parameter :: age_scale=0d0, Rhoc_scale=0d0
+      real(dp), parameter :: age_scale=2d0, Rhoc_scale=0d0
       integer :: j
       t% dist(1) = 0d0
       if(t% ntrack > 1)then
