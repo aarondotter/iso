@@ -383,7 +383,7 @@
 
       subroutine distance_along_track(t)
       type(track), intent(inout) :: t
-      real(dp), parameter :: Teff_scale=1d1, logL_scale=5d0
+      real(dp), parameter :: Teff_scale=1d2, logL_scale=5d1
       real(dp), parameter :: age_scale=2d0, Rhoc_scale=0d0
       integer :: j
       t% dist(1) = 0d0
@@ -392,7 +392,7 @@
             t% dist(j) = t% dist(j-1) + Teff_scale*(t% tr(i_logTe,j) - t% tr(i_logTe,j-1))**2 &
                                       + logL_scale*(t% tr(i_logL, j) - t% tr(i_logL, j-1))**2 &
                                       + Rhoc_scale*(t% tr(i_Rhoc, j) - t% tr(i_Rhoc, j-1))**2 &
-                                      +  age_scale*(log10(t% tr(i_age,j)) - log10(t% tr(i_age,j-1)))**2
+                                      + age_scale*(log10(t% tr(i_age,j)) - log10(t% tr(i_age,j-1)))**2
          enddo
       endif
       end subroutine distance_along_track
