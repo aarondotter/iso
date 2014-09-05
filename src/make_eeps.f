@@ -35,12 +35,19 @@
          write(*,*) trim(t% filename), t% neep, t% version_number
          call primary_eep(t)
          write(*,'(99i8)') t% eep
-         allocate(s)
-         call secondary_eep(t,s)
-         if(do_phases) call set_track_phase(s)
-         if(do_track_output) call write_new_track(t)
-         if(do_eep_output) call write_new_eep(s)
-         deallocate(t,s)
+         if( all(t% eep == 0) ) then
+            write(*,*) ' PROBLEM WTIH TRACK: NO EEPS DEFINED '
+         else
+            call alloc_track(t% filename,s)
+            call secondary_eep(t,s)
+            if(do_phases) call set_track_phase(s)
+            if(do_track_output) call write_new_track(t)
+            if(do_eep_output) call write_new_eep(s)
+            deallocate(s)
+            nullify(s)
+         endif
+         deallocate(t)
+         nullify(t)
       enddo
 
       deallocate(cols)

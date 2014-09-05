@@ -45,10 +45,6 @@
 
       ! allocate and fill new track
 
-      !write(*,*) 's% ntrack = ', s% ntrack
-      !write(*,*) 't% ntrack = ', t% ntrack
-      !write(*,*) 'num_p = ', num_p
-
       allocate(s% tr(s% ncol,s% ntrack))
       allocate(s% dist(s% ntrack))
       allocate(s% eep(s% neep))
