@@ -1,4 +1,4 @@
-#data directory
+#data directories: 1) history files, 2) eeps, 3) isochrones
 /data/MIST_v0.0/tracks
 /data/MIST_v0.0/eeps
 /data/MIST_v0.0/isochrones
