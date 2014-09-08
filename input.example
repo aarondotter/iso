@@ -1,0 +1,19 @@
+#data directory
+/data/MIST_v0.0/tracks
+/data/MIST_v0.0/eeps
+/data/MIST_v0.0/isochrones
+#read history_columns
+/home/dotter/science/iso/testgrid_041214_v2_tracks/my_history_columns.list
+#specify tracks
+4
+00008M.track
+00100M.track
+01000M.track
+10000M.track
+#specify isochrones
+isochrones_example.txt
+min_max
+51
+5.0
+10.0
+single
