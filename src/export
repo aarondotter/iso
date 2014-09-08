@@ -1,9 +1,0 @@
-#!/bin/bash
-
-DEST=/home/dotter/Dropbox/MIST/isochrones/src/
-
-set -x
-cp -u *.f $DEST 
-cp -u *.dek $DEST
-cp -u makefile $DEST
-set +x

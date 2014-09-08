@@ -31,7 +31,7 @@
       
       !process existing files
       do i=1,num
-         s_old(i)% filename = trim(data_dir) // '/' // trim(history_files(i))
+         s_old(i)% filename = trim(history_dir) // '/' // trim(history_files(i))
          call read_eep(s_old(i))
          write(*,*) s_old(i)% initial_mass
          !debugging
@@ -41,7 +41,7 @@
 
 
       s_new = blend(s_old,weights)
-      s_new% filename = trim(data_dir) // '/' // trim(output)
+      s_new% filename = trim(history_dir) // '/' // trim(output)
 
       write(*,*) s_new% has_phase, s_new% ncol, s_new% cols(1:3)
 
@@ -103,7 +103,7 @@
       io=alloc_iounit(ierr)
       open(unit=io,file=trim(input_file),status='old')
       read(io,*) !skip first line
-      read(io,'(a)') data_dir
+      read(io,'(a)') history_dir
       read(io,*) !skip comment line
       read(io,*) num
       read(io,*) !skip comment line
@@ -125,7 +125,7 @@
       read(io,'(a)') output
       close(io)
       call free_iounit(io)
-      write(*,*) trim(data_dir)
+      write(*,*) trim(history_dir)
       write(*,*) num
       write(*,'(99a32)') history_files
       write(*,*) weights, ' => ', sum(weights)

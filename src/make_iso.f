@@ -12,10 +12,9 @@
       implicit none
 
       character(len=file_path) :: input_file, iso_file, history_columns_list
-      integer :: i, ierr, io, niso, ntrk
-      type(track), allocatable :: s(:), q
+      integer :: i, ierr, io, j, niso, ntrk, ngood, first, prev, i_Minit
+      type(track), allocatable :: s(:), t(:), q
       type(isochrone_set) :: set
-      integer :: i_Minit
 
       logical :: use_double_eep
       integer, parameter :: piecewise_monotonic =4
@@ -34,32 +33,53 @@
       if(ierr/=0) write(*,*) '  read_iso_input: ierr = ', ierr
 
       !read eep files to fill s()
+      first=1
+      prev=first
+      ngood=0
       do i=1,ntrk
          call read_eep(s(i))
+         if(s(i)% ignore) cycle
+         if(i<first) then 
+            first=i             !this marks the first valid eep file
+            prev=first
+         elseif(prev>first)then
+            prev=first
+         endif
          if(iso_debug) write(*,'(a50,f8.2,99i8)') &
          trim(s(i)% filename), s(i)% initial_mass, s(i)% eep
          !check for monotonic mass, consistent phase info and version number
          if(i > 2)then
-            if( s(i)% initial_mass < s(i-1)% initial_mass ) &
+            if( s(i)% initial_mass < s(prev)% initial_mass ) &
             stop ' make_iso: masses out of order'
-            if( s(i)% has_phase.neqv.s(i-1)% has_phase ) &
+            if( s(i)% has_phase.neqv.s(prev)% has_phase ) &
             stop ' make_iso: inconsistent phase info in tracks'
-            if( s(i)% version_number /= s(i-1)% version_number )&
+            if( s(i)% version_number /= s(prev)% version_number )&
             stop ' make_iso: inconsistent version number in tracks'
          endif
+         ngood=ngood+1
       enddo
+      
+      allocate(t(ngood))
+      j=0
+      do i=1,ntrk
+         if(.not.s(i)% ignore) then
+            j=j+1
+            t(j)=s(i)
+         endif
+      enddo
+      deallocate(s)
 
       !above checks pass => these are safe assignments
-      set% iso(:)% has_phase = s(1)% has_phase
-      set% version_number = s(1)% version_number
+      set% iso(:)% has_phase = t(1)% has_phase
+      set% version_number = t(1)% version_number
 
       !interpolate a new track . . .
       if(do_tracks)then
          allocate(q)
          q% initial_mass = 1.2d0
-         q% filename = trim(data_dir) // '/out.trk'
+         q% filename = trim(history_dir) // '/out.trk'
          write(*,*) ' call interpolate_track'
-         call interpolate_track(s,q)
+         call interpolate_track(t,q)
          call write_track(q)
          deallocate(q)
       endif
@@ -67,13 +87,13 @@
       !create isochrones 
       if(do_isochrones)then
          do i=1,niso
-            call do_isochrone_for_age(s,set% iso(i))
+            call do_isochrone_for_age(t,set% iso(i))
          enddo
          call write_isochrones_to_file(iso_file,set)
       endif
 
       !all done.
-      deallocate(s,cols)
+      deallocate(t,cols)
 
       contains
       
@@ -624,7 +644,9 @@
       !read info about into tracks
       open(unit=io,file=trim(input_file))
       read(io,*) !skip comment line
-      read(io,'(a)') data_dir
+      read(io,'(a)') history_dir
+      read(io,'(a)') eep_dir
+      read(io,'(a)') iso_dir
       read(io,*) !skip comment line
       read(io,'(a)') history_columns_list
       read(io,*) !skip comment line
@@ -632,13 +654,13 @@
       allocate(s(ntrk))
       do i=1,ntrk
          read(io,'(a)',iostat=ierr) s(i)% filename 
-         s(i)% filename = trim(data_dir) // '/' // trim(s(i)% filename) // '.eep'
+         s(i)% filename = trim(s(i)% filename)
          if(ierr/=0) exit
       enddo
       !read info about output isochrones
       read(io,*) !skip this line
       read(io,*) iso_file
-      iso_file = trim(data_dir) // '/' // trim(iso_file)
+      iso_file = trim(iso_dir) // '/' // trim(iso_file)
       read(io,'(a)') list_type
       read(io,*) niso
       allocate(set% iso(niso))

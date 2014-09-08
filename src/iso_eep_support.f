@@ -12,7 +12,7 @@
       logical, parameter ::check_initial_mass = .true.
       real(dp) :: mass_eps = 1d-6
 
-      character(len=file_path) :: data_dir
+      character(len=file_path) :: history_dir, eep_dir, iso_dir
 
       ! maximum number of columns in history file
       integer, parameter :: max_col = 200
@@ -40,7 +40,7 @@
       type track
          character(len=file_path) :: filename
          character(len=col_width), pointer :: cols(:)
-         logical :: has_phase = .false.
+         logical :: has_phase = .false., ignore=.false.
          integer :: ncol, ntrack, neep, version_number
          integer, allocatable :: eep(:)
          real(dp) :: initial_mass
@@ -88,7 +88,7 @@
             read(io,'(a)',iostat=ierr) line
             if(ierr/=0) exit inner_loop
             nchar=len_trim(line)
-            if(nchar==0) cycle inner_loop ! skip blank line
+            if(nchar==0) cycle inner_loop ! ignore blank line
 
             line=adjustl(line)
             i=index(line,'!')-1
@@ -100,11 +100,11 @@
             else if(index(line(1:i),'number')>0) then
                if(verbose) write(*,*) '****** ', trim(line)
                if(verbose) write(*,*) '****** index of number > 0, cycling'
-               cycle inner_loop !skip integers
+               cycle inner_loop !ignore integers
             else if(index(line(1:i),'num_')==1)then
                if(verbose) write(*,*) '****** ', trim(line)
                if(verbose) write(*,*) '****** index of num_ == 1, cycling'
-               cycle inner_loop !skip integers
+               cycle inner_loop !ignore integers
             endif
             column_name = line
             ncol(pass)=ncol(pass)+1
@@ -202,8 +202,20 @@
       type(track), intent(inout) :: x
       integer :: ierr, io, j
       character(len=8) :: phase_info
+      character(len=file_path) :: eepfile
       io=alloc_iounit(ierr)
-      open(io,file=trim(x% filename),status='old')
+      eepfile = trim(eep_dir) // '/' // trim(x% filename) // '.eep'
+      open(io,file=trim(eepfile),status='old',action='read',iostat=ierr)
+
+      !check if the file was opened successfully; if not, then fail
+      if(ierr/=0) then
+         x% ignore=.true.
+         write(*,*) '  PROBLEM OPENING EEP FILE: ', trim(eepfile)
+         close(io)
+         call free_iounit(io)
+         return
+      endif
+      
       read(io,*)
       read(io,'(1p1e20.10,4i8,a8)') x% initial_mass, x% ntrack, x% neep, x% ncol, x% version_number, phase_info
       !if(x% ncol /= ncol) write(*,*) '  WARNING: NCOL != DEFAULT  '
@@ -255,7 +267,7 @@
       ! if it does, read it and be done. otherwise read the .data
       ! file and write a new .bin at the end.
       ! time goes from t=2min to t<3sec for 94 tracks. tight!
-      binfile=trim(data_dir) // '/' // trim(t% filename) // '.bin'
+      binfile=trim(history_dir) // '/' // trim(t% filename) // '.bin'
       inquire(file=binfile,exist=binfile_exists)
       
       if(binfile_exists)then
@@ -267,7 +279,7 @@
       ! if the binfile does not exist, then we read the .data files and write new
       ! .bins.  slow.
       io=alloc_iounit(ierr)
-      open(unit=io,file=trim(trim(data_dir) // '/' // t% filename),status='old')
+      open(unit=io,file=trim(trim(history_dir) // '/' // t% filename),status='old')
       !read first 3 lines of header
       !currently don't use all of this, but could...
       imass=0
@@ -310,7 +322,7 @@
 
       t% cols = cols(:)
 
-      !skip file header, already read it once
+      !ignore file header, already read it once
       rewind(io)
       do i=1,6
          read(io,*)
@@ -351,7 +363,7 @@
       integer :: io, ierr
       character(len=file_path) :: binfile
       io=alloc_iounit(ierr)
-      binfile = trim(data_dir) // '/' // trim(t% filename) // '.bin'
+      binfile = trim(history_dir) // '/' // trim(t% filename) // '.bin'
       open(io,file=trim(binfile),form='unformatted')
       read(io) t% filename
       read(io) t% ncol, t% ntrack, t% neep, t% version_number
@@ -369,7 +381,7 @@
       integer :: io, ierr
       character(len=file_path) :: binfile
       io=alloc_iounit(ierr)
-      binfile = trim(data_dir) // '/' // trim(t% filename) // '.bin'
+      binfile = trim(history_dir) // '/' // trim(t% filename) // '.bin'
       open(io,file=trim(binfile),form='unformatted')
       write(io) t% filename
       write(io) t% ncol, t% ntrack, t% neep, t% version_number

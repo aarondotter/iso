@@ -14,8 +14,7 @@
       character(len=file_path) :: input_file, history_columns_list
       character(len=file_path), allocatable :: history_files(:)
       type(track), pointer :: t=>NULL(), s=>NULL()
-      logical :: do_track_output = .false., do_eep_output = .true.
-      logical :: do_phases = .false.
+      logical :: do_eep_output = .true., do_phases = .false.
 
       ierr=0
       if(command_argument_count()<1) then
@@ -41,15 +40,17 @@
             call alloc_track(t% filename,s)
             call secondary_eep(t,s)
             if(do_phases) call set_track_phase(s)
-            if(do_track_output) call write_new_track(t)
-            if(do_eep_output) call write_new_eep(s)
+            if(do_eep_output) then
+               s% filename = trim(eep_dir) // '/' // trim(s% filename) // '.eep'
+               call write_track(s)
+            endif
             deallocate(s)
             nullify(s)
          endif
          deallocate(t)
          nullify(t)
       enddo
-
+      
       deallocate(cols)
 
       contains
@@ -61,7 +62,9 @@
       io=alloc_iounit(ierr)
       open(unit=io,file=trim(input_file))
       read(io,*) !skip first line
-      read(io,'(a)') data_dir
+      read(io,'(a)') history_dir
+      read(io,'(a)') eep_dir
+      read(io,'(a)') iso_dir
       read(io,*) !skip comment line
       read(io,'(a)') history_columns_list
       read(io,*) !skip comment line
@@ -87,19 +90,5 @@
       !set up columns to be used
       call setup_columns(history_columns_list,ierr)
       end subroutine read_input
-
-      subroutine write_new_track(t)
-      type(track) :: t
-      !overwrite filename for new output
-      t% filename = trim(data_dir) // '/' // trim(t% filename) // '.trk'
-      call write_track(t)
-      end subroutine write_new_track
-
-      subroutine write_new_EEP(s)
-      type(track) :: s
-      !overwrite filename for new output
-      s% filename = trim(data_dir)// '/' // trim(s% filename) // '.eep'
-      call write_track(s) 
-      end subroutine write_new_EEP
 
       end program make_eeps
