@@ -33,7 +33,7 @@
       if(ierr/=0) write(*,*) '  read_iso_input: ierr = ', ierr
 
       !read eep files to fill s()
-      first=1
+      first=ntrk
       prev=first
       ngood=0
       do i=1,ntrk
@@ -48,7 +48,7 @@
          if(iso_debug) write(*,'(a50,f8.2,99i8)') &
          trim(s(i)% filename), s(i)% initial_mass, s(i)% eep
          !check for monotonic mass, consistent phase info and version number
-         if(i > 2)then
+         if(ngood > 1)then
             if( s(i)% initial_mass < s(prev)% initial_mass ) &
             stop ' make_iso: masses out of order'
             if( s(i)% has_phase.neqv.s(prev)% has_phase ) &
