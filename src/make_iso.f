@@ -18,7 +18,7 @@
 
       logical :: use_double_eep
       integer, parameter :: piecewise_monotonic =4
-      logical, parameter :: iso_debug = .false., do_smooth = .false.
+      logical, parameter :: iso_debug = .false., do_smooth = .true.
       logical, parameter :: do_tracks = .false., do_isochrones = .true.
 
       ierr=0
