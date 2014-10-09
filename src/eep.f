@@ -127,7 +127,7 @@
       integer :: ieep
       t% EEP = 0 !initialize
       ieep=1
-      t% EEP(ieep) = PreMS(t,5.0d0,1); if(t% EEP(ieep)==0) return; ieep=ieep+1
+      t% EEP(ieep) = PreMS_age(t,5.0d0,1); if(t% EEP(ieep)==0) return; ieep=ieep+1
       t% EEP(ieep) = ZAMS(t,10); if(t% EEP(ieep)==0) return; ieep=ieep+1
       t% EEP(ieep) = TAMS(t,1d-1,t% EEP(ieep-1)); if(t% EEP(ieep)==0) return; ieep=ieep+1
       t% EEP(ieep) = TAMS(t,1d-4,t% EEP(ieep-1)); if(t% EEP(ieep)==0) return; ieep=ieep+1
@@ -140,11 +140,11 @@
       t% EEP(ieep) = WDCS(t, t% EEP(ieep-1))
       end subroutine primary_eep
 
-      integer function PreMS(t,logTc,guess)
+      function PreMS_Tc(t,logTc,guess) result(PreMS)
       type(track), intent(in) :: t
       real(dp), intent(in) :: logTc
       integer, intent(in) :: guess
-      integer :: i, my_guess
+      integer :: i, my_guess, PreMS
       real(dp) :: my_logTc
       PreMS = 0
       if(guess < 1 .or. guess > t% ntrack) then 
@@ -169,7 +169,35 @@
          endif
       enddo
 
-      end function PreMS
+      end function PreMS_Tc
+
+
+      function PreMS_age(t,logAge,guess) result(PreMS)
+      type(track), intent(in) :: t
+      real(dp), intent(in) :: logAge
+      integer, intent(in) :: guess
+      integer :: i, my_guess, PreMS
+      PreMS = 0
+
+      if(t% initial_mass > 3d1)then
+         PreMS=1
+         return
+      endif
+
+      if(guess < 1 .or. guess > t% ntrack) then 
+         my_guess = 1
+      else
+         my_guess = guess
+      endif
+      
+      do i=my_guess,t% ntrack
+         if(log10(t% tr(i_age,i)) > logAge) then
+            PreMS = i
+            return
+         endif
+      enddo
+      end function PreMS_age
+
 
       integer function ZAMS(t,guess)
       type(track), intent(in) :: t

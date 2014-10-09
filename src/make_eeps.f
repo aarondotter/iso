@@ -14,7 +14,7 @@
       character(len=file_path) :: input_file, history_columns_list
       character(len=file_path), allocatable :: history_files(:)
       type(track), pointer :: t=>NULL(), s=>NULL()
-      logical :: do_eep_output = .true., do_phases = .false.
+      logical :: do_eep_output = .true., do_phases = .true.
 
       ierr=0
       if(command_argument_count()<1) then

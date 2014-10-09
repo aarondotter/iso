@@ -763,7 +763,6 @@
       do i=3,n-2
          y(i)=npoint(x(i-2:i+2),y(i-2:i+2),x(i))
       enddo
-      
       end subroutine smooth
 
       function npoint(x,y,x0) result(y0)

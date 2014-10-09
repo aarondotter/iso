@@ -1,0 +1,3 @@
+#!/bin/bash
+./make_eeps $1
+./make_iso  $1
