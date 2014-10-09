@@ -18,7 +18,7 @@
 
       logical :: use_double_eep
       integer, parameter :: piecewise_monotonic =4
-      logical, parameter :: iso_debug = .false.
+      logical, parameter :: iso_debug = .false., do_smooth = .false.
       logical, parameter :: do_tracks = .false., do_isochrones = .true.
 
       ierr=0
@@ -183,7 +183,9 @@
                masses(j) = s(k)% initial_mass
             endif
          enddo
-         
+        
+         if(do_smooth) call smooth(masses,ages)
+ 
          !check to see if the input age is found within the
          !current set of ages. if not, skip to the next EEP.
          j = binary_search( count, ages, 1, age)
@@ -750,5 +752,29 @@
          enddo
       endif
       end subroutine check_monotonic
+
+      subroutine smooth(x,y)
+      real(dp), intent(in) :: x(:)
+      real(dp), intent(inout) :: y(:)
+      integer :: i,n
+      n=size(y)
+      y(2)=npoint(x(1:3),y(1:3),x(2))
+      y(n-1)=npoint(x(n-2:n),y(n-2:n),x(n-1))
+      do i=3,n-2
+         y(i)=npoint(x(i-2:i+2),y(i-2:i+2),x(i))
+      enddo
+      
+      end subroutine smooth
+
+      function npoint(x,y,x0) result(y0)
+      real(dp), intent(in)  :: x(:), y(:), x0
+      real(dp) :: y0
+      real(dp), allocatable :: w(:)
+      real(dp), parameter :: eps=1d-1
+      allocate(w(size(x)))
+      w = 1d0/(eps+abs(x-x0))
+      y0 = sum(y*w)/sum(w)      
+      deallocate(w)
+      end function npoint
 
       end program make_isochrone
