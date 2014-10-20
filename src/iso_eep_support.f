@@ -60,6 +60,7 @@
       !holds a set of isochrones
       type isochrone_set
       integer :: version_number
+      integer, allocatable :: num_valid_eeps(:)
       type(isochrone), allocatable :: iso(:)
       end type isochrone_set
 
@@ -395,16 +396,25 @@
 
       subroutine distance_along_track(t)
       type(track), intent(inout) :: t
-      real(dp), parameter :: Teff_scale=1d2, logL_scale=5d1
-      real(dp), parameter :: age_scale=2d0, Rhoc_scale=0d0
+
+      !real(dp), parameter :: Teff_scale=1d1, logL_scale=1.25d0
+      !real(dp), parameter :: age_scale=4d0, Rhoc_scale=0d0, Tc_scale=0d0
+
+      real(dp), parameter :: Teff_scale=1d2, logL_scale=12.5d0
+      real(dp), parameter :: age_scale=4d0, Rhoc_scale=0d0, Tc_scale=0d0
+
       integer :: j
+      
       t% dist(1) = 0d0
       if(t% ntrack > 1)then
          do j=2, t% ntrack
-            t% dist(j) = t% dist(j-1) + Teff_scale*(t% tr(i_logTe,j) - t% tr(i_logTe,j-1))**2 &
-                                      + logL_scale*(t% tr(i_logL, j) - t% tr(i_logL, j-1))**2 &
-                                      + Rhoc_scale*(t% tr(i_Rhoc, j) - t% tr(i_Rhoc, j-1))**2 &
-                                      + age_scale*(log10(t% tr(i_age,j)) - log10(t% tr(i_age,j-1)))**2
+            t% dist(j) = t% dist(j-1) + sqrt( &
+                                        Teff_scale*(t% tr(i_logTe,j) - t% tr(i_logTe,j-1))**2  &
+                                      + logL_scale*(t% tr(i_logL, j) - t% tr(i_logL, j-1))**2  &
+                                      + Rhoc_scale*(t% tr(i_Rhoc, j) - t% tr(i_Rhoc, j-1))**2  &
+                                      + Tc_scale*  (t% tr(i_Tc,   j) - t% tr(i_Tc,   j-1))**2  &
+                                      + age_scale* (log10(t% tr(i_age,j)) - log10(t% tr(i_age,j-1)))**2  &
+                                        )
          enddo
       endif
       end subroutine distance_along_track

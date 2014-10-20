@@ -127,7 +127,7 @@
       integer :: ieep
       t% EEP = 0 !initialize
       ieep=1
-      t% EEP(ieep) = PreMS_age(t,5.0d0,1); if(t% EEP(ieep)==0) return; ieep=ieep+1
+      t% EEP(ieep) = PreMS_Tc(t,5.0d0,1); if(t% EEP(ieep)==0) return; ieep=ieep+1
       t% EEP(ieep) = ZAMS(t,10); if(t% EEP(ieep)==0) return; ieep=ieep+1
       t% EEP(ieep) = TAMS(t,1d-1,t% EEP(ieep-1)); if(t% EEP(ieep)==0) return; ieep=ieep+1
       t% EEP(ieep) = TAMS(t,1d-4,t% EEP(ieep-1)); if(t% EEP(ieep)==0) return; ieep=ieep+1
@@ -316,6 +316,14 @@
       Ymin = 9d-1
       LHemax = -99d0
       my_guess_2 = my_guess
+
+      do i=my_guess, t% ntrack
+         if(t% tr(i_Yc,i) < 0.98d0)then
+            ZAHB=i
+            return
+         endif
+      enddo
+
       do i=my_guess, t% ntrack
          if(t% tr(i_Yc,i) > Ymin .and. t% tr(i_logLHe,i) > LHemax)then
             LHemax = t% tr(i_logLHe,i)

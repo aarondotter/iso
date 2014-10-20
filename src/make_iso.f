@@ -17,9 +17,11 @@
       type(isochrone_set) :: set
 
       logical :: use_double_eep
-      integer, parameter :: piecewise_monotonic =4
-      logical, parameter :: iso_debug = .false., do_smooth = .true.
+      integer, parameter :: piecewise_monotonic = 4
+      logical, parameter :: iso_debug = .false.
       logical, parameter :: do_tracks = .false., do_isochrones = .true.
+      logical, parameter :: skip_non_monotonic = .true.
+      logical, parameter :: do_smooth = .true.
 
       ierr=0
       if(command_argument_count()<1) then
@@ -183,9 +185,18 @@
                masses(j) = s(k)% initial_mass
             endif
          enddo
+
+         do k=1,count
+            write(112,*) eep, ages(k), log10(masses(k))
+         enddo
+
         
-         if(do_smooth) call smooth(masses,ages)
+         if(do_smooth.and.all(masses>0.5,dim=1)) call smooth(masses,ages)
  
+         do k=1,count
+            write(111,*)  eep, ages(k), log10(masses(k))
+         enddo
+
          !check to see if the input age is found within the
          !current set of ages. if not, skip to the next EEP.
          j = binary_search( count, ages, 1, age)
@@ -324,6 +335,17 @@
          deallocate(ages,masses)
          nullify(ages,masses)
       enddo eep_loop
+
+      if(skip_non_monotonic .and. .not.use_double_eep)then !check for non-monotonic EEPs
+         do eep=2,max_eep
+            if(valid(eep)>0)then
+               do j=eep-1,2,-1
+                  if(valid(j)>0) exit
+               enddo
+               if( result1(i_Minit,eep) < result1(i_Minit,j) ) valid(eep)=0
+            endif
+         enddo
+      endif
 
       !now result1 and valid are full for all EEPs,
       !we can pass the data to the iso derived type
@@ -512,6 +534,7 @@
       !if(iso_debug) write(*,*) '   all done in iso_interpolate'
 
       end function iso_interpolate
+
 
       !writes a series of n isochrones to filename
       subroutine write_isochrones_to_file(filename,set)

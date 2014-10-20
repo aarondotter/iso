@@ -1,3 +1,9 @@
 #!/bin/bash
+echo 
+echo
+echo make_eeps
 ./make_eeps $1
+echo
+echo
+echo make_iso
 ./make_iso  $1
