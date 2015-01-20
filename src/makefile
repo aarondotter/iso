@@ -26,19 +26,19 @@ $(EEP): make_eeps.o phases.o eep.o iso_eep_support.o
 $(BLEND): blend_eeps.o iso_eep_support.o
 	$(FC) $(OMP) -o ../$(BLEND) $^ $(LOAD_MESA)
 
-make_iso.o: make_iso.f iso_eep_support.o
+make_iso.o: make_iso.f90 iso_eep_support.o
 
-make_eeps.o: make_eeps.f phases.o eep.o iso_eep_support.o
+make_eeps.o: make_eeps.f90 phases.o eep.o iso_eep_support.o
 
-blend_eeps.o: blend_eeps.f iso_eep_support.o
+blend_eeps.o: blend_eeps.f90 iso_eep_support.o
 
-eep.o: eep.f iso_eep_support.o
+eep.o: eep.f90 iso_eep_support.o
 
-phases.o: phases.f iso_eep_support.o
+phases.o: phases.f90 iso_eep_support.o
 
-iso_eep_support.o: iso_eep_support.f
+iso_eep_support.o: iso_eep_support.f90
 
-%.o:%.f
+%.o:%.f90
 	$(FC) $(OMP) $(FFLAGS) $(INCLUDE) -c $<
 
 check: $(ISO) $(EEP)

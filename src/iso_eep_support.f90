@@ -66,7 +66,7 @@
 
       contains
 
-      include 'num_binary_search.dek'
+      include 'num_binary_search.inc'
 
       subroutine process_history_columns(history_columns_list,col,ierr)
       character(len=file_path), intent(in) :: history_columns_list
