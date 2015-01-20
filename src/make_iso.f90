@@ -19,9 +19,10 @@
       logical :: use_double_eep
       integer, parameter :: piecewise_monotonic = 4
       logical, parameter :: iso_debug = .false.
-      logical, parameter :: do_tracks = .false., do_isochrones = .true.
-      logical, parameter :: skip_non_monotonic = .true.
+      logical, parameter :: do_tracks = .false.
+      logical, parameter :: do_isochrones = .true.
       logical, parameter :: do_smooth = .true.
+      logical, parameter :: skip_non_monotonic = .true.
 
       ierr=0
       if(command_argument_count()<1) then

@@ -414,7 +414,7 @@
                                       + Rhoc_scale*(t% tr(i_Rhoc, j) - t% tr(i_Rhoc, j-1))**2  &
                                       + Tc_scale*  (t% tr(i_Tc,   j) - t% tr(i_Tc,   j-1))**2  &
                                       + age_scale* (log10(t% tr(i_age,j)) - log10(t% tr(i_age,j-1)))**2  &
-                                        )
+                                      )
          enddo
       endif
       end subroutine distance_along_track
