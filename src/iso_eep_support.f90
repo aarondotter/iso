@@ -49,12 +49,16 @@
 
       !holds one isochrone
       type isochrone
-      integer :: neep, ncol
+      integer :: neep !number of eeps
+      integer :: ncol !number of columns in history file
+      integer :: nfil !number of filters for mags
       character(len=col_width), pointer :: cols(:)
       logical :: has_phase = .false.
       integer, allocatable :: eep(:)
       real(dp) :: age ! log(age in yrs)
-      real(dp), allocatable :: phase(:), data(:,:) !(ncol,neep)
+      real(dp), allocatable :: phase(:) !neep
+      real(dp), allocatable :: data(:,:) !(ncol,neep)
+      real(dp), allocatable :: mags(:,:) !(num filters, neep)
       end type isochrone
 
       !holds a set of isochrones
