@@ -8,6 +8,7 @@
 
       !local modules
       use iso_eep_support
+      use iso_color
 
       implicit none
 
@@ -16,7 +17,7 @@
       type(track), allocatable :: s(:), t(:), q
       type(isochrone_set) :: set
 
-      logical :: use_double_eep
+      logical :: use_double_eep, do_colors
       integer, parameter :: piecewise_monotonic = 4
       logical, parameter :: iso_debug = .false.
       logical, parameter :: do_tracks = .false.
@@ -34,6 +35,9 @@
       !begin
       call read_iso_input(ierr)
       if(ierr/=0) write(*,*) '  read_iso_input: ierr = ', ierr
+
+      call read_color_input(ierr)
+      do_colors = (ierr == 0)
 
       !read eep files to fill s()
       first=ntrk
@@ -93,6 +97,7 @@
             call do_isochrone_for_age(t,set% iso(i))
          enddo
          call write_isochrones_to_file(iso_file,set)
+         call write_cmds_to_file(iso_file,set)
       endif
 
       !all done.
@@ -352,12 +357,15 @@
       !we can pass the data to the iso derived type
       iso% ncol = ncol
       iso% neep = sum(valid)
+      allocate(iso% cols(iso% ncol))
       !do eep=1,max_eep
       !   iso% neep = iso% neep + valid(eep)
       !enddo
       allocate(iso% data(iso% ncol, iso% neep), iso% eep(iso% neep))
       if(iso% has_phase) allocate(iso% phase(iso% neep))
       
+      iso% cols = cols
+
       j=0
       do eep=1,max_eep
          if(valid(eep)>0) then
@@ -594,6 +602,70 @@
                         iso% data(:,i), real(iso% phase(i),kind=dp)
       enddo
       end subroutine write_isochrone_to_file_phase
+
+      subroutine write_cmds_to_file(filename,s)
+        character(len=256), intent(in) :: filename
+        type(isochrone_set), intent(inout) :: s
+        character(len=256) :: output
+        integer :: i, io, n, ierr
+        if(color_suffix/='') output = trim(filename) // '.' // trim(color_suffix)
+        n=size(s% iso)
+        write(0,*) ' cmd output file = ', trim(output)
+        io = alloc_iounit(ierr)
+        if(ierr/=0) return
+        open(io,file=trim(output),action='write',iostat=ierr)
+        if(ierr/=0) return
+        write(io,'(a25,i5)') '# number of isochrones = ', n
+        write(io,'(a25,i5)') '# MESA version number  = ', s% version_number
+        do i=1,n
+           write(io,*) ' hello, boss!'
+           call write_cmd_to_file(io,s% iso(i))
+           if(i<n) write(io,*)
+           if(i<n) write(io,*)
+        enddo
+        close(io)
+        call free_iounit(io)
+      end subroutine write_cmds_to_file
+
+      subroutine write_cmd_to_file(io,iso)
+        integer, intent(in) :: io
+        type(isochrone), intent(inout) :: iso
+        integer :: i, iT, ig, iL
+!!$      !holds one isochrone
+!!$      type isochrone
+!!$      integer :: neep !number of eeps
+!!$      integer :: ncol !number of columns in history file
+!!$      integer :: nfil !number of filters for mags
+!!$      character(len=col_width), pointer :: cols(:)
+!!$      logical :: has_phase = .false.
+!!$      integer, allocatable :: eep(:)
+!!$      real(dp) :: age ! log(age in yrs)
+!!$      real(dp), allocatable :: phase(:) !neep
+!!$      real(dp), allocatable :: data(:,:) !(ncol,neep)
+!!$      real(dp), allocatable :: mags(:,:) !(num filters, neep)
+!!$      end type isochrone
+        iT=0; ig=0; iL=0
+
+        do i=1, iso% ncol
+           if(trim(iso% cols(i)) == 'log_Teff') then
+              iT=i
+           else if(trim(iso% cols(i)) == 'log_g') then
+              ig=i
+           else if(trim(iso% cols(i))== 'log_L') then
+              iL=i
+           endif
+        enddo
+
+        write(*,*) iso% cols(iT)
+        write(*,*) iso% cols(ig)
+        write(*,*) iso% cols(iL)
+
+        call get_mags(iso,iT,ig,iL)
+        do i = 1,iso% neep
+           write(io,'(i5,4(1pes32.16e3),299(0pf10.5))') iso% eep(i), iso% age,  &
+                iso% data(iT,i), iso% data(ig,i), iso% data(iL,i), iso% mags(:,i)
+        enddo
+      end subroutine write_cmd_to_file
 
       !takes a set of EEP-defined tracks and interpolates a new
       !track for the desired initial mass

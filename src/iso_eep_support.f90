@@ -1,7 +1,7 @@
       module iso_eep_support
 
       !MESA modules
-      use const_def, only: dp
+      use const_def, only: dp, sp
       use utils_lib, only: alloc_iounit, free_iounit
       
       implicit none
@@ -58,7 +58,7 @@
       real(dp) :: age ! log(age in yrs)
       real(dp), allocatable :: phase(:) !neep
       real(dp), allocatable :: data(:,:) !(ncol,neep)
-      real(dp), allocatable :: mags(:,:) !(num filters, neep)
+      real(sp), allocatable :: mags(:,:) !(num filters, neep)
       end type isochrone
 
       !holds a set of isochrones
@@ -491,7 +491,7 @@
          write(*,*) 'failed in process_history_columns'
          return
       endif
-      ncol = size(cols) !'
+      ncol = size(cols) 
       col_name = 'star_age'; i_age = locate_column(col_name,cols)
       col_name = 'star_mass'; i_mass= locate_column(col_name,cols)
       col_name='log_LH'; i_logLH=locate_column(col_name,cols)
