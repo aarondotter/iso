@@ -52,7 +52,8 @@
       integer :: neep !number of eeps
       integer :: ncol !number of columns in history file
       integer :: nfil !number of filters for mags
-      character(len=col_width), pointer :: cols(:)
+      character(len=col_width), allocatable :: cols(:) !for history columns
+      character(len=12), allocatable :: labels(:) !for mags
       logical :: has_phase = .false.
       integer, allocatable :: eep(:)
       real(dp) :: age ! log(age in yrs)

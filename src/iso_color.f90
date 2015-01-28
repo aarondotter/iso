@@ -40,6 +40,8 @@ contains
     real(sp) :: logT, logg, logL
     iso% nfil = bc(1)% num_filter
     allocate(iso% mags(iso% nfil, iso% neep),res(iso% nfil))
+    allocate(iso% labels(iso% nfil))
+    iso% labels = bc(1)% labels
     res = 0.
     iso% mags = 0.0         
     do i=1,iso% neep

@@ -618,7 +618,6 @@
         write(io,'(a25,i5)') '# number of isochrones = ', n
         write(io,'(a25,i5)') '# MESA version number  = ', s% version_number
         do i=1,n
-           write(io,*) ' hello, boss!'
            call write_cmd_to_file(io,s% iso(i))
            if(i<n) write(io,*)
            if(i<n) write(io,*)
@@ -631,19 +630,6 @@
         integer, intent(in) :: io
         type(isochrone), intent(inout) :: iso
         integer :: i, iT, ig, iL
-!!$      !holds one isochrone
-!!$      type isochrone
-!!$      integer :: neep !number of eeps
-!!$      integer :: ncol !number of columns in history file
-!!$      integer :: nfil !number of filters for mags
-!!$      character(len=col_width), pointer :: cols(:)
-!!$      logical :: has_phase = .false.
-!!$      integer, allocatable :: eep(:)
-!!$      real(dp) :: age ! log(age in yrs)
-!!$      real(dp), allocatable :: phase(:) !neep
-!!$      real(dp), allocatable :: data(:,:) !(ncol,neep)
-!!$      real(dp), allocatable :: mags(:,:) !(num filters, neep)
-!!$      end type isochrone
         iT=0; ig=0; iL=0
 
         do i=1, iso% ncol
@@ -655,12 +641,12 @@
               iL=i
            endif
         enddo
-
-        write(*,*) iso% cols(iT)
-        write(*,*) iso% cols(ig)
-        write(*,*) iso% cols(iL)
-
         call get_mags(iso,iT,ig,iL)
+        
+        write(io,'(a25,2i5)') '# number of EEPs, cols = ', iso% neep, iso% nfil + 5
+        write(io,'(a1,i4,4i32,299i10)') '#    ', (i,i=1,iso% nfil+5)
+        write(io,'(a5,4a32,299a10)') '# EEP', 'log_age', 'log_Teff', 'log_g', 'log_L', iso% labels
+
         do i = 1,iso% neep
            write(io,'(i5,4(1pes32.16e3),299(0pf10.5))') iso% eep(i), iso% age,  &
                 iso% data(iT,i), iso% data(ig,i), iso% data(iL,i), iso% mags(:,i)
