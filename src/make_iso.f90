@@ -615,8 +615,9 @@
         if(ierr/=0) return
         open(io,file=trim(output),action='write',iostat=ierr)
         if(ierr/=0) return
-        write(io,'(a25,i5)') '# number of isochrones = ', n
-        write(io,'(a25,i5)') '# MESA version number  = ', s% version_number
+        write(io,'(a25,i5)')    '# number of isochrones = ', n
+        write(io,'(a25,i5)')    '# MESA version number  = ', s% version_number
+        write(io,'(a25,2f6.3)') '# values of Av and Rv  = ', bc% Av(1), bc% Rv(1)
         do i=1,n
            call write_cmd_to_file(io,s% iso(i))
            if(i<n) write(io,*)

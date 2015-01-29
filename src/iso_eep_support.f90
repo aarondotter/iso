@@ -60,6 +60,7 @@
       real(dp), allocatable :: phase(:) !neep
       real(dp), allocatable :: data(:,:) !(ncol,neep)
       real(sp), allocatable :: mags(:,:) !(num filters, neep)
+      real(sp) :: Av, Rv
       end type isochrone
 
       !holds a set of isochrones
