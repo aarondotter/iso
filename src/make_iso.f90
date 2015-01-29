@@ -583,7 +583,7 @@
       my_ncol = iso% ncol + 2 !add two for eep and age
       write(io,'(a25,2i5)') '# number of EEPs, cols = ', iso% neep, my_ncol
       write(io,'(a1,i4,299i32)') '#    ', (i,i=1,my_ncol)
-      write(io,'(a5,299a32)') '# EEP', 'log_age', adjustr(cols)
+      write(io,'(a5,299a32)') '# EEP', 'log_age', adjustr(iso% cols)
       do i=1,iso% neep
          write(io,'(i5,299(1pes32.16e3))') iso% eep(i), iso% age, iso% data(:,i)
       enddo
@@ -596,7 +596,7 @@
       my_ncol = iso% ncol + 3 !add three for eep, phase, and age
       write(io,'(a25,2i5)') '# number of EEPs, cols = ', iso% neep, my_ncol
       write(io,'(a1,i4,299i32)') '#    ', (i,i=1,my_ncol)
-      write(io,'(a5,299a32)') '# EEP', 'log_age', adjustr(cols), 'phase'
+      write(io,'(a5,299a32)') '# EEP', 'log_age', adjustr(iso% cols), 'phase'
       do i=1,iso% neep
          write(io,'(i5,299(1pes32.16e3))') iso% eep(i), iso% age, &
                         iso% data(:,i), real(iso% phase(i),kind=dp)
@@ -645,11 +645,11 @@
         call get_mags(iso,iT,ig,iL)
         
         write(io,'(a25,2i5)') '# number of EEPs, cols = ', iso% neep, iso% nfil + 5
-        write(io,'(a1,i4,4i32,299i10)') '#    ', (i,i=1,iso% nfil+5)
-        write(io,'(a5,4a32,299a10)') '# EEP', 'log_age', 'log_Teff', 'log_g', 'log_L', iso% labels
-
+        write(io,'(a1,i4,4i32,299i12)') '#    ', (i,i=1,iso% nfil+5)
+        write(io,'(a5,4a32,299a12)') '# EEP', 'log_age', 'log_Teff', 'log_g', 'log_L', &
+             adjustr(iso% labels)
         do i = 1,iso% neep
-           write(io,'(i5,4(1pes32.16e3),299(0pf10.5))') iso% eep(i), iso% age,  &
+           write(io,'(i5,4(1pes32.16e3),299(0pf12.5))') iso% eep(i), iso% age,  &
                 iso% data(iT,i), iso% data(ig,i), iso% data(iL,i), iso% mags(:,i)
         enddo
       end subroutine write_cmd_to_file
