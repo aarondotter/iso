@@ -649,7 +649,7 @@
         write(io,'(a5,4a32,299a12)') '# EEP', 'log_age', 'log_Teff', 'log_g', 'log_L', &
              adjustr(iso% labels)
         do i = 1,iso% neep
-           write(io,'(i5,4(1pes32.16e3),299(0pf12.5))') iso% eep(i), iso% age,  &
+           write(io,'(i5,4(1pes32.16e3),299(0pf12.6))') iso% eep(i), iso% age,  &
                 iso% data(iT,i), iso% data(ig,i), iso% data(iL,i), iso% mags(:,i)
         enddo
       end subroutine write_cmd_to_file
