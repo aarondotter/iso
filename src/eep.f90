@@ -271,10 +271,6 @@ contains
     ! Xc test fails so consider instead the age for low mass tracks
     ! if the age of the last point > Max_Age, accept it
     if(t% initial_mass <= 0.5d0) TAMS = t% ntrack
-
-    !write(*,*) 'MADE IT HERE FOR MASS = ', t% initial_mass
-    !write(*,*) "TAMS, T% NTRACK = ", tams, t% ntrack
-
   end function TAMS
 
   integer function RGBTip(t,guess)
@@ -283,12 +279,15 @@ contains
     integer :: i, my_guess
     real(dp) :: Ymin, Lmax
     RGBTip = 0
-    if(guess < 1 .or. guess > t% ntrack) then 
-       my_guess = 1
-    elseif(guess == t% ntrack)then
+    if(guess < 1 .or. guess >= t% ntrack) then 
        return
     else
        my_guess = guess
+    endif
+    if(eep_verbose)then
+       write(*,*) '    guess = ', guess
+       write(*,*) ' my_guess = ', my_guess
+       write(*,*) '   ntrack = ', t% ntrack
     endif
     Ymin = 9d-1
     Lmax = -99d0

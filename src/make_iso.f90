@@ -2,7 +2,7 @@ program make_isochrone
 
   !MESA modules
   use const_def, only: dp
-  use utils_lib, only: alloc_iounit, free_iounit
+  use utils_lib
   use interp_1d_def
   use interp_1d_lib
 
@@ -23,7 +23,7 @@ program make_isochrone
   logical, parameter :: do_tracks = .false.
   logical, parameter :: do_isochrones = .true.
   logical, parameter :: do_smooth = .true.
-  logical, parameter :: skip_non_monotonic = .true.
+  logical, parameter :: skip_non_monotonic = .false.
 
   ierr=0
   if(command_argument_count()<1) then
@@ -111,6 +111,7 @@ contains
     integer :: count, eep, hi, ierr, index, j, k, lo, max_eep, n
     integer :: interp_method, jlo, jhi, pass
     integer, parameter :: jinc = 6
+    character(len=col_width) :: mass_age_string = 'mass from age'
     real(dp) :: age, mass
     real(dp), pointer :: ages(:)=>NULL(), masses(:)=>NULL()
     real(dp), allocatable :: result1(:,:), result2(:,:)
@@ -192,16 +193,16 @@ contains
           endif
        enddo
 
-       do k=1,count
-          write(112,*) eep, ages(k), log10(masses(k))
-       enddo
+       !do k=1,count
+       !   write(112,*) eep, ages(k), log10(masses(k))
+       !enddo
 
 
        if(do_smooth.and.all(masses>0.5,dim=1)) call smooth(masses,ages)
 
-       do k=1,count
-          write(111,*)  eep, ages(k), log10(masses(k))
-       enddo
+       !do k=1,count
+       !   write(111,*)  eep, ages(k), log10(masses(k))
+       !enddo
 
        !check to see if the input age is found within the
        !current set of ages. if not, skip to the next EEP.
@@ -254,7 +255,7 @@ contains
                       call monotonic_mass_range(ages,k,jlo,jhi)
                       if(iso_debug) write(*,*) mass, masses(jlo), masses(jhi)
 
-                      mass=interp_x_from_y(ages(jlo:jhi),masses(jlo:jhi),age,ierr)
+                      mass=interp_x_from_y(ages(jlo:jhi),masses(jlo:jhi),age,mass_age_string,ierr)
                       if(ierr/=0)then
                          write(0,*) ' age interpolation failed for eep, pass = ', eep, pass
                          cycle eep_loop
@@ -265,8 +266,7 @@ contains
                       result1(i_Minit,eep) = mass
                       do index = 2, ncol
                          result1(index,eep) = iso_interpolate(eep, interp_method, n, &
-                              s, skip, count, index, &
-                              masses, mass, ierr)
+                              s, skip, count, index, masses, mass, cols(index), ierr)
                          if(ierr/=0) then
                             write(0,*) ' mass interpolation failed for index = ', &
                                  trim(cols(index))
@@ -279,7 +279,7 @@ contains
                       call monotonic_mass_range(ages,k,jlo,jhi)
                       if(iso_debug) write(*,*) mass, masses(jlo), masses(jhi)
 
-                      mass=interp_x_from_y(ages(jlo:jhi),masses(jlo:jhi),age,ierr)
+                      mass=interp_x_from_y(ages(jlo:jhi),masses(jlo:jhi),age,mass_age_string,ierr)
                       if(ierr/=0)then
                          write(0,*) ' age interpolation failed for eep, pass = ', eep, pass
                          cycle eep_loop
@@ -290,8 +290,7 @@ contains
                       result2(i_Minit,eep) = mass
                       do index = 2, ncol
                          result2(index,eep) = iso_interpolate(eep, interp_method, n, &
-                              s, skip, count, index, &
-                              masses, mass, ierr)
+                              s, skip, count, index, masses, mass, cols(index), ierr)
                          if(ierr/=0) then
                             write(0,*) ' mass interpolation failed for index = ', &
                                  trim(cols(index))
@@ -313,8 +312,7 @@ contains
           index = i_Minit     ! special case for iso_intepolate
 
           mass = iso_interpolate( eep, interp_method, n, &
-               s, skip, count, index, &
-               ages, age, ierr)
+               s, skip, count, index, ages, age, mass_age_string, ierr)
           if(ierr/=0)then
              write(0,*) ' interpolation failed in age->mass'
              cycle eep_loop
@@ -323,8 +321,7 @@ contains
 
           do index = 2, ncol
              result1(index,eep) = iso_interpolate(eep, interp_method, n, &
-                  s, skip, count, index, &
-                  masses, mass, ierr)
+                  s, skip, count, index, masses, mass, cols(index), ierr)
              if(ierr/=0) then
                 write(0,*) ' mass interpolation failed for index = ', trim(cols(index))
                 cycle eep_loop
@@ -429,7 +426,7 @@ contains
   end subroutine monotonic_mass_range
 
 
-  real(dp) function interp_x_from_y(x,y,x_in,ierr)
+  real(dp) function interp_x_from_y(x,y,x_in,label,ierr)
     !     subroutine interpolate_vector_pm( &
     !     n_old, x_old, n_new, x_new, v_old, v_new, work1, str, ierr)
     !     use interp_1d_def, only: pm_work_size
@@ -443,6 +440,7 @@ contains
     integer, parameter :: n_new = 1
     real(dp) :: x0(n_new), y0(n_new)
     real(dp), pointer :: work1(:)
+    character(len=col_width), intent(in) :: label
     integer, intent(out) :: ierr
     integer :: n_old
 
@@ -457,18 +455,18 @@ contains
     n_old = size(x)
     x0(n_new) = x_in
     allocate(work1(n_old*pm_work_size))
-    call interpolate_vector_pm( n_old, x, n_new, x0, y, y0, work1, '', ierr )
+    call interpolate_vector_pm( n_old, x, n_new, x0, y, y0, work1, label, ierr )
     deallocate(work1)
     interp_x_from_y = y0(n_new)
   end function interp_x_from_y
 
-  real(dp) function iso_interpolate( &
-       eep, method, n, s, skip, count, index, x_array, x, ierr)
+  real(dp) function iso_interpolate(eep, method, n, s, skip, count, index, x_array, x, label, ierr)
     integer, intent(in) :: eep, method, n
     type(track), intent(in) :: s(n)
     logical, intent(in) :: skip(n)
     integer, intent(in) :: count, index
     real(dp), intent(in) :: x_array(count), x
+    character(len=col_width), intent(in) :: label
     integer, intent(out) :: ierr
     integer :: j,k
     integer, parameter :: nwork = max(mp_work_size,pm_work_size)
@@ -503,44 +501,28 @@ contains
        endif
     enddo
 
-    !if(iso_debug)then
-    !   write(*,*) '   BEFORE   '
-    !   write(*,*) ' count = ', count
-    !   write(*,*) ' x = ', x
-    !   write(*,*) ' x_array = ', x_array
-    !endif
-
     !perform the interpolation, y~f(x), using the input method
     if(method == piecewise_monotonic)then
-       call interp_pm(x_array,count,f1,nwork,work,'blah',ierr)
-       if(ierr/=0) write(*,*) '  ierr= ', ierr
+       call interp_pm(x_array,count,f1,nwork,work,label,ierr)
     else
-       call interp_m3(x_array,count,f1,method,nwork,work,'blah',ierr)
-       if(ierr/=0) write(*,*) '  ierr= ', ierr
+       call interp_m3(x_array,count,f1,method,nwork,work,label,ierr)
     endif
-
-
-    !if(iso_debug)then
-    !   write(*,*) '   AFTER 1 '
-    !   write(*,*) ' count = ', count
-    !   write(*,*) ' x = ', x
-    !   write(*,*) ' x_array = ', x_array
-    !endif
 
     call interp_value(x_array,count,f1,x,y,ierr)      
 
-    !if(iso_debug)then
-    !   write(*,*) '   AFTER 2 '
-    !   write(*,*) ' count = ', count
-    !   write(*,*) ' x = ', x
-    !   write(*,*) ' x_array = ', x_array
-    !endif
-
-    if(ierr/=0) return
+    if(is_bad_num(x) .or. is_bad_num(y))then
+       write(*,*) ' eep = ', eep
+       do k=1,n
+          write(*,*) x_array(k), f(1,k), skip(k)
+       enddo
+       write(*,*) x
+       write(*,*) y
+       write(*,*) 
+       write(*,*)
+       stop
+    endif
 
     iso_interpolate = y
-
-    !if(iso_debug) write(*,*) '   all done in iso_interpolate'
 
   end function iso_interpolate
 

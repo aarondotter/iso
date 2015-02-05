@@ -14,6 +14,13 @@ module iso_eep_support
 
   character(len=file_path) :: history_dir, eep_dir, iso_dir
 
+  !stellar types for handling post-main-sequence eeps
+  integer, parameter :: sub_stellar       = 0
+  integer, parameter :: star_very_low     = 1
+  integer, parameter :: star_low          = 2
+  integer, parameter :: star_intermediate = 3
+  integer, parameter :: star_high         = 4
+
   ! maximum number of columns in history file
   integer, parameter :: max_col = 200
 
@@ -41,7 +48,7 @@ module iso_eep_support
      character(len=file_path) :: filename
      character(len=col_width), pointer :: cols(:)
      logical :: has_phase = .false., ignore=.false.
-     integer :: ncol, ntrack, neep, version_number
+     integer :: ncol, ntrack, neep, version_number, star_type
      integer, allocatable :: eep(:)
      real(dp) :: initial_mass
      real(dp), allocatable :: tr(:,:), dist(:), phase(:)
@@ -406,8 +413,8 @@ contains
     !real(dp), parameter :: Teff_scale=1d1, logL_scale=1.25d0
     !real(dp), parameter :: age_scale=4d0, Rhoc_scale=0d0, Tc_scale=0d0
 
-    real(dp), parameter :: Teff_scale=0d0, logL_scale=0d0 !1d2, 12.5
-    real(dp), parameter :: age_scale=4d0, Rhoc_scale=1d0, Tc_scale=1d0
+    real(dp), parameter :: Teff_scale=1d0, logL_scale=0d0 !1d2, 12.5
+    real(dp), parameter :: age_scale=1d0, Rhoc_scale=1d0, Tc_scale=1d0
 
     integer :: j
 
