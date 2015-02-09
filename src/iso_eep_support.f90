@@ -81,6 +81,19 @@ contains
 
   include 'num_binary_search.inc'
 
+  elemental function pow10(x) result(y)
+    real(dp), intent(in) :: x
+    real(dp) :: y
+    real(dp), parameter :: ln10=2.3025850929940459d0
+    y = exp(ln10*x)
+  end function pow10
+
+  elemental function sq(x) result(y) !square of x, y=x*x
+    real(dp), intent(in) :: x
+    real(dp) :: y
+    y = x*x
+  end function sq
+
   subroutine process_history_columns(history_columns_list,col,ierr)
     character(len=file_path), intent(in) :: history_columns_list
     character(len=col_width), pointer, intent(out) :: col(:)
@@ -422,11 +435,11 @@ contains
     if(t% ntrack > 1)then
        do j=2, t% ntrack
           t% dist(j) = t% dist(j-1) + sqrt( &
-               Teff_scale*(t% tr(i_logTe,j) - t% tr(i_logTe,j-1))**2  &
-               + logL_scale*(t% tr(i_logL, j) - t% tr(i_logL, j-1))**2  &
-               + Rhoc_scale*(t% tr(i_Rhoc, j) - t% tr(i_Rhoc, j-1))**2  &
-               + Tc_scale*  (t% tr(i_Tc,   j) - t% tr(i_Tc,   j-1))**2  &
-               + age_scale* (log10(t% tr(i_age,j)) - log10(t% tr(i_age,j-1)))**2  &
+                 Teff_scale*sq(t% tr(i_logTe,j) - t% tr(i_logTe,j-1))  &
+               + logL_scale*sq(t% tr(i_logL, j) - t% tr(i_logL, j-1))  &
+               + Rhoc_scale*sq(t% tr(i_Rhoc, j) - t% tr(i_Rhoc, j-1))  &
+               + Tc_scale*  sq(t% tr(i_Tc,   j) - t% tr(i_Tc,   j-1))  &
+               + age_scale* sq(log10(t% tr(i_age,j)) - log10(t% tr(i_age,j-1)))  &
                )
        enddo
     endif

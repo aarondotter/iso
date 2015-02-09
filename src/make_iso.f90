@@ -124,9 +124,9 @@ contains
 
     !set method and options for interpolation
     !for interp_m3: average, quartic, or super_bee
-    !interp_method = average
+    interp_method = average
     !for interp_pm: piecewise_monotonic           
-    interp_method = piecewise_monotonic
+    !interp_method = piecewise_monotonic
 
     !initialize some quantities
     age = iso% age

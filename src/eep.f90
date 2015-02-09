@@ -127,18 +127,24 @@ contains
     integer :: ieep
     t% EEP = 0 !initialize
     ieep=1
-    t% EEP(ieep) = PreMS_Tc(t,5.0d0,1); if(t% EEP(ieep)==0) return; ieep=ieep+1
-    t% EEP(ieep) = ZAMS(t,10); if(t% EEP(ieep)==0) return; ieep=ieep+1
-    t% EEP(ieep) = TAMS(t,1d-1,t% EEP(ieep-1)+2); if(t% EEP(ieep)==0) return; ieep=ieep+1
-    t% EEP(ieep) = TAMS(t,1d-4,t% EEP(ieep-1)+2); if(t% EEP(ieep)==0) return; ieep=ieep+1
-    t% EEP(ieep) = RGBTip(t,t% EEP(ieep-1)+2); if(t% EEP(ieep)==0) return; ieep=ieep+1
-    t% EEP(ieep) = ZAHB(t,t% EEP(ieep-1)+2); if(t% EEP(ieep)==0) return; ieep=ieep+1
-    t% EEP(ieep) = TAHB(t,1d-1,t% EEP(ieep-1)+2); if(t% EEP(ieep)==0) return; ieep=ieep+1
-    t% EEP(ieep) = TAHB(t,1d-4,t% EEP(ieep-1)+2); if(t% EEP(ieep)==0) return; ieep=ieep+1
-    t% EEP(ieep) = TPAGB(t,t% EEP(ieep-1)+2); if(t% EEP(ieep)==0) return; ieep=ieep+1
-    t% EEP(ieep) = PostAGB(t,t% EEP(ieep-1)+2); if(t% EEP(ieep)==0) return; ieep=ieep+1
+    t% EEP(ieep) = PreMS_Tc(t,5.0d0,1); if(check(t,ieep)) return; ieep=ieep+1
+    t% EEP(ieep) = ZAMS(t,10); if(check(t,ieep)) return; ieep=ieep+1
+    t% EEP(ieep) = TAMS(t,1d-1,t% EEP(ieep-1)+2); if(check(t,ieep)) return; ieep=ieep+1
+    t% EEP(ieep) = TAMS(t,1d-4,t% EEP(ieep-1)+2); if(check(t,ieep)) return; ieep=ieep+1
+    t% EEP(ieep) = RGBTip(t,t% EEP(ieep-1)+2); if(check(t,ieep)) return; ieep=ieep+1
+    t% EEP(ieep) = ZAHB(t,t% EEP(ieep-1)+2); if(check(t,ieep)) return; ieep=ieep+1
+    t% EEP(ieep) = TAHB(t,1d-1,t% EEP(ieep-1)+2); if(check(t,ieep)) return; ieep=ieep+1
+    t% EEP(ieep) = TAHB(t,1d-4,t% EEP(ieep-1)+2); if(check(t,ieep)) return; ieep=ieep+1
+    t% EEP(ieep) = TPAGB(t,t% EEP(ieep-1)+2); if(check(t,ieep)) return; ieep=ieep+1
+    t% EEP(ieep) = PostAGB(t,t% EEP(ieep-1)+2); if(check(t,ieep)) return; ieep=ieep+1
     t% EEP(ieep) = WDCS(t, t% EEP(ieep-1)+2)
   end subroutine primary_eep
+
+  logical function check(t,i)
+    type(track), intent(in) :: t
+    integer, intent(in) :: i
+    check = (t% EEP(i)==0 .or. t% EEP(i)==t% ntrack)
+  end function check
 
   function PreMS_Tc(t,logTc,guess) result(PreMS)
     type(track), intent(in) :: t
@@ -171,7 +177,7 @@ contains
 
   end function PreMS_Tc
 
-
+  !an alternative to constant central temperature is constant age
   function PreMS_age(t,logAge,guess) result(PreMS)
     type(track), intent(in) :: t
     real(dp), intent(in) :: logAge
@@ -204,7 +210,7 @@ contains
     real(dp) :: Xmax, Xmin, Xc, LH, Lmin !g_max, 
     real(dp), parameter :: Lfac = 9.99d-1 !Xfac = 9.8d-1
     integer, intent(in) :: guess
-    integer :: i, my_guess !, search_begin, search_end
+    integer :: i, my_guess
     ZAMS = 0
     Xmax = t% tr(i_Xc,1)
     Xmin = Xmax - 1.5d-3
@@ -222,31 +228,17 @@ contains
     enddo
 
     ZAMS = i
-    !skip for now
-    !search_end = i
 
-    LH = 1d1**t% tr(i_logLH,i)
-    Lmin = Lfac * 1d1**t% tr(i_logL,i)
+    LH = pow10(t% tr(i_logLH,i))
+    Lmin = Lfac * pow10(t% tr(i_logL,i))
     do while(LH > Lmin)
        i = i-1
-       LH = 1d1**t% tr(i_logLH,i)
-       Lmin = Lfac * 1d1**t% tr(i_logL,i)
+       LH = pow10(t% tr(i_logLH,i))
+       Lmin = Lfac * pow10(t% tr(i_logL,i))
     enddo
 
     !set upper limit in case M < 0.1 and no H-burning occurs
     if(t% initial_mass < 0.1d0) ZAMS = min(i+1,t% ntrack)
-
-    !skip this for now
-    !search_begin = i
-
-    !g_max = -9d0
-    !do i=search_begin, search_end
-    !   if(t% tr(i_logg,i) + t% tr(i_Tc,i) > g_max)then
-    !      g_max = t% tr(i_logg,i) + t% tr(i_Tc,i)
-    !      ZAMS = i
-    !   endif
-    !enddo
-
   end function ZAMS
 
   integer function TAMS(t,Xmin,guess)
@@ -254,6 +246,7 @@ contains
     real(dp), intent(in) :: Xmin
     integer, intent(in) :: guess
     integer :: i, my_guess
+    real(dp), parameter :: max_age = 2d10
     TAMS = 0
     if(guess < 1 .or. guess > t% ntrack) then 
        my_guess = 1
@@ -270,7 +263,8 @@ contains
     enddo
     ! Xc test fails so consider instead the age for low mass tracks
     ! if the age of the last point > Max_Age, accept it
-    if(t% initial_mass <= 0.5d0) TAMS = t% ntrack
+    if(t% initial_mass <= 0.5d0 .and. t% tr(i_age,t% ntrack) >= max_age) TAMS = t% ntrack
+    !if(t% initial_mass <= 0.5d0) TAMS = t% ntrack
   end function TAMS
 
   integer function RGBTip(t,guess)
