@@ -737,12 +737,12 @@ contains
        if(age_high < age_low) stop '  make_iso: max age < min age'
        !assign ages
        if(niso > 1) then
-          age_step = (age_high - age_low)/dble(niso-1)
+          age_step = (age_high - age_low)/real(niso-1,kind=dp)
        else
           age_step = 0d0
        endif
        do i=1,niso
-          set% iso(i)% age = age_low + age_step*dble(i-1)
+          set% iso(i)% age = age_low + age_step*real(i-1,kind=dp)
        enddo
     else if(trim(list_type)=='list') then
        do i=1,niso

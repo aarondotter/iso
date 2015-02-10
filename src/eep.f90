@@ -81,12 +81,12 @@ contains
     dist = t% dist(t% eep(j+1)) - t% dist(t% eep(j))
 
     ! interval = (total distance) / (number of secondary eeps)
-    delta = dist / dble(num_eep+1)
+    delta = dist / real(num_eep+1,kind=dp)
 
     j0 = t% eep(j)
     n = t% ntrack
     do i=1,num_eep
-       new_dist = t% dist(t% eep(j)) + delta*dble(i)
+       new_dist = t% dist(t% eep(j)) + delta*real(i,kind=dp)
        allocate(vec(n))
        vec = t% dist
        j0=binary_search(n, vec, j0, new_dist)
@@ -95,12 +95,6 @@ contains
        if(linear)then
           alpha = (t% dist(t% eep(j+1)) - new_dist)/dist
           beta = 1d0-alpha
-          if(eep_verbose) then
-             write(*,'(a60,3i5,99f10.6)') &
-                  ' i, j, k, dist(eep(j)), dist(eep(j+1)), new_dist, a, b = ', &
-                  i, j, k, t% dist(t% eep(j)), t% dist(t% eep(j+1)), new_dist, &
-                  alpha, beta
-          endif !'
           s% tr(:,k+i) = alpha*t% tr(:,j0) + beta*t% tr(:,j1)
        else
           dx = new_dist - t% dist(j0)
