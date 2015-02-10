@@ -16,6 +16,7 @@ module iso_eep_support
 
   !stellar types for handling post-main-sequence eeps
   integer, parameter :: sub_stellar       = 0
+
   integer, parameter :: star_very_low     = 1
   integer, parameter :: star_low          = 2
   integer, parameter :: star_intermediate = 3
@@ -32,6 +33,7 @@ module iso_eep_support
   ! quantities from history file that need to be identified
   integer :: i_age, i_mass, i_logLH, i_logLHe, i_logTe, i_logL
   integer :: i_logg, i_Tc, i_Rhoc, i_Xc, i_Yc, i_he_core, i_co_core
+  integer :: i_Cc, i_gamma
 
   !for columns
   integer :: ncol
@@ -525,6 +527,8 @@ contains
     col_name='log_center_Rho'; i_Rhoc=locate_column(col_name,cols)
     col_name='center_h1'; i_Xc=locate_column(col_name,cols)
     col_name='center_he4'; i_Yc=locate_column(col_name,cols)
+    col_name='center_c12'; i_Cc=locate_column(col_name,cols)
+    col_name='center_gamma'; i_gamma=locate_column(col_name,cols)
     if(old_core_mass_names)then
        col_name='h1_boundary_mass'; i_he_core = locate_column(col_name,cols)
        col_name='he4_boundary_mass'; i_co_core = locate_column(col_name,cols)

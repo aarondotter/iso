@@ -409,21 +409,43 @@ contains
   integer function WDCS(t,guess)
     type(track), intent(in) :: t
     integer, intent(in) :: guess
-    real(dp) :: Tc_now, TC_end
-    integer :: my_guess
+    integer :: my_guess, i
+    real(dp), parameter :: center_gamma_limit = 90
     WDCS=0
-    if(guess < 1 .or. guess > t% ntrack) then 
+    if(guess < 1) then 
        my_guess = 1
-    elseif(guess == t% ntrack)then
+    elseif(guess >= t% ntrack)then
        return
     else
        my_guess = guess
     endif
-
-    Tc_now = t% tr(i_Tc,my_guess)
-    Tc_end = t% tr(i_Tc,t% ntrack)
-
-    if(Tc_now > Tc_end) WDCS = t% ntrack
+    do i = my_guess, t% ntrack
+       if(t% tr(i_gamma,i) >= center_gamma_limit)then
+          WDCS=i
+          exit
+       endif
+    enddo
   end function WDCS
+
+  integer function CarbonBurn(t,guess) !for high-mass stars
+    type(track), intent(in) :: t
+    integer, intent(in) :: guess
+    integer :: my_guess, i
+    real(dp), parameter :: limit_XY=1d-8, limit_C=1d-4
+    CarbonBurn = 0
+    if(guess < 1)then
+       my_guess = 1
+    elseif(guess>=t% ntrack)then
+       return
+    else
+       my_guess = guess
+    endif
+    do i=my_guess, t% ntrack
+       if(t% tr(i_Xc,i) < limit_XY .and. t% tr(i_Yc,i) < limit_XY .and. t% tr(i_Cc,i) < limit_C)then
+          CarbonBurn=i
+          exit
+       endif
+    enddo
+  end function CarbonBurn
 
 end module eep
