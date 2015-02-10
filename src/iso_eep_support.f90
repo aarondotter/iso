@@ -14,13 +14,13 @@ module iso_eep_support
 
   character(len=file_path) :: history_dir, eep_dir, iso_dir
 
-  !stellar types for handling post-main-sequence eeps
-  integer, parameter :: sub_stellar       = 0
+  !stellar types for handling primary eeps
+  integer, parameter :: unknown           =  1 
+  integer, parameter :: sub_stellar       =  2 !no fusion = brown dwarf
+  integer, parameter :: star_low          =  3 !ends as a WD
+  integer, parameter :: star_high         =  4 !does not end as a WD
 
-  integer, parameter :: star_very_low     = 1
-  integer, parameter :: star_low          = 2
-  integer, parameter :: star_intermediate = 3
-  integer, parameter :: star_high         = 4
+  character(len=10) :: star_label(4)=['   unknown', 'substellar', '  low-mass', ' high-mass']
 
   ! maximum number of columns in history file
   integer, parameter :: max_col = 200
@@ -180,6 +180,7 @@ contains
     t% neep = primary
     t% filename = trim(filename)
     allocate(t% eep(t% neep))
+    t% star_type = unknown
   end subroutine alloc_track
 
   subroutine write_track(x)
@@ -197,8 +198,9 @@ contains
     io=alloc_iounit(ierr)
     write(*,*) '    ', trim(x% filename)
     open(io,file=trim(x% filename))
-    write(io,'(a20,5a8)') 'initial_mass', 'N_pts', 'N_EEP', 'N_col', 'version', 'phase'
-    write(io,'(1p1e20.10,4i8,a8)') x% initial_mass, x% ntrack, x% neep, x% ncol, x% version_number, 'NO'
+    write(io,'(a20,5a8,a10)') 'initial_mass', 'N_pts', 'N_EEP', 'N_col', 'version', 'phase', 'type'
+    write(io,'(1p1e20.10,4i8,a8,a10)') x% initial_mass, x% ntrack, x% neep, x% ncol, &
+         x% version_number, 'NO', star_label(x% star_type)
     write(io,'(a10,20i8)') '   EEPs:  ', x% eep
     write(io,'(299(27x,i5))') (j,j=1,x% ncol + 1)
     write(io,'(299a32)') adjustr(x% cols), 'distance'
@@ -215,8 +217,9 @@ contains
     io=alloc_iounit(ierr)
     write(*,*) '    ', trim(x% filename)
     open(io,file=trim(x% filename))
-    write(io,'(a20,5a8)') 'initial_mass', 'N_pts', 'N_EEP', 'N_col', 'version', 'phase'
-    write(io,'(1p1e20.10,4i8,a8)') x% initial_mass, x% ntrack, x% neep, x% ncol, x% version_number, 'YES'
+    write(io,'(a20,5a8,a10)') 'initial_mass', 'N_pts', 'N_EEP', 'N_col', 'version', 'phase', 'type'
+    write(io,'(1p1e20.10,4i8,a8,a10)') x% initial_mass, x% ntrack, x% neep, x% ncol, & 
+         x% version_number, 'YES', star_label(x% star_type)
     write(io,'(a10,20i8)') '   EEPs:  ', x% eep
     write(io,'(299(27x,i5))') (j,j=1,x% ncol+2)
     write(io,'(299a32)') adjustr(x% cols), 'distance', 'phase'
@@ -246,7 +249,7 @@ contains
     endif
 
     read(io,*)
-    read(io,'(1p1e20.10,4i8,a8)') x% initial_mass, x% ntrack, x% neep, x% ncol, x% version_number, phase_info
+    read(io,'(1p1e20.10,4i8,a8,a10)') x% initial_mass, x% ntrack, x% neep, x% ncol, x% version_number, phase_info
     !if(x% ncol /= ncol) write(*,*) '  WARNING: NCOL != DEFAULT  '
     allocate(x% tr(x% ncol, x% ntrack), x% dist(x% ntrack), x% eep(x% neep), x% cols(x% ncol))
     if(index(phase_info,'YES')/=0) then
@@ -537,5 +540,16 @@ contains
        col_name='c_core_mass'; i_co_core = locate_column(col_name,cols)
     endif
   end subroutine setup_columns
+
+  subroutine set_star_type(label,t)
+    character(len=10), intent(in) :: label
+    type(track), intent(inout) :: t
+    integer :: n,i
+    t% star_type = unknown
+    n=size(star_label)
+    do i=1,n
+       if(label==star_label(i)) t% star_type == i
+    enddo
+  end subroutine set_star_type
 
 end module iso_eep_support
