@@ -130,9 +130,13 @@ contains
     t% EEP(ieep) = ZAHB(t,t% EEP(ieep-1)+2); if(check(t,ieep)) return; ieep=ieep+1
     t% EEP(ieep) = TAHB(t,1d-1,t% EEP(ieep-1)+2); if(check(t,ieep)) return; ieep=ieep+1
     t% EEP(ieep) = TAHB(t,1d-4,t% EEP(ieep-1)+2); if(check(t,ieep)) return; ieep=ieep+1
-    t% EEP(ieep) = TPAGB(t,t% EEP(ieep-1)+2); if(check(t,ieep)) return; ieep=ieep+1
-    t% EEP(ieep) = PostAGB(t,t% EEP(ieep-1)+2); if(check(t,ieep)) return; ieep=ieep+1
-    t% EEP(ieep) = WDCS(t, t% EEP(ieep-1)+2)
+    if(t% star_type == star_low_mass)then
+       t% EEP(ieep) = TPAGB(t,t% EEP(ieep-1)+2); if(check(t,ieep)) return; ieep=ieep+1
+       t% EEP(ieep) = PostAGB(t,t% EEP(ieep-1)+2); if(check(t,ieep)) return; ieep=ieep+1
+       t% EEP(ieep) = WDCS(t, t% EEP(ieep-1)+2)
+    elseif(t% star_type == star_high_mass)then
+       t% EEP(ieep) = CarbonBurn(t,t% EEP(ieep-1)+2)
+    endif
   end subroutine primary_eep
 
   logical function check(t,i)
@@ -198,7 +202,6 @@ contains
        endif
     enddo
   end function PreMS_age
-
 
   integer function ZAMS(t,guess)
     type(track), intent(in) :: t

@@ -193,16 +193,7 @@ contains
           endif
        enddo
 
-       !do k=1,count
-       !   write(112,*) eep, ages(k), log10(masses(k))
-       !enddo
-
-
        if(do_smooth.and.all(masses>0.5,dim=1)) call smooth(masses,ages)
-
-       !do k=1,count
-       !   write(111,*)  eep, ages(k), log10(masses(k))
-       !enddo
 
        !check to see if the input age is found within the
        !current set of ages. if not, skip to the next EEP.
@@ -427,15 +418,6 @@ contains
 
 
   real(dp) function interp_x_from_y(x,y,x_in,label,ierr)
-    !     subroutine interpolate_vector_pm( &
-    !     n_old, x_old, n_new, x_new, v_old, v_new, work1, str, ierr)
-    !     use interp_1d_def, only: pm_work_size
-
-    !     real(dp), intent(in) :: x_old(:) !(n_old)
-    !     real(dp), intent(in) :: v_old(:) !(n_old)
-    !     real(dp), intent(in) :: x_new(:) !(n_new)
-    !     real(dp), intent(out) :: v_new(:) ! (n_new)
-    !     real(dp), intent(inout), pointer :: work1(:) ! =(n_old, pm_work_size)
     real(dp), intent(in) :: x(:), y(:), x_in
     integer, parameter :: n_new = 1
     real(dp) :: x0(n_new), y0(n_new)
@@ -752,8 +734,8 @@ contains
        stop ' make_iso: ages must be given as "list" or "min_max"'
     endif
 
-    read(io,'(a6)') eep_style
-    if(eep_style=='double') then 
+    read(io,'(a6)',iostat=ierr) eep_style
+    if(ierr==0 .and. eep_style=='double') then 
        use_double_eep=.true.
     else
        use_double_eep=.false.

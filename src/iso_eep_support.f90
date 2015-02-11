@@ -12,7 +12,7 @@ module iso_eep_support
   logical, parameter ::check_initial_mass = .true.
   real(dp) :: mass_eps = 1d-6
 
-  character(len=file_path) :: history_dir, eep_dir, iso_dir
+  character(len=file_path) :: history_dir, eep_dir, iso_dir  
 
   !stellar types for handling primary eeps
   integer, parameter :: unknown           =  1 !for initialization only
