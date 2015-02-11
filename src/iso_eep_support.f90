@@ -15,10 +15,10 @@ module iso_eep_support
   character(len=file_path) :: history_dir, eep_dir, iso_dir
 
   !stellar types for handling primary eeps
-  integer, parameter :: unknown           =  1 
+  integer, parameter :: unknown           =  1 !for initialization only
   integer, parameter :: sub_stellar       =  2 !no fusion = brown dwarf
-  integer, parameter :: star_low          =  3 !ends as a WD
-  integer, parameter :: star_high         =  4 !does not end as a WD
+  integer, parameter :: star_low_mass     =  3 !ends as a WD
+  integer, parameter :: star_high_mass    =  4 !does not end as a WD
 
   character(len=10) :: star_label(4)=['   unknown', 'substellar', '  low-mass', ' high-mass']
 
@@ -50,7 +50,8 @@ module iso_eep_support
      character(len=file_path) :: filename
      character(len=col_width), pointer :: cols(:)
      logical :: has_phase = .false., ignore=.false.
-     integer :: ncol, ntrack, neep, version_number, star_type
+     integer :: ncol, ntrack, neep, version_number
+     integer :: star_type = unknown
      integer, allocatable :: eep(:)
      real(dp) :: initial_mass
      real(dp), allocatable :: tr(:,:), dist(:), phase(:)
@@ -180,7 +181,6 @@ contains
     t% neep = primary
     t% filename = trim(filename)
     allocate(t% eep(t% neep))
-    t% star_type = unknown
   end subroutine alloc_track
 
   subroutine write_track(x)
@@ -198,8 +198,8 @@ contains
     io=alloc_iounit(ierr)
     write(*,*) '    ', trim(x% filename)
     open(io,file=trim(x% filename))
-    write(io,'(a20,5a8,a10)') 'initial_mass', 'N_pts', 'N_EEP', 'N_col', 'version', 'phase', 'type'
-    write(io,'(1p1e20.10,4i8,a8,a10)') x% initial_mass, x% ntrack, x% neep, x% ncol, &
+    write(io,'(a20,5a8,2x,a10)') 'initial_mass', 'N_pts', 'N_EEP', 'N_col', 'version', 'phase', 'type'
+    write(io,'(1p1e20.10,4i8,a8,2x,a10)') x% initial_mass, x% ntrack, x% neep, x% ncol, &
          x% version_number, 'NO', star_label(x% star_type)
     write(io,'(a10,20i8)') '   EEPs:  ', x% eep
     write(io,'(299(27x,i5))') (j,j=1,x% ncol + 1)
@@ -215,10 +215,10 @@ contains
     type(track), intent(in) :: x
     integer :: io,ierr,j
     io=alloc_iounit(ierr)
-    write(*,*) '    ', trim(x% filename)
+    write(*,*) '    ', trim(x% filename), x% star_type, star_label(x% star_type)
     open(io,file=trim(x% filename))
-    write(io,'(a20,5a8,a10)') 'initial_mass', 'N_pts', 'N_EEP', 'N_col', 'version', 'phase', 'type'
-    write(io,'(1p1e20.10,4i8,a8,a10)') x% initial_mass, x% ntrack, x% neep, x% ncol, & 
+    write(io,'(a20,5a8,2x,a10)') 'initial_mass', 'N_pts', 'N_EEP', 'N_col', 'version', 'phase', 'type'
+    write(io,'(1p1e20.10,4i8,a8,2x,a10)') x% initial_mass, x% ntrack, x% neep, x% ncol, & 
          x% version_number, 'YES', star_label(x% star_type)
     write(io,'(a10,20i8)') '   EEPs:  ', x% eep
     write(io,'(299(27x,i5))') (j,j=1,x% ncol+2)
@@ -235,6 +235,7 @@ contains
     integer :: ierr, io, j
     character(len=8) :: phase_info
     character(len=file_path) :: eepfile
+    character(len=10) :: type_label
     io=alloc_iounit(ierr)
     eepfile = trim(eep_dir) // '/' // trim(x% filename) // '.eep'
     open(io,file=trim(eepfile),status='old',action='read',iostat=ierr)
@@ -249,8 +250,10 @@ contains
     endif
 
     read(io,*)
-    read(io,'(1p1e20.10,4i8,a8,a10)') x% initial_mass, x% ntrack, x% neep, x% ncol, x% version_number, phase_info
-    !if(x% ncol /= ncol) write(*,*) '  WARNING: NCOL != DEFAULT  '
+    read(io,'(1p1e20.10,4i8,a8,2x,a10)') x% initial_mass, x% ntrack, x% neep, x% ncol, x% version_number, phase_info, type_label
+
+    call set_star_type_from_label(type_label,x)
+
     allocate(x% tr(x% ncol, x% ntrack), x% dist(x% ntrack), x% eep(x% neep), x% cols(x% ncol))
     if(index(phase_info,'YES')/=0) then
        x% has_phase = .true.
@@ -378,6 +381,7 @@ contains
     !compute distance along track
     allocate(t% dist(t% ntrack))
     call distance_along_track(t)
+    call set_star_type_from_history(t)
 
     deallocate(output)
 
@@ -398,7 +402,7 @@ contains
     binfile = trim(history_dir) // '/' // trim(t% filename) // '.bin'
     open(io,file=trim(binfile),form='unformatted')
     read(io) t% filename
-    read(io) t% ncol, t% ntrack, t% neep, t% version_number
+    read(io) t% ncol, t% ntrack, t% neep, t% version_number, t% star_type
     read(io) t% initial_mass
     allocate(t% tr(t% ncol, t% ntrack),t% cols(t% ncol),t% dist(t% ntrack))
     read(io) t% cols
@@ -416,7 +420,7 @@ contains
     binfile = trim(history_dir) // '/' // trim(t% filename) // '.bin'
     open(io,file=trim(binfile),form='unformatted')
     write(io) t% filename
-    write(io) t% ncol, t% ntrack, t% neep, t% version_number
+    write(io) t% ncol, t% ntrack, t% neep, t% version_number, t% star_type
     write(io) t% initial_mass
     write(io) t% cols
     write(io) t% tr
@@ -541,15 +545,45 @@ contains
     endif
   end subroutine setup_columns
 
-  subroutine set_star_type(label,t)
+  subroutine set_star_type_from_label(label,t)
     character(len=10), intent(in) :: label
     type(track), intent(inout) :: t
     integer :: n,i
-    t% star_type = unknown
     n=size(star_label)
     do i=1,n
-       if(label==star_label(i)) t% star_type == i
+       if(label==star_label(i)) t% star_type = i
     enddo
-  end subroutine set_star_type
+  end subroutine set_star_type_from_label
+
+  subroutine set_star_type_from_history(t)
+    type(track), intent(inout) :: t
+    integer :: n
+
+    n=t% ntrack
+
+    !simple test for substellar is that central H is unchanged
+    if( maxval( abs(t% tr(i_Xc,:) - t% tr(i_Xc,1)) ) < 0.1d0)then
+       t% star_type = sub_stellar
+       return
+    endif
+
+    if( t% tr(i_gamma,n) > 90) then
+       t% star_type = star_low_mass
+       return
+    endif
+
+    !simple test for high-mass stars is that central C is depleted
+    if(maxval(t% tr(i_Cc,:)) > 0.4d0 .and. t% tr(i_Cc,n) < 1d-4)then
+       t% star_type = star_high_mass
+       return
+    endif
+
+    if(t% tr(i_Tc,n) > 8.85d0)then
+       t% star_type = star_high_mass
+    else
+       t% star_type = star_low_mass
+    endif
+
+  end subroutine set_star_type_from_history
 
 end module iso_eep_support

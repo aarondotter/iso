@@ -21,6 +21,7 @@ contains
     integer :: i, j, k, num_p, num_s
 
     s% ncol = t% ncol
+    s% star_type = t% star_type
     !determine total number of EEPs in this track
     num_p = 0
     num_s = 0
