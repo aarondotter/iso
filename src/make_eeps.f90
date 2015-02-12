@@ -60,7 +60,7 @@ contains
     ierr=0
     call get_command_argument(1,input_file)
     io=alloc_iounit(ierr)
-    open(unit=io,file=trim(input_file))
+    open(unit=io,file=trim(input_file),status='old',action='read')
     read(io,*) !skip first line
     read(io,'(a)') history_dir
     read(io,'(a)') eep_dir
@@ -80,7 +80,7 @@ contains
     call set_eep_interval 
     !read history file format specs
     io=alloc_iounit(io)
-    open(unit=io,file='input.format')
+    open(unit=io,file='input.format',status='old',action='read')
     read(io,*) 
     read(io,*) head
     read(io,*) main

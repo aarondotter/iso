@@ -517,7 +517,7 @@ contains
     io=alloc_iounit(ierr)
     n=size(set% iso)
     write(0,*) ' isochrone output file = ', trim(filename)
-    open(io,file=trim(filename),action='write',iostat=ierr)
+    open(io,file=trim(filename),action='write',status='unknown',iostat=ierr)
     write(io,'(a25,i5)') '# number of isochrones = ', n
     write(io,'(a25,i5)') '# MESA version number  = ', set% version_number
     do i=1,n
@@ -577,7 +577,7 @@ contains
     write(0,*) ' cmd output file = ', trim(output)
     io = alloc_iounit(ierr)
     if(ierr/=0) return
-    open(io,file=trim(output),action='write',iostat=ierr)
+    open(io,file=trim(output),action='write',status='unknown',iostat=ierr)
     if(ierr/=0) return
     write(io,'(a25,i5)')    '# number of isochrones = ', n
     write(io,'(a25,i5)')    '# MESA version number  = ', s% version_number
@@ -691,7 +691,7 @@ contains
     call get_command_argument(1,input_file)
     io=alloc_iounit(ierr)
     !read info about into tracks
-    open(unit=io,file=trim(input_file))
+    open(unit=io,file=trim(input_file),status='old',action='read')
     read(io,*) !skip comment line
     read(io,'(a)') history_dir
     read(io,'(a)') eep_dir

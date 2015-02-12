@@ -197,7 +197,7 @@ contains
     integer :: io,ierr,j
     io=alloc_iounit(ierr)
     write(*,*) '    ', trim(x% filename)
-    open(io,file=trim(x% filename))
+    open(io,file=trim(x% filename),action='write',status='unknown')
     write(io,'(a20,5a8,2x,a10)') 'initial_mass', 'N_pts', 'N_EEP', 'N_col', 'version', 'phase', 'type'
     write(io,'(1p1e20.10,4i8,a8,2x,a10)') x% initial_mass, x% ntrack, x% neep, x% ncol, &
          x% version_number, 'NO', star_label(x% star_type)
@@ -216,7 +216,7 @@ contains
     integer :: io,ierr,j
     io=alloc_iounit(ierr)
     write(*,*) '    ', trim(x% filename), x% star_type, star_label(x% star_type)
-    open(io,file=trim(x% filename))
+    open(io,file=trim(x% filename),action='write',status='unknown')
     write(io,'(a20,5a8,2x,a10)') 'initial_mass', 'N_pts', 'N_EEP', 'N_col', 'version', 'phase', 'type'
     write(io,'(1p1e20.10,4i8,a8,2x,a10)') x% initial_mass, x% ntrack, x% neep, x% ncol, & 
          x% version_number, 'YES', star_label(x% star_type)
@@ -311,10 +311,10 @@ contains
        return
     endif
 
-    ! if the binfile does not exist, then we read the .data files and write new
+    ! if the binfile does not exist, then we read the history files and write new
     ! .bins.  slow.
     io=alloc_iounit(ierr)
-    open(unit=io,file=trim(trim(history_dir) // '/' // t% filename),status='old')
+    open(unit=io,file=trim(trim(history_dir) // '/' // t% filename),status='old',action='read')
     !read first 3 lines of header
     !currently don't use all of this, but could...
     imass=0
@@ -400,7 +400,7 @@ contains
     character(len=file_path) :: binfile
     io=alloc_iounit(ierr)
     binfile = trim(history_dir) // '/' // trim(t% filename) // '.bin'
-    open(io,file=trim(binfile),form='unformatted')
+    open(io,file=trim(binfile),form='unformatted',status='old',action='read')
     read(io) t% filename
     read(io) t% ncol, t% ntrack, t% neep, t% version_number, t% star_type
     read(io) t% initial_mass
@@ -418,7 +418,7 @@ contains
     character(len=file_path) :: binfile
     io=alloc_iounit(ierr)
     binfile = trim(history_dir) // '/' // trim(t% filename) // '.bin'
-    open(io,file=trim(binfile),form='unformatted')
+    open(io,file=trim(binfile),form='unformatted',action='write',status='unknown')
     write(io) t% filename
     write(io) t% ncol, t% ntrack, t% neep, t% version_number, t% star_type
     write(io) t% initial_mass
@@ -484,7 +484,7 @@ contains
   subroutine set_eep_interval
     integer :: ierr, i, j, io, my_eep_interval, my_num_eep
     io=alloc_iounit(ierr)
-    open(unit=io,file='input.eep',iostat=ierr,status='old')
+    open(unit=io,file='input.eep',iostat=ierr,status='old',action='read')
     if(ierr/=0) then
        call set_default_eep_interval
        return
