@@ -237,7 +237,7 @@ contains
 
     !in case no H-burning occurs, take the location of the highest 
     !central temperature
-    if(t% star_type == substellar) ZAMS = maxloc(t% tr(i_Tc,:),dim=1)
+    if(t% star_type == sub_stellar) ZAMS = maxloc(t% tr(i_Tc,:),dim=1)
   end function ZAMS
 
   integer function TAMS(t,Xmin,guess)
