@@ -215,7 +215,7 @@ contains
     type(track), intent(in) :: x
     integer :: io,ierr,j
     io=alloc_iounit(ierr)
-    write(*,*) '    ', trim(x% filename), x% star_type, star_label(x% star_type)
+    write(*,*) '    ', trim(x% filename)
     open(io,file=trim(x% filename),action='write',status='unknown')
     write(io,'(a20,5a8,2x,a10)') 'initial_mass', 'N_pts', 'N_EEP', 'N_col', 'version', 'phase', 'type'
     write(io,'(1p1e20.10,4i8,a8,2x,a10)') x% initial_mass, x% ntrack, x% neep, x% ncol, & 

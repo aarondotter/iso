@@ -235,8 +235,9 @@ contains
        Lmin = Lfac * pow10(t% tr(i_logL,i))
     enddo
 
-    !set upper limit in case M < 0.1 and no H-burning occurs
-    if(t% initial_mass < 0.1d0) ZAMS = min(i+1,t% ntrack)
+    !in case no H-burning occurs, take the location of the highest 
+    !central temperature
+    if(t% star_type == substellar) ZAMS = maxloc(t% tr(i_Tc,:),dim=1)
   end function ZAMS
 
   integer function TAMS(t,Xmin,guess)
@@ -244,11 +245,11 @@ contains
     real(dp), intent(in) :: Xmin
     integer, intent(in) :: guess
     integer :: i, my_guess
-    real(dp), parameter :: max_age = 2d10
+    real(dp), parameter :: max_age = 3d10 !30 Gyr
     TAMS = 0
-    if(guess < 1 .or. guess > t% ntrack) then 
+    if(guess < 1) then 
        my_guess = 1
-    elseif(guess == t% ntrack)then
+    elseif(guess >= t% ntrack)then
        return
     else
        my_guess = guess
@@ -262,7 +263,6 @@ contains
     ! Xc test fails so consider instead the age for low mass tracks
     ! if the age of the last point > Max_Age, accept it
     if(t% initial_mass <= 0.5d0 .and. t% tr(i_age,t% ntrack) >= max_age) TAMS = t% ntrack
-    !if(t% initial_mass <= 0.5d0) TAMS = t% ntrack
   end function TAMS
 
   integer function RGBTip(t,guess)
