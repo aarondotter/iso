@@ -608,7 +608,7 @@ contains
     enddo
     call get_mags(iso,iT,ig,iL)
 
-    write(io,'(a25,2i5)') '# number of EEPs, cols = ', iso% neep, iso% nfil + 5
+    write(io,'(a25,2i5)') '# number of EEPs, cols = ', iso% neep, iso% nfil + 6
     write(io,'(a1,i4,4i32,299i12)') '#    ', (i,i=1,iso% nfil+5)
     write(io,'(a5,4a32,299a12)') '# EEP', 'log_age', 'Minit/Msun', 'log_Teff', 'log_g', 'log_L', &
          adjustr(iso% labels)
