@@ -117,6 +117,14 @@ contains
        inner_loop: do while(.true.)
           read(io,'(a)',iostat=ierr) line
           if(ierr/=0) exit inner_loop
+
+          !remove any nasty tabs
+          do while(index(line,char(9))>0)
+             write(*,*) ' found a tab! '
+             i=index(line,char(9))
+             line(i:i)=' '
+          enddo
+
           nchar=len_trim(line)
           if(nchar==0) cycle inner_loop ! ignore blank line
 
