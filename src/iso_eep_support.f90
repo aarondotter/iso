@@ -23,7 +23,7 @@ module iso_eep_support
   character(len=10) :: star_label(4)=['   unknown', 'substellar', '  low-mass', ' high-mass']
 
   ! maximum number of columns in history file
-  integer, parameter :: max_col = 200
+  integer, parameter :: max_col = 180
 
   ! format specs
   integer :: head !=29
@@ -473,6 +473,7 @@ contains
     have_col = .false.
     allocate(output(ncol))
     output = 0
+    write(*,*) 'number of columns: ', ncol
     do j=1,ncol
        iloop: do i=1,max_col
           ilo =   1 + main*(i-1) + xtra*(i-1)

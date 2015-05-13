@@ -23,7 +23,7 @@ program make_isochrone
   logical, parameter :: do_tracks = .false.
   logical, parameter :: do_isochrones = .true.
   logical, parameter :: do_smooth = .true.
-  logical, parameter :: skip_non_monotonic = .false.
+  logical, parameter :: skip_non_monotonic = .true.
 
   ierr=0
   if(command_argument_count()<1) then

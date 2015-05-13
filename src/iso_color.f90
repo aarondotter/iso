@@ -34,7 +34,7 @@ contains
     close(io)
     call free_iounit(io)
     call color_init(bc_table_list,bc0,ierr)
-    call color_create_fixed_Av_Rv(bc0(1),bc,Av,Rv)
+    call color_create_fixed_Av(bc0(1),bc,Av)
     deallocate(bc0)
   end subroutine read_color_input
 
