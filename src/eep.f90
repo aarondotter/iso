@@ -309,13 +309,6 @@ contains
     my_guess_2 = my_guess
 
     do i=my_guess, t% ntrack
-       if(t% tr(i_Yc,i) < 0.98d0)then
-          ZAHB=i
-          return
-       endif
-    enddo
-
-    do i=my_guess, t% ntrack
        if(t% tr(i_Yc,i) > Ymin .and. t% tr(i_logLHe,i) > LHemax)then
           LHemax = t% tr(i_logLHe,i)
           my_guess_2 = i
@@ -380,8 +373,9 @@ contains
   integer function PostAGB(t,guess)
     type(track), intent(in) :: t
     integer, intent(in) :: guess
-    real(dp), parameter :: env_mass_min = 8d-1
-    real(dp) :: Tc_now, TC_end, env_mass_frac
+    real(dp), parameter :: core_mass_frac_limit = 8.5d-1
+    real(dp), parameter :: log_Teff_limit = 3.6d0
+    real(dp) :: Tc_now, TC_end, core_mass_frac
     integer :: i, my_guess
     PostAGB=0
     if(guess < 1 .or. guess > t% ntrack) then 
@@ -398,8 +392,8 @@ contains
     if(Tc_now > Tc_end)then
        !has TP-AGB
        do i=my_guess, t% ntrack
-          env_mass_frac = t% tr(i_co_core,i) / t% tr(i_mass,i) 
-          if(env_mass_frac > env_mass_min)then
+          core_mass_frac = t% tr(i_co_core,i) / t% tr(i_mass,i) 
+          if(core_mass_frac > core_mass_frac_limit)then
              PostAGB = i
              exit
           endif

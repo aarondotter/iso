@@ -2,4 +2,5 @@
 28
 32
 1
-all done. newer is 29\33
+7503 - ints and dbls default to 40
+28/32 is a good set of values for pre-73XX MESA
