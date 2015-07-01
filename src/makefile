@@ -1,10 +1,8 @@
 #for MESA pieces
 include $(MESA_DIR)/utils/makefile_header
 
-COLOR_DIR=/home/dotter/science/colors
-LOAD_COLOR=-L$(COLOR_DIR)/make -lcolor
-INCLUDE=-I$(MESASDK_ROOT)/include -I$(MESA_DIR)/include -I$(COLOR_DIR)/make
-LOAD_MESA=-L$(MESA_LIB_DIR) -linterp_1d -lnum -lmtx -lutils
+INCLUDE=-I$(MESASDK_ROOT)/include -I$(MESA_DIR)/include
+LOAD_MESA=-L$(MESA_LIB_DIR) $(LOAD_MESA_NUMERICS)
 
 FC=gfortran 
 DEBUG=-g -fbacktrace -fcheck=all 
@@ -19,8 +17,8 @@ BLEND=blend_eeps
 
 all: $(EEP) $(ISO) $(BLEND)
 
-$(ISO): make_iso.o iso_eep_support.o iso_color.o
-	$(FC) $(OMP) -o ../$(ISO) $^ $(LOAD_MESA) $(LOAD_COLOR)
+$(ISO): make_iso.o iso_eep_support.o iso_color.o BC_tables.o
+	$(FC) $(OMP) -o ../$(ISO) $^ $(LOAD_MESA)
 
 $(EEP): make_eeps.o phases.o eep.o iso_eep_support.o 
 	$(FC) $(OMP) -o ../$(EEP) $^ $(LOAD_MESA)
@@ -28,7 +26,7 @@ $(EEP): make_eeps.o phases.o eep.o iso_eep_support.o
 $(BLEND): blend_eeps.o iso_eep_support.o
 	$(FC) $(OMP) -o ../$(BLEND) $^ $(LOAD_MESA)
 
-make_iso.o: make_iso.f90 iso_eep_support.o iso_color.o
+make_iso.o: make_iso.f90 iso_eep_support.o iso_color.o BC_tables.o
 
 make_eeps.o: make_eeps.f90 phases.o eep.o iso_eep_support.o
 
@@ -39,6 +37,10 @@ eep.o: eep.f90 iso_eep_support.o
 phases.o: phases.f90 iso_eep_support.o
 
 iso_eep_support.o: iso_eep_support.f90
+
+iso_color.o: iso_eep_support.o BC_tables.o
+
+BC_tables.o: BC_tables.f90
 
 %.o:%.f90
 	$(FC) $(OMP) $(FFLAGS) $(INCLUDE) -c $<

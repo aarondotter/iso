@@ -373,8 +373,8 @@ contains
   integer function PostAGB(t,guess)
     type(track), intent(in) :: t
     integer, intent(in) :: guess
-    real(dp), parameter :: core_mass_frac_limit = 8.5d-1
-    real(dp), parameter :: log_Teff_limit = 3.6d0
+    real(dp), parameter :: core_mass_frac_limit = 8d-1
+    !real(dp), parameter :: log_Teff_limit = 3.6d0
     real(dp) :: Tc_now, TC_end, core_mass_frac
     integer :: i, my_guess
     PostAGB=0

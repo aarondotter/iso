@@ -12,7 +12,7 @@ program make_isochrone
 
   implicit none
 
-  character(len=file_path) :: input_file, iso_file, history_columns_list
+  character(len=file_path) :: input_file, history_columns_list
   integer :: i, ierr, io, j, niso, ntrk, ngood, first, prev, i_Minit
   type(track), allocatable :: s(:), t(:), q
   type(isochrone_set) :: set
@@ -36,7 +36,7 @@ program make_isochrone
   call read_iso_input(ierr)
   if(ierr/=0) write(*,*) '  read_iso_input: ierr = ', ierr
 
-  call read_color_input(ierr)
+  call read_color_input(set,ierr)
   do_colors = (ierr == 0)
 
   !read eep files to fill s()
@@ -96,8 +96,8 @@ program make_isochrone
      do i=1,niso
         call do_isochrone_for_age(t,set% iso(i))
      enddo
-     call write_isochrones_to_file(iso_file,set)
-     if(do_colors) call write_cmds_to_file(iso_file,set)
+     call write_isochrones_to_file(set)
+     if(do_colors) call write_cmds_to_file(set)
   endif
 
   !all done.
@@ -510,14 +510,13 @@ contains
 
 
   !writes a series of n isochrones to filename
-  subroutine write_isochrones_to_file(filename,set)
-    character(len=file_path), intent(in) :: filename
+  subroutine write_isochrones_to_file(set)
     type(isochrone_set), intent(in) :: set
     integer :: i, ierr, io,n
     io=alloc_iounit(ierr)
     n=size(set% iso)
-    write(0,*) ' isochrone output file = ', trim(filename)
-    open(io,file=trim(filename),action='write',status='unknown',iostat=ierr)
+    write(0,*) ' isochrone output file = ', trim(set% filename)
+    open(io,file=trim(set% filename),action='write',status='unknown',iostat=ierr)
     write(io,'(a25,i5)') '# number of isochrones = ', n
     write(io,'(a25,i5)') '# MESA version number  = ', set% version_number
     do i=1,n
@@ -567,23 +566,23 @@ contains
     enddo
   end subroutine write_isochrone_to_file_phase
 
-  subroutine write_cmds_to_file(filename,s)
-    character(len=256), intent(in) :: filename
-    type(isochrone_set), intent(inout) :: s
+  subroutine write_cmds_to_file(set)
+    type(isochrone_set), intent(inout) :: set
     character(len=256) :: output
     integer :: i, io, n, ierr
-    if(color_suffix/='') output = trim(filename) // '.' // trim(color_suffix)
-    n=size(s% iso)
+    if(set% cmd_suffix/='') output = trim(set% filename) // '.' // trim(set% cmd_suffix)
+    n=size(set% iso)
     write(0,*) ' cmd output file = ', trim(output)
     io = alloc_iounit(ierr)
     if(ierr/=0) return
     open(io,file=trim(output),action='write',status='unknown',iostat=ierr)
     if(ierr/=0) return
     write(io,'(a25,i5)')    '# number of isochrones = ', n
-    write(io,'(a25,i5)')    '# MESA version number  = ', s% version_number
-    write(io,'(a25,2f6.3)') '# values of Av and Rv  = ', bc% Av(1), bc% Rv(1)
+    write(io,'(a25,i5)')    '# MESA version number  = ', set% version_number
+    write(io,'(a25,2f6.3)') '# values of Av and Rv  = ', set% Av
     do i=1,n
-       call write_cmd_to_file(io,s% iso(i))
+       set% iso(i)% Av = set% Av
+       call write_cmd_to_file(io, set% iso(i))
        if(i<n) write(io,*)
        if(i<n) write(io,*)
     enddo
@@ -708,8 +707,8 @@ contains
     enddo
     !read info about output isochrones
     read(io,*) !skip this line
-    read(io,*) iso_file
-    iso_file = trim(iso_dir) // '/' // trim(iso_file)
+    read(io,*) set% filename
+    set% filename = trim(iso_dir) // '/' // trim(set% filename)
     read(io,'(a)') list_type
     read(io,*) niso
     allocate(set% iso(niso))
