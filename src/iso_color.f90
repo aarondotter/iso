@@ -62,6 +62,7 @@ contains
        Z    = 1.0 - X - Y
        FeH  = log10(Z/X) - FeH_sol
 
+       !interpolation is either linear, quadratic, or cubic
        if(FeH < b(1)% FeH .or. n==1) then
           call BC_interp_filters(b(1),logg,logT,iso% Av, res,ierr)
 
@@ -74,7 +75,7 @@ contains
        else if(n==3)then
           call quadratic(b(1), b(2), b(3), logg, logT, iso% Av, FeH, res, ierr)
 
-       else
+       else 
           do j=1,n-1
              if(FeH >= b(j)% FeH .and. FeH < b(j+1)% FeH) jZ=j
           enddo
