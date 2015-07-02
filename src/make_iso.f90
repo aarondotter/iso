@@ -593,7 +593,7 @@ contains
   subroutine write_cmd_to_file(io,iso)
     integer, intent(in) :: io
     type(isochrone), intent(inout) :: iso
-    integer :: i, iT, ig, iL
+    integer :: i, iT, ig, iL, iH, iHe
     iT=0; ig=0; iL=0
 
     do i=1, iso% ncol
@@ -603,9 +603,13 @@ contains
           ig=i
        else if(trim(iso% cols(i))== 'log_L') then
           iL=i
+       else if(trim(iso% cols(i))=='surface_h1')then
+          iH=i
+       else if(trim(iso% cols(i))=='surface_he4')then
+          iHe=i   
        endif
     enddo
-    call get_mags(iso,iT,ig,iL)
+    call get_mags(iso,iT,ig,iL,iH,iHe,ierr)
 
     write(io,'(a25,2i5)') '# number of EEPs, cols = ', iso% neep, iso% nfil + 6
     write(io,'(a1,i4,5i32,299i12)') '#    ', (i,i=1,iso% nfil+6)
