@@ -23,6 +23,7 @@ program make_isochrone
   logical, parameter :: do_tracks = .false.
   logical, parameter :: do_isochrones = .true.
   logical, parameter :: do_smooth = .true.
+  logical, parameter :: do_PAV = .true.
   logical, parameter :: skip_non_monotonic = .false.
 
   ierr=0
@@ -114,7 +115,7 @@ contains
     character(len=col_width) :: mass_age_string = 'mass from age'
     real(dp) :: age, mass
     real(dp), pointer :: ages(:)=>NULL(), masses(:)=>NULL()
-    real(dp), allocatable :: result1(:,:), result2(:,:)
+    real(dp), allocatable :: result1(:,:), result2(:,:), mass_tmp(:)
     logical, allocatable :: skip(:)
     integer, allocatable :: valid(:)
 
@@ -124,9 +125,9 @@ contains
 
     !set method and options for interpolation
     !for interp_m3: average, quartic, or super_bee
-    interp_method = average
+    !interp_method = average
     !for interp_pm: piecewise_monotonic           
-    !interp_method = piecewise_monotonic
+    interp_method = piecewise_monotonic
 
     !initialize some quantities
     age = iso% age
@@ -330,7 +331,30 @@ contains
        nullify(ages,masses)
     enddo eep_loop
 
-    if(skip_non_monotonic .and. .not.use_double_eep)then !check for non-monotonic EEPs
+    !PAV
+    if(do_PAV .and. .not.use_double_eep)then
+       j=0
+       allocate(mass_tmp(max_eep))
+       do eep=1,max_eep
+          if(valid(eep)>0) then 
+             j = j+1
+             mass_tmp(j) = result1(i_Minit,eep)
+          endif
+       enddo
+       call PAV(mass_tmp(1:j))
+       j=0
+       do eep=1,max_eep
+          if(valid(eep)>0)then
+             j=j+1
+             !write(99,*) j, result1(i_Minit,eep), mass_tmp(j)
+             result1(i_Minit,eep) = mass_tmp(j)
+          endif
+       enddo
+       deallocate(mass_tmp)
+    endif
+
+
+    if(.false. .and. skip_non_monotonic .and. .not.use_double_eep)then !check for non-monotonic EEPs
        do eep=2,max_eep
           if(valid(eep)>0)then
              do j=eep-1,2,-1
@@ -425,15 +449,12 @@ contains
     character(len=col_width), intent(in) :: label
     integer, intent(out) :: ierr
     integer :: n_old
-
     ierr=0
-
     if(size(x)/=size(y))then
        ierr=-1
        interp_x_from_y = 0d0
        return
     endif
-
     n_old = size(x)
     x0(n_new) = x_in
     allocate(work1(n_old*pm_work_size))
@@ -452,7 +473,7 @@ contains
     integer, intent(out) :: ierr
     integer :: j,k
     integer, parameter :: nwork = max(mp_work_size,pm_work_size)
-    real(dp) :: y     !f(4,count), work(count,nwork)
+    real(dp) :: y 
     real(dp), target :: f_ary(4*count), work_ary(count*nwork)
     real(dp), pointer :: f1(:)=>NULL(), f(:,:)=>NULL(), work(:)=>NULL()
 
@@ -825,5 +846,30 @@ contains
     y0 = sum(y*w)/sum(w)      
     deallocate(w)
   end function npoint
+
+  subroutine PAV(array) !pool-adjacent-violators algorithm
+    real(dp), intent(inout) :: array(:)
+    real(dp), allocatable :: temp(:)
+    integer ::  i,n
+    if(monotonic(array)) return
+    n=size(array)
+    allocate(temp(n))
+    temp=array
+    do while(.not.monotonic(temp))
+       i=1
+       do while(i<n)
+          if(temp(i)>temp(i+1))then
+             temp(i:i+1) = 0.5*(temp(i)+temp(i+1))
+             do j=i-1,i-3,-1
+                if(temp(j)<temp(j-1)) then
+                   temp(j-1:j+1) = sum(temp(j-1:j+1))/3.0
+                endif
+             enddo
+          endif
+          i=i+1
+       enddo
+    enddo
+    array=temp
+  end subroutine PAV
 
 end program make_isochrone
