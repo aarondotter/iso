@@ -346,7 +346,6 @@ contains
        do eep=1,max_eep
           if(valid(eep)>0)then
              j=j+1
-             !write(99,*) j, result1(i_Minit,eep), mass_tmp(j)
              result1(i_Minit,eep) = mass_tmp(j)
           endif
        enddo
@@ -354,7 +353,7 @@ contains
     endif
 
 
-    if(.false. .and. skip_non_monotonic .and. .not.use_double_eep)then !check for non-monotonic EEPs
+    if(skip_non_monotonic .and. .not.use_double_eep)then !check for non-monotonic EEPs
        do eep=2,max_eep
           if(valid(eep)>0)then
              do j=eep-1,2,-1
