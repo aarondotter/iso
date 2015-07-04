@@ -37,7 +37,7 @@ module iso_eep_support
 
   !for columns
   integer :: ncol
-  character(len=col_width), pointer :: cols(:) !(ncol)
+  character(len=col_width), allocatable :: cols(:) !(ncol)
 
   !EEP arrays
   integer, parameter :: primary = 11 ! number of primary EEPs
@@ -48,7 +48,7 @@ module iso_eep_support
   !holds an evolutionary track
   type track
      character(len=file_path) :: filename
-     character(len=col_width), pointer :: cols(:)
+     character(len=col_width), allocatable :: cols(:)
      logical :: has_phase = .false., ignore=.false.
      integer :: ncol, ntrack, neep, version_number
      integer :: star_type = unknown
@@ -101,7 +101,7 @@ contains
 
   subroutine process_history_columns(history_columns_list,col,ierr)
     character(len=file_path), intent(in) :: history_columns_list
-    character(len=col_width), pointer, intent(out) :: col(:)
+    character(len=col_width), allocatable, intent(out) :: col(:)
     integer, intent(out) :: ierr
     integer :: i, io, ncol(2), nchar, column_length, pass
     character(len=file_path) :: line, column_name
@@ -295,7 +295,7 @@ contains
     character(len=3) :: type_string(2)
     integer :: i, ilo, ihi, io, j, imass, iversion
     integer :: ierr
-    integer, pointer :: output(:) !ncol
+    integer, allocatable :: output(:) !ncol
     logical :: binfile_exists
 
     ierr = 0
@@ -393,8 +393,6 @@ contains
     call distance_along_track(t)
     call set_star_type_from_history(t)
 
-    deallocate(output)
-
     !finally check if initial mass is correct and, if not, replace it
     if(check_initial_mass) then
        if(abs(t% initial_mass - t% tr(i_mass,1)) > mass_eps) t% initial_mass = t% tr(i_mass,1)
@@ -463,8 +461,7 @@ contains
     character(len=*), intent(in) :: input
     integer :: ncol
     character(len=col_width), intent(in) :: cols(ncol)
-    !character(len=*), intent(in) :: cols(ncol)
-    integer, pointer, intent(out) :: output(:)
+    integer, allocatable, intent(out) :: output(:)
     integer :: i,ihi,ilo,j
     logical :: have_col(ncol)
     have_col = .false.

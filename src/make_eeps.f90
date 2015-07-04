@@ -51,8 +51,6 @@ program make_eeps
      nullify(t)
   enddo
 
-  deallocate(cols)
-
 contains
 
   subroutine read_input(ierr)

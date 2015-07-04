@@ -92,7 +92,6 @@ contains
        
        iso% mags(:,i) = SolBol - 2.5*logL - res
     enddo
-    deallocate(res)
 
     contains
       
