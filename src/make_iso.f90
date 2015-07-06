@@ -172,12 +172,10 @@ contains
        !I use pointers here because they can be allocated
        !and deallocated to the proper size for each EEP
        if(associated(ages)) then
-          if(iso_debug) write(0,*) "ages was associated for eep ", eep
           deallocate(ages)
           nullify(ages)
        endif
        if(associated(masses)) then
-          if(iso_debug) write(0,*) "masses was associated for eep ", eep
           deallocate(masses)
           nullify(masses)
        endif
@@ -368,6 +366,7 @@ contains
                          if(ierr/=0) then
                             write(0,*) ' mass interpolation failed for index = ', &
                                  trim(cols(index))
+                            valid(eep)=0
                             cycle eep_loop2
                          endif
                       enddo
@@ -382,6 +381,7 @@ contains
                          if(ierr/=0) then
                             write(0,*) ' mass interpolation failed for index = ', &
                                  trim(cols(index))
+                            valid(eep)=0
                             cycle eep_loop2
                          endif
                       enddo
@@ -403,16 +403,13 @@ contains
                   s, skip(:,eep), count(eep), index, masses, mass, cols(index), ierr)
              if(ierr/=0) then
                 write(0,*) ' mass interpolation failed for index = ', trim(cols(index))
+                valid(eep)=0
                 cycle eep_loop2
              endif
           enddo
-
-          !completed all interpolations, so this is a valid EEP
-          !if validi > 0 then it is a valid EEP
           valid(eep) = 1
 
        endif
-
     enddo eep_loop2
 
     deallocate(masses,ages)
