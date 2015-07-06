@@ -23,7 +23,7 @@ program make_isochrone
   logical, parameter :: do_tracks = .false.
   logical, parameter :: do_isochrones = .true.
   logical, parameter :: do_smooth = .true.
-  logical, parameter :: do_PAV = .true.
+  logical, parameter :: do_PAV = .false.
   !logical, parameter :: skip_non_monotonic = .true.
 
   ierr=0
@@ -109,28 +109,30 @@ contains
   subroutine do_isochrone_for_age(s,iso)
     type(track), intent(in) :: s(:)
     type(isochrone), intent(inout) :: iso
-    integer :: count, eep, hi, ierr, index, interp_method, j, k, lo, max_eep, n, pass
+    integer :: eep, hi, ierr, index, interp_method, j, k, lo, max_eep, n, pass
     integer, parameter :: jinc = 6
     character(len=col_width) :: mass_age_string = 'mass from age'
     real(dp) :: age, mass
     real(dp), pointer :: ages(:)=>NULL(), masses(:)=>NULL()
     real(dp), allocatable :: result1(:,:), result2(:,:), mass_tmp(:)
-    logical, allocatable :: skip(:)
-    integer, allocatable :: valid(:)
+    logical, allocatable :: skip(:,:)
+    integer, allocatable :: valid(:), count(:)
 
     ierr = 0
-    n = size(s) ! is the number of tracks
-    allocate(skip(n))
-
-    !set method and options for interpolation
-    !for interp_m3: average, quartic, or super_bee
-    !interp_method = average
-    !for interp_pm: piecewise_monotonic           
-    interp_method = piecewise_monotonic
 
     !initialize some quantities
+    n = size(s) ! is the number of tracks
+    max_eep = maxval(s(:)% ntrack) !is the largest number of EEPs in any track
+    allocate(skip(n,max_eep),count(max_eep))
+
+    !set method and options for interpolation
+    ! - for interp_m3: average, quartic, or super_bee
+    !interp_method = average
+    ! - for interp_pm: piecewise_monotonic
+    interp_method = piecewise_monotonic
+
+
     age = iso% age
-    max_eep = maxval(s(:)% ntrack)
     mass=0d0
 
     !this is temporary storage for the isochrone data:
@@ -141,30 +143,29 @@ contains
     result1 = 0d0
     result2 = 0d0
     valid = 0
+    skip = .false.
+    count = 0
 
-
-    eep_loop: do eep=1,max_eep
+    eep_loop1: do eep=1,max_eep
 
        !determine tracks for which the ith eep is defined
        !the skip logical array determines whether or not a given
        !track will be included in the ensuing interpolation steps.
        !count keeps track of how many tracks will be used. if
        !fewer than 2 tracks satisfy the condition, skip the EEP
-       skip = .false.
-       count = 0
        hi = max_eep
        lo = eep
        do k=1,n
           if(s(k)% eep(1) > lo .or. s(k)% eep(s(k)% neep) < lo ) then
-             skip(k) = .true.
+             skip(k,eep) = .true.
           else
-             count = count + 1
+             count(eep) = count(eep) + 1
           endif
        enddo
-       if(iso_debug) write(*,*) '  eep, count, n = ', eep, count, n
-       if(count < 2)then
+       if(iso_debug) write(*,*) '  EEP, count, n = ', eep, count(eep), n
+       if(count(eep) < 2)then
           if(iso_debug) write(*,*) 'not enough eeps to interpolate'
-          cycle
+          cycle eep_loop1
        endif
 
        !allocate ages and masses that pass the above test
@@ -180,13 +181,13 @@ contains
           deallocate(masses)
           nullify(masses)
        endif
-       allocate(ages(count),masses(count))
+       allocate(ages(count(eep)),masses(count(eep)))
 
        !this step fills the masses and ages arrays that are
        !used as the basis for interpolation
        j=0
        do k=1,n
-          if(.not.skip(k))then
+          if(.not.skip(k,eep))then
              j=j+1
              ages(j) = log10(s(k)% tr(i_age,eep))
              masses(j) = s(k)% initial_mass
@@ -197,13 +198,10 @@ contains
 
        !check to see if the input age is found within the
        !current set of ages. if not, skip to the next EEP.
-       j = binary_search( count, ages, 1, age)
-       if( j < 1 .or. j > count-1 ) then
-          deallocate(masses,ages)
-          cycle
-       endif
+       j = binary_search( count(eep), ages, 1, age)
+       if( j < 1 .or. j > count(eep)-1 ) cycle eep_loop1
        lo = max(1,j-jinc)
-       hi = min(count,j+jinc)   
+       hi = min(count(eep),j+jinc)   
 
        if(iso_debug) write(*,'(i4,99f7.2)') eep, masses
 
@@ -223,9 +221,9 @@ contains
        endif
 
        if(iso_debug) then 
-          write(*,*) ' j, count = ', j, count
-          write(*,*) skip
-          do k=1,count
+          write(*,*) ' j, count = ', j, count(eep)
+          write(*,*) skip(:,eep)
+          do k=1,count(eep)
              write(*,*) masses(k), ages(k), age
           enddo
        endif
@@ -236,9 +234,9 @@ contains
        !j gives the number of times that this happens for a given EEP.
        if(use_double_eep)then
           pass=0 
-          k_loop: do k=1,count-1
+          k_loop: do k=1,count(eep)-1
 
-             if(.not.skip(k))then
+             if(.not.skip(k,eep))then
 
                 if( ages(k) > ages(k+1) .and. ages(k) >= age .and. ages(k+1) < age )then
                    pass = pass + 1
@@ -249,23 +247,13 @@ contains
                       mass=interp_x_from_y(ages(lo:hi),masses(lo:hi),age,mass_age_string,ierr)
                       if(ierr/=0)then
                          write(0,*) ' age interpolation failed for eep, pass = ', eep, pass
-                         cycle eep_loop
+                         cycle eep_loop1
                       endif
 
                       if(iso_debug) write(*,'(2i5,f9.5,3f14.9)') eep, pass, age, mass, masses(lo), masses(hi)
 
                       result1(i_Minit,eep) = mass
-                      do index = 2, ncol
-                         result1(index,eep) = iso_interpolate(eep, interp_method, n, &
-                              s, skip, count, index, masses, mass, cols(index), ierr)
-                         if(ierr/=0) then
-                            write(0,*) ' mass interpolation failed for index = ', &
-                                 trim(cols(index))
-                            cycle eep_loop
-                         endif
-                      enddo
-                      valid(eep)=valid(eep)+1
-
+                      valid(eep)=1
                    else if(pass==2)then
                       call monotonic_mass_range(ages,k,lo,hi)
                       if(iso_debug) write(*,*) mass, masses(lo), masses(hi)
@@ -273,22 +261,13 @@ contains
                       mass=interp_x_from_y(ages(lo:hi),masses(lo:hi),age,mass_age_string,ierr)
                       if(ierr/=0)then
                          write(0,*) ' age interpolation failed for eep, pass = ', eep, pass
-                         cycle eep_loop
+                         cycle eep_loop1
                       endif
 
                       if(iso_debug) write(*,'(2i5,f9.5,3f14.9)') eep, pass, age, mass, masses(lo), masses(hi)
 
                       result2(i_Minit,eep) = mass
-                      do index = 2, ncol
-                         result2(index,eep) = iso_interpolate(eep, interp_method, n, &
-                              s, skip, count, index, masses, mass, cols(index), ierr)
-                         if(ierr/=0) then
-                            write(0,*) ' mass interpolation failed for index = ', &
-                                 trim(cols(index))
-                            cycle eep_loop
-                         endif
-                      enddo
-                      valid(eep)=valid(eep)+1
+                      valid(eep)=2
                    endif
 
                 endif
@@ -297,40 +276,24 @@ contains
 
           enddo k_loop
 
-
        else ! single EEP case; this is the original method.
           ! interpolate in age to find the EEP's initial mass
           index = i_Minit     ! special case for iso_intepolate
 
           mass = iso_interpolate( eep, interp_method, n, &
-               s, skip, count, index, ages, age, mass_age_string, ierr)
+               s, skip(:,eep), count(eep), index, ages, age, mass_age_string, ierr)
           if(ierr/=0)then
              write(0,*) ' interpolation failed in age->mass'
-             cycle eep_loop
+             cycle eep_loop1
           endif
           result1(i_Minit,eep) = mass
-
-          do index = 2, ncol
-             result1(index,eep) = iso_interpolate(eep, interp_method, n, &
-                  s, skip, count, index, masses, mass, cols(index), ierr)
-             if(ierr/=0) then
-                write(0,*) ' mass interpolation failed for index = ', trim(cols(index))
-                cycle eep_loop
-             endif
-          enddo
-
-          !completed all interpolations, so this is a valid EEP
-          !if validi > 0 then it is a valid EEP
-          valid(eep) = valid(eep)+1
-
+          valid(eep)=1
        endif
 
-       ! clean up for each iteration
-       deallocate(ages,masses)
-       nullify(ages,masses)
-    enddo eep_loop
+    enddo eep_loop1
 
-    !PAV
+
+    !PAV forces monotonicity in the masses
     if(do_PAV .and. .not.use_double_eep)then
        j=0
        allocate(mass_tmp(max_eep))
@@ -340,7 +303,9 @@ contains
              mass_tmp(j) = result1(i_Minit,eep)
           endif
        enddo
+
        call PAV(mass_tmp(1:j))
+
        j=0
        do eep=1,max_eep
           if(valid(eep)>0)then
@@ -351,6 +316,104 @@ contains
        deallocate(mass_tmp)
     endif
 
+
+    eep_loop2: do eep=1,max_eep
+
+       if(count(eep)<2.or.valid(eep)<1) cycle eep_loop2
+
+       !allocate ages and masses that pass the above test
+       !I use pointers here because they can be allocated
+       !and deallocated to the proper size for each EEP
+       if(associated(ages)) then
+          deallocate(ages)
+          nullify(ages)
+       endif
+       if(associated(masses)) then
+          deallocate(masses)
+          nullify(masses)
+       endif
+       allocate(ages(count(eep)),masses(count(eep)))
+
+       !this step fills the masses and ages arrays that are
+       !used as the basis for interpolation
+       j=0
+       do k=1,n
+          if(.not.skip(k,eep))then
+             j=j+1
+             ages(j) = log10(s(k)% tr(i_age,eep))
+             masses(j) = s(k)% initial_mass
+          endif
+       enddo
+
+       if(do_smooth.and.all(masses>0.5,dim=1)) call smooth(masses,ages)
+
+       !this block checks between two tracks at the current EEP to see if the 
+       !age lies in between the two. if it does, then it outputs a linear mass 
+       !interpolation. it is checking to see if this happens more than once.
+       !j gives the number of times that this happens for a given EEP.
+       if(use_double_eep)then
+          pass=0 
+          j_loop: do j=1,count(eep)-1
+
+             if(.not.skip(j,eep))then
+
+                if( ages(j) > ages(j+1) .and. ages(j) >= age .and. ages(j+1) < age )then
+                   pass = pass + 1
+                   if(pass==1)then
+
+                      do index = 2, ncol
+                         mass = result1(i_Minit,eep)
+                         result1(index,eep) = iso_interpolate(eep, interp_method, n, &
+                              s, skip(:,eep), count(eep), index, masses, mass, cols(index), ierr)
+                         if(ierr/=0) then
+                            write(0,*) ' mass interpolation failed for index = ', &
+                                 trim(cols(index))
+                            cycle eep_loop2
+                         endif
+                      enddo
+                      valid(eep)=1
+
+                   else if(pass==2)then
+
+                      do index = 2, ncol
+                         mass = result2(i_Minit,eep)
+                         result2(index,eep) = iso_interpolate(eep, interp_method, n, &
+                              s, skip(:,eep), count(eep), index, masses, mass, cols(index), ierr)
+                         if(ierr/=0) then
+                            write(0,*) ' mass interpolation failed for index = ', &
+                                 trim(cols(index))
+                            cycle eep_loop2
+                         endif
+                      enddo
+                      valid(eep)=2
+                   endif
+
+                endif
+
+             endif
+
+          enddo j_loop
+
+
+       else ! single EEP case; this is the original method.
+
+          do index = 2, ncol
+             mass = result1(i_Minit,eep)
+             result1(index,eep) = iso_interpolate(eep, interp_method, n, &
+                  s, skip(:,eep), count(eep), index, masses, mass, cols(index), ierr)
+             if(ierr/=0) then
+                write(0,*) ' mass interpolation failed for index = ', trim(cols(index))
+                cycle eep_loop2
+             endif
+          enddo
+
+          !completed all interpolations, so this is a valid EEP
+          !if validi > 0 then it is a valid EEP
+          valid(eep) = 1
+
+       endif
+
+    enddo eep_loop2
 
 !!$    if(skip_non_monotonic .and. .not.use_double_eep)then !check for non-monotonic EEPs
 !!$       do eep=2,max_eep
@@ -844,26 +907,79 @@ contains
   subroutine PAV(array) !pool-adjacent-violators algorithm
     real(dp), intent(inout) :: array(:)
     real(dp), allocatable :: temp(:)
-    integer ::  i,n
+    integer ::  i,j,n, direction
+    integer, parameter :: descending=0, ascending=1
     if(monotonic(array)) return
     n=size(array)
     allocate(temp(n))
     temp=array
-    do while(.not.monotonic(temp))
-       i=1
-       do while(i<n)
-          if(temp(i)>temp(i+1))then
-             temp(i:i+1) = 0.5*(temp(i)+temp(i+1))
-             do j=i-1,i-3,-1
-                if(temp(j)<temp(j-1)) then
-                   temp(j-1:j+1) = sum(temp(j-1:j+1))/3.0
-                endif
-             enddo
-          endif
-          i=i+1
+
+    if(array(1) > array(n)) then
+       direction=descending
+    else
+       direction=ascending
+    endif
+    
+    !descending order
+    if(direction==descending)then
+       do while(.not.monotonic(temp))
+          i=1
+          do while(i<n)
+             if(temp(i)>temp(i+1))then
+                temp(i:i+1) = 0.5*(temp(i)+temp(i+1))
+                do j=i-1,max(i-3,2),-1
+                   if(temp(j)<temp(j-1)) then
+                      temp(j-1:j+1) = sum(temp(j-1:j+1))/3.0
+                   endif
+                enddo
+             endif
+             i=i+1
+          enddo
        enddo
-    enddo
+    else
+    !ascending order
+       do while(.not.monotonic(temp))
+          i=1
+          do while(i<n)
+             if(temp(i)<temp(i+1))then
+                temp(i:i+1) = 0.5*(temp(i)+temp(i+1))
+                do j=i-1,max(i-3,2),-1
+                   if(temp(j)>temp(j-1)) then
+                      temp(j-1:j+1) = sum(temp(j-1:j+1))/3.0
+                   endif
+                enddo
+             endif
+             i=i+1
+          enddo
+       enddo
+    endif
+
     array=temp
   end subroutine PAV
+
+!!$  subroutine PAV(array) !pool-adjacent-violators algorithm
+!!$    real(dp), intent(inout) :: array(:)
+!!$    real(dp), allocatable :: temp(:)
+!!$    integer ::  i,n
+!!$    if(monotonic(array)) return
+!!$    n=size(array)
+!!$    allocate(temp(n))
+!!$    temp=array
+!!$    do while(.not.monotonic(temp))
+!!$       i=1
+!!$       do while(i<n)
+!!$          if(temp(i)>temp(i+1))then
+!!$             temp(i:i+1) = 0.5*(temp(i)+temp(i+1))
+!!$             do j=i-1,i-3,-1
+!!$                if(temp(j)<temp(j-1)) then
+!!$                   temp(j-1:j+1) = sum(temp(j-1:j+1))/3.0
+!!$                endif
+!!$             enddo
+!!$          endif
+!!$          i=i+1
+!!$       enddo
+!!$    enddo
+!!$    array=temp
+!!$  end subroutine PAV
 
 end program make_isochrone

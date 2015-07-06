@@ -45,6 +45,13 @@ contains
        read(line,'(a)') t(i)% filename
        call load_one_BC(t(i),ierr)
        if(ierr/=0) exit
+       if(i>1)then !check to make sure the tables are ordered properly
+          if(t(i)% FeH <= t(i-1)% FeH)then
+             write(0,*) ' [Fe/H] must be in ascending order in bc_table.list '
+             ierr=-1
+             return
+          endif
+       endif
        i=i+1
     enddo
     close(io)
