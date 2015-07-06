@@ -23,8 +23,8 @@ program make_isochrone
   logical, parameter :: do_tracks = .false.
   logical, parameter :: do_isochrones = .true.
   logical, parameter :: do_smooth = .true.
-  logical, parameter :: do_PAV = .false.
-  !logical, parameter :: skip_non_monotonic = .true.
+  logical, parameter :: do_PAV = .true.
+
 
   ierr=0
   if(command_argument_count()<1) then
@@ -415,25 +415,13 @@ contains
 
     enddo eep_loop2
 
-!!$    if(skip_non_monotonic .and. .not.use_double_eep)then !check for non-monotonic EEPs
-!!$       do eep=2,max_eep
-!!$          if(valid(eep)>0)then
-!!$             do j=eep-1,2,-1
-!!$                if(valid(j)>0) exit
-!!$             enddo
-!!$             if( result1(i_Minit,eep) < result1(i_Minit,j) ) valid(eep)=0
-!!$          endif
-!!$       enddo
-!!$    endif
+    deallocate(masses,ages)
 
     !now result1 and valid are full for all EEPs,
     !we can pass the data to the iso derived type
     iso% ncol = ncol
     iso% neep = sum(valid)
     allocate(iso% cols(iso% ncol))
-    !do eep=1,max_eep
-    !   iso% neep = iso% neep + valid(eep)
-    !enddo
     allocate(iso% data(iso% ncol, iso% neep), iso% eep(iso% neep))
     if(iso% has_phase) allocate(iso% phase(iso% neep))
 
