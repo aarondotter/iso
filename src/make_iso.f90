@@ -308,6 +308,7 @@ contains
        do eep=1,max_eep
           if(valid(eep)>0)then
              j=j+1
+             write(97,*) result1(i_Minit,eep), mass_tmp(j)
              result1(i_Minit,eep) = mass_tmp(j)
           endif
        enddo
@@ -888,59 +889,96 @@ contains
     y0 = sum(y*w)/sum(w)      
     deallocate(w)
   end function npoint
+  
+  subroutine PAV(y) !pool-adjancent violators algorithm applied in place
+    !based on python implementation at https://gist.github.com/fabianp/3081831
+    real(dp), intent(inout) :: y(:)
+    integer :: i, n, start, last, m
+    real(dp), allocatable :: d(:)
+    integer, allocatable :: lvls(:,:)
+    n=size(y)
+    allocate(d(n-1),lvls(n,2))
+    do i=1,n
+       lvls(i,:)=i
+    enddo
+    do while(.true.)
+       d=y(2:n)-y(1:n-1)
+       if(all(d>=0)) exit !test for monotonicity
+       i=locate(d) !finds the first point in d that is < 0
+       start = lvls(i,1)
+       last = lvls(i+1,2)
+       m = last - start + 1
+       y(start:last) = sum(y(start:last))/real(m)
+       lvls(start:last,1)=start
+       lvls(start:last,2)=last
+    enddo
+  end subroutine PAV  
 
-  subroutine PAV(array) !pool-adjacent-violators algorithm
-    real(dp), intent(inout) :: array(:)
-    real(dp), allocatable :: temp(:)
-    integer ::  i,j,n, direction
-    integer, parameter :: descending=0, ascending=1
-    if(monotonic(array)) return
-    n=size(array)
-    allocate(temp(n))
-    temp=array
+  integer function locate(y)
+    real(dp), intent(in) :: y(:)
+    integer :: i, n
+    n=size(y)
+    do i=1,n
+       if(y(i)<0.0)then
+          locate=i
+          return
+       endif
+    enddo
+    locate=0
+  end function locate
 
-    if(array(1) > array(n)) then
-       direction=descending
-    else
-       direction=ascending
-    endif
-    
-    !descending order
-    if(direction==descending)then
-       do while(.not.monotonic(temp))
-          i=1
-          do while(i<n)
-             if(temp(i)>temp(i+1))then
-                temp(i:i+1) = 0.5*(temp(i)+temp(i+1))
-                do j=i-1,max(i-3,2),-1
-                   if(temp(j)<temp(j-1)) then
-                      temp(j-1:j+1) = sum(temp(j-1:j+1))/3.0
-                   endif
-                enddo
-             endif
-             i=i+1
-          enddo
-       enddo
-    else
-    !ascending order
-       do while(.not.monotonic(temp))
-          i=1
-          do while(i<n)
-             if(temp(i)<temp(i+1))then
-                temp(i:i+1) = 0.5*(temp(i)+temp(i+1))
-                do j=i-1,max(i-3,2),-1
-                   if(temp(j)>temp(j-1)) then
-                      temp(j-1:j+1) = sum(temp(j-1:j+1))/3.0
-                   endif
-                enddo
-             endif
-             i=i+1
-          enddo
-       enddo
-    endif
-
-    array=temp
-  end subroutine PAV
+!!$  subroutine PAV(array) !pool-adjacent-violators algorithm
+!!$    real(dp), intent(inout) :: array(:)
+!!$    real(dp), allocatable :: temp(:)
+!!$    integer ::  i,j,n, direction
+!!$    integer, parameter :: descending=0, ascending=1
+!!$    if(monotonic(array)) return
+!!$    n=size(array)
+!!$    allocate(temp(n))
+!!$    temp=array
+!!$
+!!$    if(array(1) > array(n)) then
+!!$       direction=descending
+!!$    else
+!!$       direction=ascending
+!!$    endif
+!!$    
+!!$    !descending order
+!!$    if(direction==descending)then
+!!$       do while(.not.monotonic(temp))
+!!$          i=1
+!!$          do while(i<n)
+!!$             if(temp(i)>temp(i+1))then
+!!$                temp(i:i+1) = 0.5*(temp(i)+temp(i+1))
+!!$                do j=i-1,max(i-3,2),-1
+!!$                   if(temp(j)<temp(j-1)) then
+!!$                      temp(j-1:j+1) = sum(temp(j-1:j+1))/3.0
+!!$                   endif
+!!$                enddo
+!!$             endif
+!!$             i=i+1
+!!$          enddo
+!!$       enddo
+!!$    else
+!!$    !ascending order
+!!$       do while(.not.monotonic(temp))
+!!$          i=1
+!!$          do while(i<n)
+!!$             if(temp(i)<temp(i+1))then
+!!$                temp(i:i+1) = 0.5*(temp(i)+temp(i+1))
+!!$                do j=i-1,max(i-3,2),-1
+!!$                   if(temp(j)>temp(j-1)) then
+!!$                      temp(j-1:j+1) = sum(temp(j-1:j+1))/3.0
+!!$                   endif
+!!$                enddo
+!!$             endif
+!!$             i=i+1
+!!$          enddo
+!!$       enddo
+!!$    endif
+!!$
+!!$    array=temp
+!!$  end subroutine PAV
 
 !!$  subroutine PAV(array) !pool-adjacent-violators algorithm
 !!$    real(dp), intent(inout) :: array(:)
