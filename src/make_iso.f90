@@ -308,7 +308,6 @@ contains
        do eep=1,max_eep
           if(valid(eep)>0)then
              j=j+1
-             write(97,*) result1(i_Minit,eep), mass_tmp(j)
              result1(i_Minit,eep) = mass_tmp(j)
           endif
        enddo
