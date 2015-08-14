@@ -122,7 +122,7 @@ contains
 
           !remove any nasty tabs
           do while(index(line,char(9))>0)
-             write(*,*) ' found a tab! '
+             write(*,*) ' found a tab in line: ', trim(line)
              i=index(line,char(9))
              line(i:i)=' '
           enddo

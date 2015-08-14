@@ -124,8 +124,8 @@ contains
     ieep=1
     t% EEP(ieep) = PreMS_Tc(t,5.0d0,1); if(check(t,ieep)) return; ieep=ieep+1
     t% EEP(ieep) = ZAMS(t,10); if(check(t,ieep)) return; ieep=ieep+1
-    t% EEP(ieep) = TAMS(t,1d-1,t% EEP(ieep-1)+2); if(check(t,ieep)) return; ieep=ieep+1
-    t% EEP(ieep) = TAMS(t,1d-4,t% EEP(ieep-1)+2); if(check(t,ieep)) return; ieep=ieep+1
+    t% EEP(ieep) = TAMS(t,3.5d-1,t% EEP(ieep-1)+2); if(check(t,ieep)) return; ieep=ieep+1
+    t% EEP(ieep) = TAMS(t,1d-12,t% EEP(ieep-1)+2); if(check(t,ieep)) return; ieep=ieep+1
     t% EEP(ieep) = RGBTip(t,t% EEP(ieep-1)+2); if(check(t,ieep)) return; ieep=ieep+1
     t% EEP(ieep) = ZAHB(t,t% EEP(ieep-1)+2); if(check(t,ieep)) return; ieep=ieep+1
     t% EEP(ieep) = TAHB(t,1d-1,t% EEP(ieep-1)+2); if(check(t,ieep)) return; ieep=ieep+1
