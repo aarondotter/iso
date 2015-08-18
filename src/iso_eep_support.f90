@@ -55,6 +55,8 @@ module iso_eep_support
      integer, allocatable :: eep(:)
      real(dp) :: initial_mass
      real(dp), allocatable :: tr(:,:), dist(:), phase(:)
+     !these are used internally as an intermediate step
+     real(dp), allocatable :: eep_tr(:,:), eep_dist(:)
   end type track
 
   !holds one isochrone
@@ -386,6 +388,7 @@ contains
        enddo
     enddo
     close(io)
+
     call free_iounit(io)
 
     !compute distance along track

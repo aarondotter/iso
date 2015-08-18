@@ -17,14 +17,18 @@ program make_isochrone
   type(track), allocatable :: s(:), t(:), q
   type(isochrone_set) :: set
 
-  logical :: use_double_eep, do_colors
+  logical :: use_double_eep
   integer, parameter :: piecewise_monotonic = 4
-  logical, parameter :: iso_debug = .false.
-  logical, parameter :: do_tracks = .false.
-  logical, parameter :: do_isochrones = .true.
-  logical, parameter :: do_smooth = .true.
-  logical, parameter :: do_PAV = .true.
 
+  !default some namelist parameters
+  logical :: iso_debug = .false.
+  logical :: do_tracks = .false.
+  logical :: do_isochrones = .true.
+  logical :: do_smooth = .true.
+  logical :: do_PAV = .true.
+  logical :: do_colors = .true.
+
+  namelist /iso_controls/ iso_debug, do_tracks, do_isochrones, do_smooth, do_PAV, do_colors
 
   ierr=0
   if(command_argument_count()<1) then
@@ -37,8 +41,10 @@ program make_isochrone
   call read_iso_input(ierr)
   if(ierr/=0) write(*,*) '  read_iso_input: ierr = ', ierr
 
-  call read_color_input(set,ierr)
-  do_colors = (ierr == 0)
+  if(do_colors) then
+     call read_color_input(set,ierr)
+     do_colors = (ierr == 0)
+  endif
 
   !read eep files to fill s()
   first=ntrk
@@ -754,6 +760,17 @@ contains
     integer :: i
     real(dp) :: age_low, age_high, age_step
     ierr=0
+
+    io=alloc_iounit(ierr)
+    open(io, file='input.nml', action='read', status='old', iostat=ierr)
+    read(io, nml=iso_controls, iostat=ierr)
+    close(io)
+    call free_iounit(io)
+    if(ierr/=0) then
+       write(0,'(a)') 'make_iso: problem reading iso_controls namelist'
+       return
+    endif
+
     call get_command_argument(1,input_file)
     io=alloc_iounit(ierr)
     !read info about into tracks
@@ -925,83 +942,5 @@ contains
     enddo
     locate=0
   end function locate
-
-!!$  subroutine PAV(array) !pool-adjacent-violators algorithm
-!!$    real(dp), intent(inout) :: array(:)
-!!$    real(dp), allocatable :: temp(:)
-!!$    integer ::  i,j,n, direction
-!!$    integer, parameter :: descending=0, ascending=1
-!!$    if(monotonic(array)) return
-!!$    n=size(array)
-!!$    allocate(temp(n))
-!!$    temp=array
-!!$
-!!$    if(array(1) > array(n)) then
-!!$       direction=descending
-!!$    else
-!!$       direction=ascending
-!!$    endif
-!!$    
-!!$    !descending order
-!!$    if(direction==descending)then
-!!$       do while(.not.monotonic(temp))
-!!$          i=1
-!!$          do while(i<n)
-!!$             if(temp(i)>temp(i+1))then
-!!$                temp(i:i+1) = 0.5*(temp(i)+temp(i+1))
-!!$                do j=i-1,max(i-3,2),-1
-!!$                   if(temp(j)<temp(j-1)) then
-!!$                      temp(j-1:j+1) = sum(temp(j-1:j+1))/3.0
-!!$                   endif
-!!$                enddo
-!!$             endif
-!!$             i=i+1
-!!$          enddo
-!!$       enddo
-!!$    else
-!!$    !ascending order
-!!$       do while(.not.monotonic(temp))
-!!$          i=1
-!!$          do while(i<n)
-!!$             if(temp(i)<temp(i+1))then
-!!$                temp(i:i+1) = 0.5*(temp(i)+temp(i+1))
-!!$                do j=i-1,max(i-3,2),-1
-!!$                   if(temp(j)>temp(j-1)) then
-!!$                      temp(j-1:j+1) = sum(temp(j-1:j+1))/3.0
-!!$                   endif
-!!$                enddo
-!!$             endif
-!!$             i=i+1
-!!$          enddo
-!!$       enddo
-!!$    endif
-!!$
-!!$    array=temp
-!!$  end subroutine PAV
-
-!!$  subroutine PAV(array) !pool-adjacent-violators algorithm
-!!$    real(dp), intent(inout) :: array(:)
-!!$    real(dp), allocatable :: temp(:)
-!!$    integer ::  i,n
-!!$    if(monotonic(array)) return
-!!$    n=size(array)
-!!$    allocate(temp(n))
-!!$    temp=array
-!!$    do while(.not.monotonic(temp))
-!!$       i=1
-!!$       do while(i<n)
-!!$          if(temp(i)>temp(i+1))then
-!!$             temp(i:i+1) = 0.5*(temp(i)+temp(i+1))
-!!$             do j=i-1,i-3,-1
-!!$                if(temp(j)<temp(j-1)) then
-!!$                   temp(j-1:j+1) = sum(temp(j-1:j+1))/3.0
-!!$                endif
-!!$             enddo
-!!$          endif
-!!$          i=i+1
-!!$       enddo
-!!$    enddo
-!!$    array=temp
-!!$  end subroutine PAV
 
 end program make_isochrone

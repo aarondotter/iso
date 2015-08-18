@@ -395,7 +395,7 @@ contains
           core_mass_frac = t% tr(i_co_core,i) / t% tr(i_mass,i) 
           if(core_mass_frac > core_mass_frac_limit)then
              PostAGB = i
-             exit
+             return
           endif
        enddo
     else
@@ -420,7 +420,7 @@ contains
     do i = my_guess, t% ntrack
        if(t% tr(i_gamma,i) >= center_gamma_limit)then
           WDCS=i
-          exit
+          return
        endif
     enddo
   end function WDCS
