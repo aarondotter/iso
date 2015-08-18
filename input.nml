@@ -1,0 +1,13 @@
+
+&iso_controls
+
+   do_isochrones = .true.
+
+   do_smooth = .true.
+
+   do_PAV = .true.
+
+   do_colors = .false.
+
+
+/ !end of iso_controls namelist
