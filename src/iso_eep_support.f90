@@ -40,7 +40,7 @@ module iso_eep_support
   character(len=col_width), allocatable :: cols(:) !(ncol)
 
   !EEP arrays
-  integer, parameter :: primary = 11 ! number of primary EEPs
+  integer, parameter :: primary = 10 ! number of primary EEPs
   ! as set by primary_eep
   integer :: eep_interval(primary-1) ! number of secondary EEPs
   ! between the primaries
@@ -56,7 +56,7 @@ module iso_eep_support
      real(dp) :: initial_mass
      real(dp), allocatable :: tr(:,:), dist(:), phase(:)
      !these are used internally as an intermediate step
-     real(dp), allocatable :: eep_tr(:,:), eep_dist(:)
+     real(dp), allocatable :: eep_tr(:,:), eep_dist(:) !(ncol,neep), (neep)
   end type track
 
   !holds one isochrone
@@ -192,7 +192,7 @@ contains
     t% ncol = ncol
     t% neep = primary
     t% filename = trim(filename)
-    allocate(t% eep(t% neep))
+    allocate(t% eep(t% neep)) 
   end subroutine alloc_track
 
   subroutine write_track(x)
@@ -366,6 +366,7 @@ contains
 
     t% ncol = ncol
     allocate(t% tr(t% ncol, t% ntrack),t% cols(t% ncol))
+    allocate(t% eep_tr(t% ncol, primary), t% eep_dist(primary))
 
     t% cols = cols(:)
 
@@ -416,11 +417,15 @@ contains
     read(io) t% ncol, t% ntrack, t% neep, t% version_number, t% star_type
     read(io) t% initial_mass
     allocate(t% tr(t% ncol, t% ntrack),t% cols(t% ncol),t% dist(t% ntrack))
+    allocate(t% eep_tr(t% ncol, t% neep), t% eep_dist(t% neep))
     read(io) t% cols
     read(io) t% tr
     read(io) t% dist
     close(io) 
+    t% eep_tr = 0d0
+    t% eep_dist = 0d0
     call free_iounit(io)
+
   end subroutine read_history_bin
 
   subroutine write_history_bin(t)
@@ -443,7 +448,7 @@ contains
   subroutine distance_along_track(t)
     type(track), intent(inout) :: t
     real(dp), parameter :: Teff_scale=1d0, logL_scale=0.5d0
-    real(dp), parameter :: age_scale=3d0, Rhoc_scale=1d0, Tc_scale=1d0
+    real(dp), parameter :: age_scale=1d0, Rhoc_scale=1d0, Tc_scale=1d0
     integer :: j
 
     t% dist(1) = 0d0
@@ -470,7 +475,7 @@ contains
     have_col = .false.
     allocate(output(ncol))
     output = 0
-    write(*,*) 'number of columns: ', ncol
+    if (verbose) write(*,*) 'number of columns: ', ncol
     do j=1,ncol
        iloop: do i=1,max_col
           ilo =   1 + main*(i-1) + xtra*(i-1)
