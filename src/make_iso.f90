@@ -765,14 +765,14 @@ contains
     open(io, file='input.nml', action='read', status='old', iostat=ierr)
     read(io, nml=iso_controls, iostat=ierr)
     close(io)
-    call free_iounit(io)
+
     if(ierr/=0) then
        write(0,'(a)') 'make_iso: problem reading iso_controls namelist'
        return
     endif
 
     call get_command_argument(1,input_file)
-    io=alloc_iounit(ierr)
+
     !read info about into tracks
     open(unit=io,file=trim(input_file),status='old',action='read')
     read(io,*) !skip comment line

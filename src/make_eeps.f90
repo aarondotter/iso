@@ -16,6 +16,8 @@ program make_eeps
   type(track), pointer :: t=>NULL(), s=>NULL()
   logical :: do_eep_output = .true., do_phases = .true.
 
+  namelist /eep_controls/ do_eep_output, do_phases
+
   ierr=0
   if(command_argument_count()<1) then
      write(*,*) '   make_eeps                  '
@@ -55,9 +57,16 @@ contains
 
   subroutine read_input(ierr)
     integer, intent(out) :: ierr
+
     ierr=0
-    call get_command_argument(1,input_file)
     io=alloc_iounit(ierr)
+
+    open(unit=io,file='input.nml', action='read', status='old', iostat=ierr)
+    read(io, nml=eep_controls, iostat=ierr)
+    close(io)
+
+    call get_command_argument(1,input_file)
+
     open(unit=io,file=trim(input_file),status='old',action='read')
     read(io,*) !skip first line
     read(io,'(a)') history_dir
@@ -73,11 +82,11 @@ contains
        if(ierr/=0) exit
     enddo
     close(io)
-    call free_iounit(io)
+
     !set number of secondary EEPs between each primary EEP
     call set_eep_interval 
     !read history file format specs
-    io=alloc_iounit(io)
+
     open(unit=io,file='input.format',status='old',action='read')
     read(io,*) 
     read(io,*) head
