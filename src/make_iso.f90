@@ -165,9 +165,9 @@ contains
 
           if(s(k)% eep(1) > eep .or. s(k)% eep(s(k)% neep) < eep ) then
              skip(k,eep) = .true.
-          else if( log10(s(k)% tr(i_age,eep)) > max_age ) then
+          else if(.not.use_double_eep .and. log10(s(k)% tr(i_age,eep)) > max_age ) then
              skip(k,eep) = .true.
-          else if( log10(s(k)% tr(i_age,eep)) < min_age ) then
+          else if(.not.use_double_eep .and. log10(s(k)% tr(i_age,eep)) < min_age ) then
              skip(k,eep) = .true.
           endif
        enddo
@@ -177,31 +177,27 @@ contains
        if(.true.) then !top-down
 
           if(.not.use_double_eep)then
-             if(.true.)then
-                do k=n,2,-1
-                   if(skip(k,eep)) cycle
-                   do l=k-1,1
-                      if( skip(l,eep)) cycle
-                      if( s(k)% tr(i_age,eep) > s(l)% tr(i_age,eep) ) skip(l,eep) = .true.
-                   enddo
+             do k=n,2,-1
+                if(skip(k,eep)) cycle
+                do l=k-1,1
+                   if( skip(l,eep)) cycle
+                   if( s(k)% tr(i_age,eep) > s(l)% tr(i_age,eep) ) skip(l,eep) = .true.
                 enddo
-             endif
+             enddo
           endif
 
        else !bottom-up
 
           if(.not.use_double_eep)then
-             if(.true.)then
-                do k=1,n-1
-                   if(skip(k,eep)) cycle
-                   do l=k+1,n
-                      if( skip(l,eep)) cycle
-                      if( s(k)% tr(i_age,eep) < s(l)% tr(i_age,eep) ) skip(l,eep) = .true.
-                   enddo
+             do k=1,n-1
+                if(skip(k,eep)) cycle
+                do l=k+1,n
+                   if( skip(l,eep)) cycle
+                   if( s(k)% tr(i_age,eep) < s(l)% tr(i_age,eep) ) skip(l,eep) = .true.
                 enddo
-             endif
+             enddo
           endif
-
+          
        endif
 
        do k=1,n
