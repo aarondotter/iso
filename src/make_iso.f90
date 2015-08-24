@@ -115,14 +115,15 @@ contains
   subroutine do_isochrone_for_age(s,iso)
     type(track), intent(in) :: s(:)
     type(isochrone), intent(inout) :: iso
-    integer :: eep, hi, ierr, index, interp_method, j, k, lo, max_eep, n, pass
-    integer, parameter :: jinc = 6
+    integer :: eep, hi, ierr, index, interp_method, j, k, l, lo, max_eep, n, pass
+    !integer, parameter :: jinc = 6
     character(len=col_width) :: mass_age_string = 'mass from age'
-    real(dp) :: age, mass
+    real(dp) :: age, mass, min_age, max_age
     real(dp), pointer :: ages(:)=>NULL(), masses(:)=>NULL()
     real(dp), allocatable :: result1(:,:), result2(:,:), mass_tmp(:)
     logical, allocatable :: skip(:,:)
     integer, allocatable :: valid(:), count(:)
+    real(dp), parameter :: age_delta = 0.75d0
 
     ierr = 0
 
@@ -136,7 +137,6 @@ contains
     !interp_method = average
     ! - for interp_pm: piecewise_monotonic
     interp_method = piecewise_monotonic
-
 
     age = iso% age
     mass=0d0
@@ -159,15 +159,57 @@ contains
        !track will be included in the ensuing interpolation steps.
        !count keeps track of how many tracks will be used. if
        !fewer than 2 tracks satisfy the condition, skip the EEP
-       hi = max_eep
-       lo = eep
        do k=1,n
-          if(s(k)% eep(1) > lo .or. s(k)% eep(s(k)% neep) < lo ) then
+          max_age=age + age_delta
+          min_age=age - age_delta
+
+          if(s(k)% eep(1) > eep .or. s(k)% eep(s(k)% neep) < eep ) then
              skip(k,eep) = .true.
-          else
-             count(eep) = count(eep) + 1
+          else if( log10(s(k)% tr(i_age,eep)) > max_age ) then
+             skip(k,eep) = .true.
+          else if( log10(s(k)% tr(i_age,eep)) < min_age ) then
+             skip(k,eep) = .true.
           endif
        enddo
+
+       !this loop attempts to pick out non-monotonic points
+
+       if(.true.) then !top-down
+
+          if(.not.use_double_eep)then
+             if(.true.)then
+                do k=n,2,-1
+                   if(skip(k,eep)) cycle
+                   do l=k-1,1
+                      if( skip(l,eep)) cycle
+                      if( s(k)% tr(i_age,eep) > s(l)% tr(i_age,eep) ) skip(l,eep) = .true.
+                   enddo
+                enddo
+             endif
+          endif
+
+       else !bottom-up
+
+          if(.not.use_double_eep)then
+             if(.true.)then
+                do k=1,n-1
+                   if(skip(k,eep)) cycle
+                   do l=k+1,n
+                      if( skip(l,eep)) cycle
+                      if( s(k)% tr(i_age,eep) < s(l)% tr(i_age,eep) ) skip(l,eep) = .true.
+                   enddo
+                enddo
+             endif
+          endif
+
+       endif
+
+       do k=1,n
+          if(.not.skip(k,eep)) count(eep)=count(eep)+1
+       enddo
+
+
+
        if(iso_debug) write(*,*) '  EEP, count, n = ', eep, count(eep), n
        if(count(eep) < 2)then
           if(iso_debug) write(*,*) 'not enough eeps to interpolate'
@@ -204,24 +246,12 @@ contains
        !current set of ages. if not, skip to the next EEP.
        j = binary_search( count(eep), ages, 1, age)
        if( j < 1 .or. j > count(eep)-1 ) cycle eep_loop1
-       lo = max(1,j-jinc)
-       hi = min(count(eep),j+jinc)   
-
-       if(iso_debug) write(*,'(i4,99f7.2)') eep, masses
 
        !check to see if masses and ages are monotonic
        !if not, then interpolation will fail
        if(.not.monotonic(masses)) then
           write(*,*) ' masses not monotonic in do_isochrone_for_age: ', age
           stop 99
-       endif
-
-       if(iso_debug .and. .not.monotonic(ages(lo:hi))) then
-          write(*,'(a8,i5)') '  eep = ', eep
-          do k=lo,hi
-             write(*,'(a20,i5,f9.3,f12.8)') 'i, mass, age = ', k, masses(k), ages(k)
-          enddo
-          write(*,*) ' ages not monotonic in do_isochrone_for_age: ', age
        endif
 
        if(iso_debug) then 
@@ -419,6 +449,7 @@ contains
     enddo eep_loop2
 
     deallocate(masses,ages)
+
 
     !now result1 and valid are full for all EEPs,
     !we can pass the data to the iso derived type
