@@ -62,12 +62,20 @@ contains
     io=alloc_iounit(ierr)
 
     open(unit=io,file='input.nml', action='read', status='old', iostat=ierr)
+    if(ierr/=0) then
+       write(0,*) ' make_eeps: problem reading input.nml '
+       return
+    endif
     read(io, nml=eep_controls, iostat=ierr)
     close(io)
 
     call get_command_argument(1,input_file)
 
-    open(unit=io,file=trim(input_file),status='old',action='read')
+    open(unit=io,file=trim(input_file),status='old',action='read',iostat=ierr)
+    if(ierr/=0) then
+       write(0,*) ' make_eeps: problem reading ', trim(input_file)
+       return
+    endif
     read(io,*) !skip first line
     read(io,'(a)') history_dir
     read(io,'(a)') eep_dir
@@ -84,10 +92,18 @@ contains
     close(io)
 
     !set number of secondary EEPs between each primary EEP
-    call set_eep_interval 
+    call set_eep_interval(ierr)
+    if(ierr/=0) then
+       write(0,*) ' make_eeps: problem reading input.eep'
+       write(0,*) '            setting default EEPs     '
+    endif
     !read history file format specs
 
-    open(unit=io,file='input.format',status='old',action='read')
+    open(unit=io,file='input.format',status='old',action='read',iostat=ierr)
+    if(ierr/=0)then
+       write(0,*) ' make_eeps: problem reading input.format'
+       return
+    endif
     read(io,*) 
     read(io,*) head
     read(io,*) main

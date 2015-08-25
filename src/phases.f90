@@ -75,13 +75,13 @@ contains
           phase = MS
        case(4)
           phase = RGB
-       case(5:7)
+       case(5:6)
           phase = red_HB_clump
-       case(8)
+       case(7)
           phase = early_AGB
-       case(9)
+       case(8)
           phase = TP_AGB
-       case(10:11)
+       case(9:10)
           phase = post_AGB
        case default
           phase = undefined   

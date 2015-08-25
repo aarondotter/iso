@@ -492,10 +492,11 @@ contains
     enddo
   end subroutine dict
 
-  subroutine set_eep_interval
-    integer :: ierr, i, j, io, my_eep_interval, my_num_eep
+  subroutine set_eep_interval(ierr)
+    integer, intent(out) :: ierr
+    integer :: i, j, io, my_eep_interval, my_num_eep
     io=alloc_iounit(ierr)
-    open(unit=io,file='input.eep',iostat=ierr,status='old',action='read')
+    open(unit=io,file='input.eep',status='old',action='read',iostat=ierr)
     if(ierr/=0) then
        call set_default_eep_interval
        return

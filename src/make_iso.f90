@@ -594,10 +594,11 @@ contains
 
     if(is_bad_num(x) .or. is_bad_num(y))then
        write(0,*) ' eep = ', eep
+       write(0,*) ' x = ', x
+       write(0,*) ' y = ', y
        do k=1,n
           write(0,*) x_array(k), f(1,k), skip(k)
        enddo
-       write(0,*) ' x =', x, ' y =', y
        ierr=-1
     endif
     iso_interpolate = y
@@ -801,7 +802,11 @@ contains
     call get_command_argument(1,input_file)
 
     !read info about into tracks
-    open(unit=io,file=trim(input_file),status='old',action='read')
+    open(unit=io,file=trim(input_file),status='old',action='read',iostat=ierr)
+    if(ierr/=0)then
+       write(0,*) ' make_iso: problem reading ', trim(input_file)
+       return
+    endif
     read(io,*) !skip comment line
     read(io,'(a)') history_dir
     read(io,'(a)') eep_dir
@@ -915,6 +920,7 @@ contains
     real(dp), intent(inout) :: y(:)
     integer :: i,n
     n=size(y)
+    if(n<8) return
     y(2)=npoint(x(1:3),y(1:3),x(2))
     y(n-1)=npoint(x(n-2:n),y(n-2:n),x(n-1))
     do i=3,n-2

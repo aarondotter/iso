@@ -45,7 +45,6 @@ contains
     s% cols = t% cols
 
     ! allocate and fill new track
-
     allocate(s% tr(s% ncol,s% ntrack))
     allocate(s% dist(s% ntrack))
     allocate(s% eep(s% neep))
@@ -511,7 +510,7 @@ contains
     type(track), intent(inout) :: t
     integer, intent(in) :: guess, ieep
     integer :: my_guess, i
-    real(dp), parameter :: center_gamma_limit = 9d1
+    real(dp), parameter :: center_gamma_limit = 1d1
     real(dp) :: alfa, beta
     WDCS=0
     if(guess < 1) then 
