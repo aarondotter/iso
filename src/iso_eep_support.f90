@@ -447,8 +447,8 @@ contains
 
   subroutine distance_along_track(t)
     type(track), intent(inout) :: t
-    real(dp), parameter :: Teff_scale=1d0, logL_scale=0.5d0
-    real(dp), parameter :: age_scale=1d0, Rhoc_scale=1d0, Tc_scale=1d0
+    real(dp), parameter :: Teff_scale=1d0, logL_scale=0.125d0
+    real(dp), parameter :: age_scale=0.1, Rhoc_scale=0, Tc_scale=0
     integer :: j
 
     t% dist(1) = 0d0
