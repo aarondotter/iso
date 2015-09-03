@@ -293,7 +293,6 @@ contains
           RGBTip2 = i
        endif
     enddo
-    !print *, t% initial_mass, RGBTip1, RGBTip2
     RGBTip = min(RGBTip1,RGBTip2)
   end function RGBTip
 
@@ -310,7 +309,7 @@ contains
     else
        my_guess = guess
     endif
-    Ymin = 9d-1
+    Ymin = t% tr(i_Yc, my_guess) - 3d-2
     LHemax = -99d0
     my_guess_2 = my_guess
 
