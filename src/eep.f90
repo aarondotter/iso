@@ -267,9 +267,9 @@ contains
   integer function RGBTip(t,guess)
     type(track), intent(in) :: t
     integer, intent(in) :: guess
-    integer :: i, my_guess
-    real(dp) :: Ymin, Lmax
-    RGBTip = 0
+    integer :: i, my_guess, RGBTip1, RGBTip2
+    real(dp) :: Ymin, Lmax, Tmin
+    RGBTip = 0; RGBTip1 = 0; RGBTip2 = 0
     if(guess < 1 .or. guess >= t% ntrack) then 
        return
     else
@@ -280,14 +280,21 @@ contains
        write(*,*) ' my_guess = ', my_guess
        write(*,*) '   ntrack = ', t% ntrack
     endif
-    Ymin = 9d-1
+    Ymin = t% tr(i_Yc, my_guess) - 1d-2 
     Lmax = -99d0
+    Tmin = 6d0
     do i=my_guess, t% ntrack
        if(t% tr(i_Yc,i) > Ymin .and. t% tr(i_logL,i) > Lmax)then
           Lmax = t% tr(i_logL,i)
-          RGBTip = i
+          RGBTip1 = i
+       endif
+       if(t% tr(i_Yc,i) > Ymin .and. t% tr(i_logTe,i) < Tmin)then
+          Tmin = t% tr(i_logTe,i)
+          RGBTip2 = i
        endif
     enddo
+    !print *, t% initial_mass, RGBTip1, RGBTip2
+    RGBTip = min(RGBTip1,RGBTip2)
   end function RGBTip
 
   integer function ZAHB(t,guess)
