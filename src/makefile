@@ -12,7 +12,7 @@ OPT=-O3
 FFLAGS= -ffree-form $(OPT) $(WARN) $(DEBUG)
 
 ISO=make_iso
-EEP=make_eeps
+EEP=make_eep
 BLEND=blend_eeps
 
 all: $(EEP) $(ISO) $(BLEND)
@@ -20,7 +20,7 @@ all: $(EEP) $(ISO) $(BLEND)
 $(ISO): make_iso.o iso_eep_support.o iso_color.o BC_tables.o
 	$(FC) $(OMP) -o ../$(ISO) $^ $(LOAD_MESA)
 
-$(EEP): make_eeps.o phases.o eep.o iso_eep_support.o 
+$(EEP): make_eep.o phases.o eep.o iso_eep_support.o 
 	$(FC) $(OMP) -o ../$(EEP) $^ $(LOAD_MESA)
 
 $(BLEND): blend_eeps.o iso_eep_support.o
@@ -28,7 +28,7 @@ $(BLEND): blend_eeps.o iso_eep_support.o
 
 make_iso.o: make_iso.f90 iso_eep_support.o iso_color.o BC_tables.o
 
-make_eeps.o: make_eeps.f90 phases.o eep.o iso_eep_support.o
+make_eep.o: make_eep.f90 phases.o eep.o iso_eep_support.o
 
 blend_eeps.o: blend_eeps.f90 iso_eep_support.o
 

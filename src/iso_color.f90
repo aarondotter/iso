@@ -18,26 +18,16 @@ module iso_color
   type(BC_table), allocatable :: b(:)
 
 
-  public read_color_input, get_mags
+  public iso_color_init, get_mags
 
 contains
 
-  subroutine read_color_input(s,ierr)
-    type(isochrone_set), intent(inout) :: s
+  subroutine iso_color_init(bc_table_list,ierr)
+    character(len=file_path), intent(in) :: bc_table_list
     integer, intent(out) :: ierr
-    integer :: io
-    character(len=file_path) :: bc_table_list
-    io=alloc_iounit(ierr)
-    if(ierr/=0) return
-    open(io,file=trim('input.cmd'),action='read',status='old',iostat=ierr)
-    if(ierr/=0) return
-    read(io,'(a)') bc_table_list
-    read(io,'(a)') s% cmd_suffix
-    read(io,'(3x,f6.3)') s% Av
-    close(io)
-    call free_iounit(io)
     call BC_table_init(bc_table_list,b,ierr)
-  end subroutine read_color_input
+    if(ierr/=0) write(0,*) 'BC tables initialized!'
+  end subroutine iso_color_init
 
   subroutine get_mags(iso,iT,ig,iL,iH,iHe,ierr)
     type(isochrone), intent(inout) :: iso

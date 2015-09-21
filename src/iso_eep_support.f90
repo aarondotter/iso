@@ -80,7 +80,7 @@ module iso_eep_support
      integer :: version_number
      integer, allocatable :: num_valid_eeps(:)
      type(isochrone), allocatable :: iso(:)
-     real(sp) :: Av
+     real(sp) :: Av, Rv
      character(len=file_path) :: cmd_suffix, filename
   end type isochrone_set
 

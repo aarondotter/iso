@@ -7,7 +7,24 @@
 
    do_PAV = .true.
 
-   do_colors = .false.
+   do_colors = .true.
 
+   BC_table_list = 'bc_table.list'
+
+   cmd_suffix = 'cmd'
+
+   extinction_Av = 0.0
+
+   extinction_Rv = 3.1
 
 / !end of iso_controls namelist
+
+
+&eep_controls
+
+   do_eep_output = .true.
+
+   do_phases = .true.
+
+
+/ !end of eep_controls

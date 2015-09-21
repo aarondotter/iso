@@ -1,7 +1,7 @@
 program make_isochrone
 
   !MESA modules
-  use const_def, only: dp
+  use const_def, only: dp, sp
   use utils_lib
   use interp_1d_def
   use interp_1d_lib
@@ -27,8 +27,13 @@ program make_isochrone
   logical :: do_smooth = .true.
   logical :: do_PAV = .true.
   logical :: do_colors = .true.
+  character(len=file_path) :: BC_table_list
+  character(len=file_path) :: cmd_suffix = '.cmd'
+  real(sp) :: extinction_Av = 0.0, extinction_Rv = 0.0
 
-  namelist /iso_controls/ iso_debug, do_tracks, do_isochrones, do_smooth, do_PAV, do_colors
+  namelist /iso_controls/ iso_debug, do_tracks, do_isochrones, do_smooth, &
+       do_PAV, do_colors, BC_table_list, cmd_suffix, extinction_Av, extinction_Rv
+  
 
   ierr=0
   if(command_argument_count()<1) then
@@ -41,15 +46,11 @@ program make_isochrone
   call read_iso_input(ierr)
   if(ierr/=0) write(*,*) '  read_iso_input: ierr = ', ierr
 
-  if(do_colors) then
-     call read_color_input(set,ierr)
-     do_colors = (ierr == 0)
-  endif
-
   !read eep files to fill s()
   first=ntrk
   prev=first
   ngood=0
+
   do i=1,ntrk
      call read_eep(s(i))
      if(s(i)% ignore) cycle
@@ -781,6 +782,7 @@ contains
   end subroutine interpolate_track
 
   subroutine read_iso_input(ierr)
+    use iso_color, only: iso_color_init
     integer, intent(out) :: ierr
     character(len=col_width) :: col_name
     character(len=10) :: list_type
@@ -788,7 +790,7 @@ contains
     integer :: i
     real(dp) :: age_low, age_high, age_step
     ierr=0
-
+    ntrk=0
     io=alloc_iounit(ierr)
     open(io, file='input.nml', action='read', status='old', iostat=ierr)
     read(io, nml=iso_controls, iostat=ierr)
@@ -797,6 +799,14 @@ contains
     if(ierr/=0) then
        write(0,'(a)') 'make_iso: problem reading iso_controls namelist'
        return
+    endif
+
+    if(do_colors)then
+       set% Av = extinction_Av
+       set% Rv = extinction_Rv
+       set% cmd_suffix = cmd_suffix
+       call iso_color_init(BC_table_list,ierr)
+       if(ierr/=0) write(0,'(a)') ' problem reading BC_table_list = ', trim(BC_table_list)
     endif
 
     call get_command_argument(1,input_file)
