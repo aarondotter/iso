@@ -17,7 +17,7 @@ program make_eeps
   logical :: do_eep_output = .true., do_phases = .true.
 
   namelist /eep_controls/ do_eep_output, do_phases, &
-       center_gamma_limit, center_carbon_limit, center_T_limit
+       center_gamma_limit, center_carbon_limit, log_center_T_limit, min_for_high_mass_star
 
   ierr=0
   if(command_argument_count()<1) then

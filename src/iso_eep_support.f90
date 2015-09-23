@@ -26,7 +26,10 @@ module iso_eep_support
   integer, parameter :: max_col = 180
 
   ! central gamma limit for high- / intermediate-mass stars
-  real(dp) :: center_gamma_limit=1d2, center_carbon_limit=1d-4, center_T_limit=8.8d0
+  real(dp) :: center_gamma_limit=1d2 
+  real(dp) :: center_carbon_limit=1d-4
+  real(dp) :: log_center_T_limit=9d0
+  real(dp) :: min_for_high_mass_star=1d1 !Msun
 
   ! format specs
   integer :: head !=29
@@ -593,7 +596,13 @@ contains
        return
     endif
 
-    if(t% tr(i_Tc,n) > center_T_limit)then
+    if(t% tr(i_Tc,n) > log_center_T_limit)then
+       t% star_type = star_high_mass
+    else
+       t% star_type = star_low_mass
+    endif
+
+    if(t% initial_mass >= min_for_high_mass_star) then
        t% star_type = star_high_mass
     else
        t% star_type = star_low_mass

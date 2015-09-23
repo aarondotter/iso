@@ -28,6 +28,7 @@
 
    center_gamma_limit = 10.0
    center_carbon_limit = 0.05
-   center_T_limit = 8.5
+   log_center_T_limit = 8.5 
+   min_for_high_mass_star = 10.0 !Msun
 
 / !end of eep_controls
