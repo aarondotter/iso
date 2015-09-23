@@ -413,7 +413,7 @@ contains
     type(track), intent(in) :: t
     integer, intent(in) :: guess
     integer :: my_guess, i
-    real(dp), parameter :: center_gamma_limit = 19.9d0
+    real(dp), parameter :: center_gamma_limit = 95d0
     WDCS=0
     if(guess < 1) then 
        my_guess = 1

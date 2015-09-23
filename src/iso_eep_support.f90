@@ -25,6 +25,9 @@ module iso_eep_support
   ! maximum number of columns in history file
   integer, parameter :: max_col = 180
 
+  ! central gamma limit for high- / intermediate-mass stars
+  real(dp) :: center_gamma_limit=1d2, center_carbon_limit=1d-4, center_T_limit=8.8d0
+
   ! format specs
   integer :: head !=29
   integer :: main !=28
@@ -579,18 +582,18 @@ contains
        return
     endif
 
-    if( t% tr(i_gamma,n) > 90) then
+    if( t% tr(i_gamma,n) > center_gamma_limit) then
        t% star_type = star_low_mass
        return
     endif
 
     !simple test for high-mass stars is that central C is depleted
-    if(maxval(t% tr(i_Cc,:)) > 0.4d0 .and. t% tr(i_Cc,n) < 1d-4)then
+    if(maxval(t% tr(i_Cc,:)) > 0.4d0 .and. t% tr(i_Cc,n) < center_carbon_limit)then
        t% star_type = star_high_mass
        return
     endif
 
-    if(t% tr(i_Tc,n) > 8.85d0)then
+    if(t% tr(i_Tc,n) > center_T_limit)then
        t% star_type = star_high_mass
     else
        t% star_type = star_low_mass

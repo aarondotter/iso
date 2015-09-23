@@ -16,7 +16,8 @@ program make_eeps
   type(track), pointer :: t=>NULL(), s=>NULL()
   logical :: do_eep_output = .true., do_phases = .true.
 
-  namelist /eep_controls/ do_eep_output, do_phases
+  namelist /eep_controls/ do_eep_output, do_phases, &
+       center_gamma_limit, center_carbon_limit, center_T_limit
 
   ierr=0
   if(command_argument_count()<1) then

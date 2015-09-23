@@ -2,7 +2,7 @@
 echo 
 ./mk
 echo
-echo make_eeps
+echo make_eep
 ./make_eeps $1
 echo
 echo
