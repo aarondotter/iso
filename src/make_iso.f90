@@ -710,11 +710,11 @@ contains
     call get_mags(iso,iT,ig,iL,iH,iHe,ierr)
 
     write(io,'(a25,2i5)') '# number of EEPs, cols = ', iso% neep, iso% nfil + 6
-    write(io,'(a1,i4,5i32,299i12)') '#    ', (i,i=1,iso% nfil+6)
-    write(io,'(a5,5a32,299a12)') '# EEP', 'log_age', 'initial_mass', 'log_Teff', 'log_g', 'log_L', &
+    write(io,'(a1,i4,5i32,299(17x,i3))') '#    ', (i,i=1,iso% nfil+6)
+    write(io,'(a5,5a32,299a20)') '# EEP', 'log_age', 'initial_mass', 'log_Teff', 'log_g', 'log_L', &
          adjustr(iso% labels)
     do i = 1,iso% neep
-       write(io,'(i5,5(1pes32.16e3),299(0pf12.6))') iso% eep(i), iso% age, iso% data(i_Minit,i), &
+       write(io,'(i5,5(1pes32.16e3),299(0pf20.6))') iso% eep(i), iso% age, iso% data(i_Minit,i), &
             iso% data(iT,i), iso% data(ig,i), iso% data(iL,i), iso% mags(:,i)
     enddo
   end subroutine write_cmd_to_file

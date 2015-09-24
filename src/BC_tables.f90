@@ -15,7 +15,7 @@ module BC_tables
   type BC_table
      logical :: is_loaded = .false.
      character(len=256) :: filename
-     character(len=12), allocatable :: labels(:)
+     character(len=20), allocatable :: labels(:)
      integer :: num_Av, num_Rv, num_filter, num_T, num_g, iling, ilinT
      real(sp) :: Rv, FeH, alphaFe
      real(sp), allocatable :: logT(:), logg(:), Av(:)
@@ -163,14 +163,14 @@ contains
 
     do i=1,t% num_Av
        read(io,*) !skip the column numbers
-       read(io,'(31x,199a12)') t% labels(1:t% num_Filter)
+       read(io,'(31x,199a20)') t% labels(1:t% num_Filter)
 
        do k=1,t% num_filter
           allocate(t% bcs(k,i)% data(4*num_lines))
        enddo
 
        do j=1, num_lines
-          read(io,'(f8.0,f5.1,3f6.2,199f12.6)') Teff, logg, t% FeH, t% Av(i), t% Rv, BCdata
+          read(io,'(f8.0,f5.1,3f6.2,199f20.6)') Teff, logg, t% FeH, t% Av(i), t% Rv, BCdata
           grid(1,j) = log10(Teff)
           grid(2,j) = logg
           do k=1,t% num_filter

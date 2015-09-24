@@ -55,7 +55,6 @@ contains
        !interpolation is either linear, quadratic, or cubic
        if(FeH < b(1)% FeH .or. n==1) then
           call BC_interp_filters(b(1),logg,logT,iso% Av, res,ierr)
-
        else if(FeH >= b(n)% FeH) then
           call BC_interp_filters(b(n),logg,logT,iso% Av, res,ierr)
           
