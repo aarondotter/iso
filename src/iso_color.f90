@@ -37,7 +37,9 @@ contains
     integer :: i, nb, nc, j, jZ=0, n
     real(sp), allocatable :: res(:)
     real(sp) :: logT, logg, logL, X, Y, Z, FeH
+    real(sp) :: c_min_logT, c_max_logT, c_min_logg, c_max_logg
     real(dp) :: C_div_O
+    logical :: Cstar_ok
     integer :: iT, ig, iL, iH, iHe, iC, iO
     iT=0; ig=0; iL=0; iH=0; iHe=0; iC=0; iO=0
 
@@ -58,6 +60,9 @@ contains
           iO=i
        endif
     enddo
+
+    c_min_logT = minval(c(1)% logT); c_min_logg = minval(c(1)% logg)
+    c_max_logT = maxval(c(1)% logT); c_max_logg = maxval(c(1)% logg)
 
     iso% nfil = b(1)% num_filter
     allocate(iso% mags(iso% nfil, iso% neep),res(iso% nfil))
@@ -81,9 +86,10 @@ contains
        FeH  = log10(Z/X) - FeH_sol
        C_div_O = log10((16d0/12d0) * iso% data(iC,i) / iso% data(iO,i))
 
+       Cstar_OK = (do_Cstars) .and. (C_div_O > 0d0) .and. (logT > c_min_logT) .and. &
+            (logT < c_max_logT) .and. (logg > c_min_logg) .and. (logg < c_max_logg)
 
-       if(do_Cstars .and. C_div_O > 0d0)then !use Cstar grid
-          print *, 'using Cstar grid! logT = ', logT
+       if( Cstar_OK )then !use Cstar grid
           n=nc
           !interpolation is either linear, quadratic, or cubic
           if(FeH < c(1)% FeH .or. n==1) then
