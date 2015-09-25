@@ -37,7 +37,7 @@ contains
     integer :: i, nb, nc, j, jZ=0, n
     real(sp), allocatable :: res(:)
     real(sp) :: logT, logg, logL, X, Y, Z, FeH
-    real(sp) :: c_min_logT, c_max_logT, c_min_logg, c_max_logg
+    real(sp) :: c_min_logT=0, c_max_logT=0, c_min_logg=0, c_max_logg=0
     real(dp) :: C_div_O
     logical :: Cstar_ok
     integer :: iT, ig, iL, iH, iHe, iC, iO
@@ -61,8 +61,10 @@ contains
        endif
     enddo
 
-    c_min_logT = minval(c(1)% logT); c_min_logg = minval(c(1)% logg)
-    c_max_logT = maxval(c(1)% logT); c_max_logg = maxval(c(1)% logg)
+    if(do_Cstars)then
+       c_min_logT = minval(c(1)% logT); c_min_logg = minval(c(1)% logg)
+       c_max_logT = maxval(c(1)% logT); c_max_logg = maxval(c(1)% logg)
+    endif
 
     iso% nfil = b(1)% num_filter
     allocate(iso% mags(iso% nfil, iso% neep),res(iso% nfil))
