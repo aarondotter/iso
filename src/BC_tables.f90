@@ -192,6 +192,11 @@ contains
              t% num_T = nT; t% num_g = ng
              allocate(t% logg(t% num_g), t% logT(t% num_T))
           else
+             write(0,*) 'nT = ', t% num_T
+             write(0,*) 'ng = ', t% num_g
+             write(0,*) 'lines = ', num_lines
+             write(0,*) grid(1,:)
+             write(0,*) grid(2,:)
              stop 'fail!'
           endif
        endif
@@ -203,11 +208,13 @@ contains
           if( logT < grid(1,i) )then
              nT = nT + 1
              logT = grid(1,i)
+             write(*,*) logT, nT
           endif
 
           if( logg < grid(2,i) )then
              ng = ng + 1
              logg = grid(2,i)
+             write(*,*) logg, ng
           endif
 
           if(pass==2)then

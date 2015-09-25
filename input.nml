@@ -8,8 +8,10 @@
    do_PAV = .true.
 
    do_colors = .true.
-
    BC_table_list = 'bc_table.list'
+
+   do_Cstars = .true.
+   cstar_table_list = 'cstar_table.list'
 
    cmd_suffix = 'cmd'
 

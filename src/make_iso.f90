@@ -26,13 +26,15 @@ program make_isochrone
   logical :: do_isochrones = .true.
   logical :: do_smooth = .true.
   logical :: do_PAV = .true.
-  logical :: do_colors = .true.
-  character(len=file_path) :: BC_table_list
+  logical :: do_colors = .false.
+  logical :: do_Cstars = .false.
+  character(len=file_path) :: BC_table_list='', Cstar_table_list=''
   character(len=file_path) :: cmd_suffix = '.cmd'
   real(sp) :: extinction_Av = 0.0, extinction_Rv = 0.0
 
   namelist /iso_controls/ iso_debug, do_tracks, do_isochrones, do_smooth, &
-       do_PAV, do_colors, BC_table_list, cmd_suffix, extinction_Av, extinction_Rv
+       do_PAV, do_colors, do_Cstars, BC_table_list, Cstar_table_list, cmd_suffix, &
+       extinction_Av, extinction_Rv
   
 
   ierr=0
@@ -691,8 +693,8 @@ contains
   subroutine write_cmd_to_file(io,iso)
     integer, intent(in) :: io
     type(isochrone), intent(inout) :: iso
-    integer :: i, iT, ig, iL, iH, iHe
-    iT=0; ig=0; iL=0
+    integer :: i, iT, ig, iL, ierr
+    ierr=0; iT=0; ig=0; iL=0
 
     do i=1, iso% ncol
        if(trim(iso% cols(i)) == 'log_Teff') then
@@ -701,13 +703,11 @@ contains
           ig=i
        else if(trim(iso% cols(i))== 'log_L') then
           iL=i
-       else if(trim(iso% cols(i))=='surface_h1')then
-          iH=i
-       else if(trim(iso% cols(i))=='surface_he4')then
-          iHe=i   
        endif
     enddo
-    call get_mags(iso,iT,ig,iL,iH,iHe,ierr)
+
+    call get_mags(iso,do_Cstars,ierr)
+    if(ierr/=0) write(0,*) ' problem in get_mags '
 
     write(io,'(a25,2i5)') '# number of EEPs, cols = ', iso% neep, iso% nfil + 6
     write(io,'(a1,i4,5i32,299(17x,i3))') '#    ', (i,i=1,iso% nfil+6)
@@ -805,7 +805,7 @@ contains
        set% Av = extinction_Av
        set% Rv = extinction_Rv
        set% cmd_suffix = cmd_suffix
-       call iso_color_init(BC_table_list,ierr)
+       call iso_color_init(BC_table_list,do_Cstars,Cstar_table_list,ierr)
        if(ierr/=0) write(0,'(a)') ' problem reading BC_table_list = ', trim(BC_table_list)
     endif
 
