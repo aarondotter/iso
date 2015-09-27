@@ -119,7 +119,7 @@ contains
     type(track), intent(in) :: s(:)
     type(isochrone), intent(inout) :: iso
     integer :: eep, hi, ierr, index, interp_method, j, k, l, lo, max_eep, n, pass
-    !integer, parameter :: jinc = 6
+    integer :: max_neep_low, max_neep_high
     character(len=col_width) :: mass_age_string = 'mass from age'
     real(dp) :: age, mass, min_age, max_age
     real(dp), pointer :: ages(:)=>NULL(), masses(:)=>NULL()
@@ -154,6 +154,26 @@ contains
     valid = 0
     skip = .false.
     count = 0
+
+    !determine the largest number of EEPs in tracks of different types
+    max_neep_low = 0
+    max_neep_high = 0
+    do k=1,n
+       if(s(k)% star_type < star_high_mass)then
+          max_neep_low = max(max_neep_low, s(k)% neep)
+       else ! high-mass star
+          max_neep_high = max(max_neep_high, s(k)% neep)
+       endif
+    enddo
+
+    !now check each track to make sure it is complete for its typ
+    do k=1,n
+       if(s(k)% star_type == star_high_mass .and. s(k)% neep < max_neep_high) then
+          skip(k,:) = .true.
+       else if(s(k)% initial_mass >= 0.6d0 .and. s(k)% star_type == star_low_mass .and. s(k)% neep < max_neep_low) then
+          skip(k,:) = .true.
+       endif
+    enddo
 
     eep_loop1: do eep=1,max_eep
 
