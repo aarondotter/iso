@@ -30,11 +30,13 @@ program make_isochrone
   logical :: do_Cstars = .false.
   character(len=file_path) :: BC_table_list='', Cstar_table_list=''
   character(len=file_path) :: cmd_suffix = '.cmd'
+  character(len=file_path) :: track_filename = 'out.trk'
   real(sp) :: extinction_Av = 0.0, extinction_Rv = 0.0
+  real(dp) :: track_initial_mass = 1d0
 
   namelist /iso_controls/ iso_debug, do_tracks, do_isochrones, do_smooth, &
        do_PAV, do_colors, do_Cstars, BC_table_list, Cstar_table_list, cmd_suffix, &
-       extinction_Av, extinction_Rv
+       extinction_Av, extinction_Rv, track_initial_mass, track_filename
   
 
   ierr=0
@@ -93,8 +95,8 @@ program make_isochrone
   !interpolate a new track . . .
   if(do_tracks)then
      allocate(q)
-     q% initial_mass = 1.2d0
-     q% filename = trim(history_dir) // '/out.trk'
+     q% initial_mass = track_initial_mass
+     q% filename = track_filename
      write(*,*) ' call interpolate_track'
      call interpolate_track(t,q)
      call write_track(q)

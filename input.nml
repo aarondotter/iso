@@ -1,7 +1,13 @@
 
 &iso_controls
 
-   do_isochrones = .true.
+   do_tracks = .true.
+   track_initial_mass = 0.99d0
+   track_filename = 'new_track.eep'
+
+
+
+   do_isochrones = .false.
 
    do_smooth = .true.
 
@@ -10,7 +16,7 @@
    do_colors = .true.
    BC_table_list = 'bc_table.list'
 
-   do_Cstars = .true.
+   do_Cstars = .false.
    cstar_table_list = 'cstar_table.list'
 
    cmd_suffix = 'cmd'
