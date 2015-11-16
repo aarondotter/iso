@@ -87,7 +87,7 @@ contains
           phase = undefined   
        end select
 
-       if(t% tr(i_logTe,i) >= 4d0 .and. t% tr(i_Xc,i) <= 3d-1) phase = Wolf_Rayet
+       if(t% tr(i_logTe,i) >= 4d0 .and. t% tr(i_surfH,i) <= 3d-1) phase = Wolf_Rayet
 
        t% phase(i) = phase
     enddo

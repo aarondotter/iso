@@ -39,7 +39,7 @@ module iso_eep_support
   ! quantities from history file that need to be identified
   integer :: i_age, i_mass, i_logLH, i_logLHe, i_logTe, i_logL
   integer :: i_logg, i_Tc, i_Rhoc, i_Xc, i_Yc, i_he_core, i_co_core
-  integer :: i_Cc, i_gamma
+  integer :: i_Cc, i_gamma, i_surfH
 
   !for columns
   integer :: ncol
@@ -453,11 +453,11 @@ contains
 
   subroutine distance_along_track(t)
     type(track), intent(inout) :: t
-    real(dp), parameter :: Teff_scale=1d0
+    real(dp), parameter :: Teff_scale=2d0
     real(dp), parameter :: logL_scale=0.125d0
     real(dp), parameter :: age_scale=0.1d0
     real(dp), parameter :: Rhoc_scale=0
-    real(dp), parameter :: Tc_scale=0
+    real(dp), parameter :: Tc_scale=0.01
     integer :: j
 
     t% dist(1) = 0d0
@@ -557,6 +557,7 @@ contains
     col_name='center_he4'; i_Yc=locate_column(col_name,cols)
     col_name='center_c12'; i_Cc=locate_column(col_name,cols)
     col_name='center_gamma'; i_gamma=locate_column(col_name,cols)
+    col_name='surface_h1'; i_surfH=locate_column(col_name,cols)
     if(old_core_mass_names)then
        col_name='h1_boundary_mass'; i_he_core = locate_column(col_name,cols)
        col_name='he4_boundary_mass'; i_co_core = locate_column(col_name,cols)
