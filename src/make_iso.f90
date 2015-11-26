@@ -19,6 +19,9 @@ program make_isochrone
 
   logical :: use_double_eep
   integer, parameter :: piecewise_monotonic = 4
+  integer, parameter :: age_scale_linear = 0
+  integer, parameter :: age_scale_log10  = 1
+  integer :: age_scale
 
   !default some namelist parameters
   logical :: iso_debug = .false.
@@ -143,7 +146,11 @@ contains
     ! - for interp_pm: piecewise_monotonic
     interp_method = piecewise_monotonic
 
-    age = iso% age
+    if(age_scale==age_scale_linear)then
+       age = log10(iso% age)
+    elseif(age_scale==age_scale_log10)then
+       age = iso% age
+    endif
     mass=0d0
 
     !this is temporary storage for the isochrone data:
@@ -668,7 +675,11 @@ contains
     my_ncol = iso% ncol + 2 !add two for eep and age
     write(io,'(a25,2i5)') '# number of EEPs, cols = ', iso% neep, my_ncol
     write(io,'(a1,i4,299i32)') '#    ', (i,i=1,my_ncol)
-    write(io,'(a5,299a32)') '# EEP', 'log_age', adjustr(iso% cols)
+    if(age_scale==age_scale_log10)then
+       write(io,'(a5,299a32)') '# EEP', 'log10_isochrone_age_yr', adjustr(iso% cols)
+    elseif(age_scale==age_scale_linear)then
+       write(io,'(a5,299a32)') '# EEP', 'isochrone_age_yr', adjustr(iso% cols)
+    endif
     do i=1,iso% neep
        write(io,'(i5,299(1pes32.16e3))') iso% eep(i), iso% age, iso% data(:,i)
     enddo
@@ -681,7 +692,11 @@ contains
     my_ncol = iso% ncol + 3 !add three for eep, phase, and age
     write(io,'(a25,2i5)') '# number of EEPs, cols = ', iso% neep, my_ncol
     write(io,'(a1,i4,299i32)') '#    ', (i,i=1,my_ncol)
-    write(io,'(a5,299a32)') '# EEP', 'log_age', adjustr(iso% cols), 'phase'
+    if(age_scale==age_scale_log10)then
+       write(io,'(a5,299a32)') '# EEP', 'log10_isochrone_age_yr', adjustr(iso% cols)
+    elseif(age_scale==age_scale_linear)then
+       write(io,'(a5,299a32)') '# EEP', 'isochrone_age_yr', adjustr(iso% cols)
+    endif
     do i=1,iso% neep
        write(io,'(i5,299(1pes32.16e3))') iso% eep(i), iso% age, &
             iso% data(:,i), real(iso% phase(i),kind=dp)
@@ -733,8 +748,15 @@ contains
 
     write(io,'(a25,2i5)') '# number of EEPs, cols = ', iso% neep, iso% nfil + 6
     write(io,'(a1,i4,5i32,299(17x,i3))') '#    ', (i,i=1,iso% nfil+6)
-    write(io,'(a5,5a32,299a20)') '# EEP', 'log_age', 'initial_mass', 'log_Teff', 'log_g', 'log_L', &
-         adjustr(iso% labels)
+
+    if(age_scale==age_scale_linear)then
+       write(io,'(a5,5a32,299a20)') '# EEP', 'isochrone_age_yr', 'initial_mass', 'log_Teff', &
+            'log_g', 'log_L', adjustr(iso% labels)
+    elseif(age_scale==age_scale_log10)then
+       write(io,'(a5,5a32,299a20)') '# EEP', 'log10_isochrone_age_yr', 'initial_mass', 'log_Teff', &
+            'log_g', 'log_L', adjustr(iso% labels)
+    endif
+
     do i = 1,iso% neep
        write(io,'(i5,5(1pes32.16e3),299(0pf20.6))') iso% eep(i), iso% age, iso% data(i_Minit,i), &
             iso% data(iT,i), iso% data(ig,i), iso% data(iL,i), iso% mags(:,i)
@@ -807,7 +829,7 @@ contains
     use iso_color, only: iso_color_init
     integer, intent(out) :: ierr
     character(len=col_width) :: col_name
-    character(len=10) :: list_type
+    character(len=10) :: list_type, age_type
     character(len=6) :: eep_style
     integer :: i
     real(dp) :: age_low, age_high, age_step
@@ -858,6 +880,14 @@ contains
     read(io,*) set% filename
     set% filename = trim(iso_dir) // '/' // trim(set% filename)
     read(io,'(a)') list_type
+    read(io,'(a)') age_type
+    if(trim(age_type)=='linear')then
+       age_scale = age_scale_linear
+    elseif(trim(age_type)=='log10')then
+       age_scale = age_scale_log10
+    else
+       stop ' make_iso: age scale must be given as "linear" or "log10"'
+    endif
     read(io,*) niso
     allocate(set% iso(niso))
     if(trim(list_type)=='min_max') then

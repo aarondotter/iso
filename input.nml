@@ -1,19 +1,13 @@
 
 &iso_controls
 
-   do_tracks = .true.
-   track_initial_mass = 0.99d0
-   track_filename = 'new_track.eep'
-
-
-
-   do_isochrones = .false.
+   do_isochrones = .true.
 
    do_smooth = .true.
 
    do_PAV = .true.
 
-   do_colors = .true.
+   do_colors = .false.
    BC_table_list = 'bc_table.list'
 
    do_Cstars = .false.
@@ -34,7 +28,7 @@
 
    do_phases = .true.
 
-   center_gamma_limit = 10.0
+   center_gamma_limit = 19
    center_carbon_limit = 0.05
    log_center_T_limit = 8.5 
    min_for_high_mass_star = 10.0 !Msun
