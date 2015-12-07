@@ -476,7 +476,8 @@ contains
        endif
     enddo eep_loop2
 
-    deallocate(masses,ages)
+    if(associated(masses)) deallocate(masses)
+    if(associated(ages)) deallocate(ages)
 
 
     !now result1 and valid are full for all EEPs,
@@ -693,9 +694,9 @@ contains
     write(io,'(a25,2i5)') '# number of EEPs, cols = ', iso% neep, my_ncol
     write(io,'(a1,i4,299i32)') '#    ', (i,i=1,my_ncol)
     if(age_scale==age_scale_log10)then
-       write(io,'(a5,299a32)') '# EEP', 'log10_isochrone_age_yr', adjustr(iso% cols)
+       write(io,'(a5,299a32)') '# EEP', 'log10_isochrone_age_yr', adjustr(iso% cols), 'phase'
     elseif(age_scale==age_scale_linear)then
-       write(io,'(a5,299a32)') '# EEP', 'isochrone_age_yr', adjustr(iso% cols)
+       write(io,'(a5,299a32)') '# EEP', 'isochrone_age_yr', adjustr(iso% cols), 'phase'
     endif
     do i=1,iso% neep
        write(io,'(i5,299(1pes32.16e3))') iso% eep(i), iso% age, &
