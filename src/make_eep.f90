@@ -33,12 +33,16 @@ program make_eeps
   ! allocate tracks for history files, read them in and convert to eep
   do i=1,num
      call alloc_track(history_files(i),t)
-     call read_history_file(t)
+     call read_history_file(t,ierr)
      write(*,*) trim(t% filename), t% neep, t% version_number
+     if(ierr/=0) then
+        write(0,*) 'make_eep: problem reading!'
+        cycle
+     endif
      call primary_eep(t)
      write(*,'(99i8)') t% eep
      if( all(t% eep == 0) ) then
-        write(*,*) ' PROBLEM WTIH TRACK: NO EEPS DEFINED '
+        write(*,*) ' PROBLEM WITH TRACK: NO EEPS DEFINED '
      else
         call alloc_track(t% filename,s)
         call secondary_eep(t,s)

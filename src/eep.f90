@@ -234,6 +234,8 @@ contains
        Lmin = Lfac * pow10(t% tr(i_logL,i))
     enddo
 
+    ZAMS = i
+
     !in case no H-burning occurs, take the location of the highest 
     !central temperature
     if(t% star_type == sub_stellar) ZAMS = maxloc(t% tr(i_Tc,:),dim=1)

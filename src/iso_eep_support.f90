@@ -6,8 +6,10 @@ module iso_eep_support
 
   implicit none
 
+  logical, parameter :: verbose = .false.
+  logical, parameter :: old_core_mass_names=.false.
   integer, parameter :: col_width = 32, file_path = 256
-  logical, parameter :: verbose = .false., old_core_mass_names=.false.
+
 
   logical, parameter ::check_initial_mass = .true.
   real(dp) :: mass_eps = 1d-6
@@ -296,13 +298,13 @@ contains
     call free_iounit(io)
   end subroutine read_eep
 
-  subroutine read_history_file(t)
+  subroutine read_history_file(t,ierr)
     type(track), intent(inout) :: t
+    integer, intent(out) :: ierr
     character(len=8192) :: line
     character(len=file_path) :: binfile
     character(len=3) :: type_string(2)
     integer :: i, ilo, ihi, io, j, imass, iversion
-    integer :: ierr
     integer, allocatable :: output(:) !ncol
     logical :: binfile_exists
 
@@ -455,13 +457,13 @@ contains
     type(track), intent(inout) :: t
     real(dp), parameter :: Teff_scale=2d0
     real(dp), parameter :: logL_scale=0.125d0
-    real(dp), parameter :: age_scale=0.1d0
-    real(dp), parameter :: Rhoc_scale=0
-    real(dp), parameter :: Tc_scale=0.01
+    real(dp), parameter :: age_scale=0d0
+    real(dp), parameter :: Rhoc_scale=0.1d0
+    real(dp), parameter :: Tc_scale=0.1d0
     integer :: j
 
     t% dist(1) = 0d0
-    if(t% ntrack > 1)then
+    if(t% ntrack > 3)then
        do j = 2, t% ntrack
           t% dist(j) = t% dist(j-1) + sqrt( &
                  Teff_scale*sq(t% tr(i_logTe,j) - t% tr(i_logTe,j-1))  &
@@ -544,6 +546,7 @@ contains
        return
     endif
     ncol = size(cols) 
+    if(verbose) write(*,*) ' number of history columns = ', ncol
     col_name = 'star_age'; i_age = locate_column(col_name,cols)
     col_name = 'star_mass'; i_mass= locate_column(col_name,cols)
     col_name='log_LH'; i_logLH=locate_column(col_name,cols)
@@ -565,6 +568,13 @@ contains
        col_name='he_core_mass'; i_he_core = locate_column(col_name,cols)
        col_name='c_core_mass'; i_co_core = locate_column(col_name,cols)
     endif
+    if(verbose)then
+       write(*,*) ' star_age column = ', i_age
+       write(*,*) ' star_mass column= ', i_mass
+       
+       
+    endif
+
   end subroutine setup_columns
 
   subroutine set_star_type_from_label(label,t)
