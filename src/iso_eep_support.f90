@@ -457,9 +457,9 @@ contains
     type(track), intent(inout) :: t
     real(dp), parameter :: Teff_scale=2d0
     real(dp), parameter :: logL_scale=0.125d0
-    real(dp), parameter :: age_scale=0d0
-    real(dp), parameter :: Rhoc_scale=0.1d0
-    real(dp), parameter :: Tc_scale=0.1d0
+    real(dp), parameter :: age_scale=0.05d0
+    real(dp), parameter :: Rhoc_scale=0d0
+    real(dp), parameter :: Tc_scale=0d0
     integer :: j
 
     t% dist(1) = 0d0

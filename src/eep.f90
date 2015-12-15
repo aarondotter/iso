@@ -207,10 +207,10 @@ contains
     real(dp) :: Xmax, Xmin, Xc, LH, Lmin !g_max, 
     real(dp), parameter :: Lfac = 9.99d-1 !Xfac = 9.8d-1
     integer, intent(in) :: guess
-    integer :: i, my_guess
+    integer :: i, my_guess, ZAMS1, ZAMS2
     ZAMS = 0
     Xmax = t% tr(i_Xc,1)
-    Xmin = Xmax - 1.5d-3
+    Xmin = Xmax - 1.0d-3
     if(guess < 1 .or. guess > t% ntrack) then 
        my_guess = 1
     else
@@ -224,7 +224,7 @@ contains
        Xc = t% tr(i_Xc,i)
     enddo
 
-    ZAMS = i
+    ZAMS1 = i
 
     LH = pow10(t% tr(i_logLH,i))
     Lmin = Lfac * pow10(t% tr(i_logL,i))
@@ -234,7 +234,9 @@ contains
        Lmin = Lfac * pow10(t% tr(i_logL,i))
     enddo
 
-    ZAMS = i
+    ZAMS2 = i
+
+    ZAMS = (ZAMS1+ZAMS2)/2
 
     !in case no H-burning occurs, take the location of the highest 
     !central temperature
