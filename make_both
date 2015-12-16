@@ -3,7 +3,7 @@ echo
 ./mk
 echo
 echo make_eep
-./make_eeps $1
+./make_eep $1
 echo
 echo
 echo make_iso

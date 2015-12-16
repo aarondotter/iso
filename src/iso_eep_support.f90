@@ -176,6 +176,10 @@ contains
     end do
     if(ncol(1)==ncol(2)) ierr=0
     call free_iounit(io)
+
+    if(verbose) write(*,*) ' ncol = ', ncol
+
+
   end subroutine process_history_columns
 
   integer function locate_column(col_name,columns)

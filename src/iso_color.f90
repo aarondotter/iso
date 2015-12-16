@@ -14,7 +14,7 @@ module iso_color
   private
 
   real(sp), parameter :: SolBol=4.74
-  real(sp), parameter :: FeH_sol = -1.8729 !log10(0.0134)
+  real(sp), parameter :: FeH_sol = -1.8729 !log10(Z/X) = log10(0.0134) from AGSS09
   type(BC_table), allocatable :: b(:), c(:)
 
   public iso_color_init, get_mags

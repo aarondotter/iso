@@ -1,13 +1,16 @@
+&track_controls
+
+
+/
+
 
 &iso_controls
-
-   do_isochrones = .true.
 
    do_smooth = .true.
 
    do_PAV = .true.
 
-   do_colors = .false.
+   do_colors = .true.
    BC_table_list = 'bc_table.list'
 
    do_Cstars = .false.

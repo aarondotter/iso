@@ -14,7 +14,7 @@ program make_isochrone
 
   character(len=file_path) :: input_file, history_columns_list
   integer :: i, ierr, io, j, niso, ntrk, ngood, first, prev, i_Minit
-  type(track), allocatable :: s(:), t(:), q
+  type(track), allocatable :: s(:), t(:)
   type(isochrone_set) :: set
 
   logical :: use_double_eep
@@ -25,31 +25,25 @@ program make_isochrone
 
   !default some namelist parameters
   logical :: iso_debug = .false.
-  logical :: do_tracks = .false.
-  logical :: do_isochrones = .true.
   logical :: do_smooth = .true.
   logical :: do_PAV = .true.
   logical :: do_colors = .false.
   logical :: do_Cstars = .false.
   character(len=file_path) :: BC_table_list='', Cstar_table_list=''
   character(len=file_path) :: cmd_suffix = '.cmd'
-  character(len=file_path) :: track_filename = 'out.trk'
   real(sp) :: extinction_Av = 0.0, extinction_Rv = 0.0
-  real(dp) :: track_initial_mass = 1d0
 
-  namelist /iso_controls/ iso_debug, do_tracks, do_isochrones, do_smooth, &
-       do_PAV, do_colors, do_Cstars, BC_table_list, Cstar_table_list, cmd_suffix, &
-       extinction_Av, extinction_Rv, track_initial_mass, track_filename
+  namelist /iso_controls/ iso_debug, do_smooth, do_PAV, do_colors, do_Cstars, &
+  BC_table_list, Cstar_table_list, cmd_suffix, extinction_Av, extinction_Rv
   
-
+  !begin
   ierr=0
   if(command_argument_count()<1) then
      write(*,*) '   make_iso                   '
      write(*,*) '   usage: ./make_iso <input>  '
-     stop       '   no command line argument   '
+     stop       '   error: no command line argument provided'
   endif
 
-  !begin
   call read_iso_input(ierr)
   if(ierr/=0) write(*,*) '  read_iso_input: ierr = ', ierr
 
@@ -95,25 +89,12 @@ program make_isochrone
   set% iso(:)% has_phase = t(1)% has_phase
   set% version_number = t(1)% version_number
 
-  !interpolate a new track . . .
-  if(do_tracks)then
-     allocate(q)
-     q% initial_mass = track_initial_mass
-     q% filename = track_filename
-     write(*,*) ' call interpolate_track'
-     call interpolate_track(t,q)
-     call write_track(q)
-     deallocate(q)
-  endif
-
   !create isochrones 
-  if(do_isochrones)then
-     do i=1,niso
-        call do_isochrone_for_age(t,set% iso(i))
-     enddo
-     call write_isochrones_to_file(set)
-     if(do_colors) call write_cmds_to_file(set)
-  endif
+  do i=1,niso
+     call do_isochrone_for_age(t,set% iso(i))
+  enddo
+  call write_isochrones_to_file(set)
+  if(do_colors) call write_cmds_to_file(set)
 
   !all done.
   deallocate(t,cols)
@@ -764,67 +745,6 @@ contains
     enddo
   end subroutine write_cmd_to_file
 
-  !takes a set of EEP-defined tracks and interpolates a new
-  !track for the desired initial mass
-  subroutine interpolate_track(a,b)
-    type(track), intent(in) :: a(:)
-    type(track), intent(inout) :: b
-    real(dp) :: f(3), dm, x(4), y(4)
-    real(dp), pointer :: initial_mass(:)=>NULL() !(n)
-    integer :: i, j, k, m, mlo, mhi, n
-
-    n = size(a)
-
-    allocate(initial_mass(n))
-    initial_mass = a(:)% initial_mass
-    m = binary_search(n, initial_mass, 1, b% initial_mass)
-    write(*,*) b% initial_mass
-    write(*,*) initial_mass(m:m+1)
-
-    mlo = min(max(1,m-1),n-3)
-    mhi = max(min(m+2,n),4)
-    m = mlo+1
-
-    write(*,*) '   mlo, m, mhi = ', mlo, m, mhi
-    write(*,*) initial_mass(mlo:mhi)
-    write(*,*) a(mlo:mhi)% neep
-
-    b% neep = minval(a(mlo:mhi)% neep)
-
-    write(*,*) b% neep
-
-    b% ntrack = a(m)% eep(b% neep)
-
-    write(*,*) b% ntrack
-
-    b% ncol = a(1)% ncol
-    b% has_phase = a(1)% has_phase
-    allocate(b% cols(b% ncol))
-    b% cols = a(1)% cols
-    b% version_number = a(1)% version_number
-    allocate(b% eep(b% neep))
-    allocate(b% tr(b% ncol, b% ntrack))
-    allocate(b% dist(b% ntrack))
-    if(b% has_phase) allocate(b% phase(b% ntrack))
-    b% eep = a(m)% eep(1:b% neep)
-    if(a(m)% has_phase) b% phase = a(m)% phase(1:b% ntrack)
-    b% tr = 0d0
-    b% dist = 0d0
-
-    dm = b% initial_mass - initial_mass(m)
-    x = initial_mass(mlo:mhi)
-    do i=1,b% ntrack
-       do j=1,b% ncol
-          forall(k=1:4) y(k) = a(mlo-1+k)% tr(j,i)
-          call interp_4pt_pm(x, y, f)
-          b% tr(j,i) = y(2) + dm*(f(1) + dm*(f(2) + dm*f(3)))
-       enddo
-    enddo
-
-    write(*,*) ' ierr = ', ierr
-
-    deallocate(initial_mass)
-  end subroutine interpolate_track
 
   subroutine read_iso_input(ierr)
     use iso_color, only: iso_color_init

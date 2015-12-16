@@ -13,9 +13,10 @@ FFLAGS= -ffree-form $(OPT) $(WARN) $(DEBUG)
 
 ISO=make_iso
 EEP=make_eep
+TRK=make_track
 BLEND=blend_eeps
 
-all: $(EEP) $(ISO) $(BLEND)
+all: $(EEP) $(ISO) $(BLEND) $(TRK)
 
 $(ISO): make_iso.o iso_eep_support.o iso_color.o BC_tables.o
 	$(FC) $(OMP) -o ../$(ISO) $^ $(LOAD_MESA)
@@ -25,6 +26,11 @@ $(EEP): make_eep.o phases.o eep.o iso_eep_support.o
 
 $(BLEND): blend_eeps.o iso_eep_support.o
 	$(FC) $(OMP) -o ../$(BLEND) $^ $(LOAD_MESA)
+
+$(TRK): make_track.o iso_eep_support.o
+	$(FC) $(OMP) -o ../$(TRK) $^ $(LOAD_MESA)
+
+make_track.o: make_track.f90 iso_eep_support.o
 
 make_iso.o: make_iso.f90 iso_eep_support.o iso_color.o BC_tables.o
 
