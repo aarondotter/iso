@@ -1,9 +1,5 @@
-This project includes codes to:
+## Overview
 
-1. generate equivalent evolutionary phase points (EEPs) 
-   from a set of stellar evolution tracks produced by MESA. 
+This project is designed to provide a means of transforming [MESA](http://mesa.sourceforge.net) history files into a uniform basis for interpolation and then construct stellar isochrones from that basis. It is developed in Fortran.
 
-2. generate isochrones from the existing EEPs
-
-It is still very much under active development.  If you're
-interested in using it, contact the developer.
+See [this paper]() for further details.
