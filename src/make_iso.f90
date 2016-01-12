@@ -83,7 +83,6 @@ program make_isochrone
         t(j)=s(i)
      endif
   enddo
-  deallocate(s)
 
   !above checks pass => these are safe assignments
   set% iso(:)% has_phase = t(1)% has_phase
@@ -97,7 +96,6 @@ program make_isochrone
   if(do_colors) call write_cmds_to_file(set)
 
   !all done.
-  deallocate(t,cols)
 
 contains
 
@@ -407,10 +405,10 @@ contains
                       do index = 2, ncol
                          mass = result1(i_Minit,eep)
                          result1(index,eep) = iso_interpolate(eep, interp_method, n, &
-                              s, skip(:,eep), count(eep), index, masses, mass, cols(index), ierr)
+                              s, skip(:,eep), count(eep), index, masses, mass, cols(index)% name, ierr)
                          if(ierr/=0) then
                             write(0,*) ' mass interpolation failed for index = ', &
-                                 trim(cols(index))
+                                 trim(cols(index)% name)
                             valid(eep)=0
                             cycle eep_loop2
                          endif
@@ -422,10 +420,10 @@ contains
                       do index = 2, ncol
                          mass = result2(i_Minit,eep)
                          result2(index,eep) = iso_interpolate(eep, interp_method, n, &
-                              s, skip(:,eep), count(eep), index, masses, mass, cols(index), ierr)
+                              s, skip(:,eep), count(eep), index, masses, mass, cols(index)% name, ierr)
                          if(ierr/=0) then
                             write(0,*) ' mass interpolation failed for index = ', &
-                                 trim(cols(index))
+                                 trim(cols(index)% name)
                             valid(eep)=0
                             cycle eep_loop2
                          endif
@@ -445,9 +443,9 @@ contains
           do index = 2, ncol
              mass = result1(i_Minit,eep)
              result1(index,eep) = iso_interpolate(eep, interp_method, n, &
-                  s, skip(:,eep), count(eep), index, masses, mass, cols(index), ierr)
+                  s, skip(:,eep), count(eep), index, masses, mass, cols(index)% name, ierr)
              if(ierr/=0) then
-                write(0,*) ' mass interpolation failed for index = ', trim(cols(index))
+                write(0,*) ' mass interpolation failed for index = ', trim(cols(index)% name)
                 valid(eep)=0
                 cycle eep_loop2
              endif
@@ -658,9 +656,9 @@ contains
     write(io,'(a25,2i5)') '# number of EEPs, cols = ', iso% neep, my_ncol
     write(io,'(a1,i4,299i32)') '#    ', (i,i=1,my_ncol)
     if(age_scale==age_scale_log10)then
-       write(io,'(a5,299a32)') '# EEP', 'log10_isochrone_age_yr', adjustr(iso% cols)
+       write(io,'(a5,299a32)') '# EEP', 'log10_isochrone_age_yr', adjustr(iso% cols(:)% name)
     elseif(age_scale==age_scale_linear)then
-       write(io,'(a5,299a32)') '# EEP', 'isochrone_age_yr', adjustr(iso% cols)
+       write(io,'(a5,299a32)') '# EEP', 'isochrone_age_yr', adjustr(iso% cols(:)% name)
     endif
     do i=1,iso% neep
        write(io,'(i5,299(1pes32.16e3))') iso% eep(i), iso% age, iso% data(:,i)
@@ -675,9 +673,9 @@ contains
     write(io,'(a25,2i5)') '# number of EEPs, cols = ', iso% neep, my_ncol
     write(io,'(a1,i4,299i32)') '#    ', (i,i=1,my_ncol)
     if(age_scale==age_scale_log10)then
-       write(io,'(a5,299a32)') '# EEP', 'log10_isochrone_age_yr', adjustr(iso% cols), 'phase'
+       write(io,'(a5,299a32)') '# EEP', 'log10_isochrone_age_yr', adjustr(iso% cols(:)% name), 'phase'
     elseif(age_scale==age_scale_linear)then
-       write(io,'(a5,299a32)') '# EEP', 'isochrone_age_yr', adjustr(iso% cols), 'phase'
+       write(io,'(a5,299a32)') '# EEP', 'isochrone_age_yr', adjustr(iso% cols(:)% name), 'phase'
     endif
     do i=1,iso% neep
        write(io,'(i5,299(1pes32.16e3))') iso% eep(i), iso% age, &
@@ -716,11 +714,11 @@ contains
     ierr=0; iT=0; ig=0; iL=0
 
     do i=1, iso% ncol
-       if(trim(iso% cols(i)) == 'log_Teff') then
+       if(trim(iso% cols(i)% name) == 'log_Teff') then
           iT=i
-       else if(trim(iso% cols(i)) == 'log_g') then
+       else if(trim(iso% cols(i)% name) == 'log_g') then
           ig=i
-       else if(trim(iso% cols(i))== 'log_L') then
+       else if(trim(iso% cols(i)% name)== 'log_L') then
           iL=i
        endif
     enddo
@@ -843,15 +841,15 @@ contains
 
     ! this section reads the column names to use from history_columns.list
     ! and locates those that need to be identified for isochrone construction
-    call process_history_columns(history_columns_list,cols,ierr)
+    call process_history_columns(history_columns_list,ierr)
     ncol = size(cols)
 
-    col_name = 'star_age'; i_age = locate_column(col_name,cols)
-    col_name = 'star_mass'; i_mass= locate_column(col_name,cols)
+    col_name = 'star_age'; i_age = locate_column(col_name)
+    col_name = 'star_mass'; i_mass= locate_column(col_name)
 
     ! hack: replace star_age column with initial_mass in isochrones
     i_Minit = i_age
-    cols(i_Minit)   = 'initial_mass'
+    cols(i_Minit)% name = 'initial_mass'
 
   end subroutine read_iso_input
 

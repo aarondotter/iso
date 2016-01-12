@@ -24,9 +24,6 @@ module iso_eep_support
 
   character(len=10) :: star_label(4)=['   unknown', 'substellar', '  low-mass', ' high-mass']
 
-  ! maximum number of columns in history file
-  integer, parameter :: max_col = 180
-
   ! central gamma limit for high- / intermediate-mass stars
   real(dp) :: center_gamma_limit=1d2 
   real(dp) :: center_carbon_limit=1d-4
@@ -44,8 +41,15 @@ module iso_eep_support
   integer :: i_Cc, i_gamma, i_surfH
 
   !for columns
+  integer, parameter :: max_col = 180
   integer :: ncol
-  character(len=col_width), allocatable :: cols(:) !(ncol)
+  integer, parameter :: column_int=0
+  integer, parameter :: column_dbl=1
+  type column
+     character(len=col_width) :: name
+     integer :: type, loc
+  end type column
+  type(column), allocatable :: cols(:) !(ncol)
 
   !EEP arrays
   integer, parameter :: primary = 10 ! number of primary EEPs
@@ -56,7 +60,7 @@ module iso_eep_support
   !holds an evolutionary track
   type track
      character(len=file_path) :: filename
-     character(len=col_width), allocatable :: cols(:)
+     type(column), allocatable :: cols(:)
      logical :: has_phase = .false., ignore=.false.
      integer :: ncol, ntrack, neep, version_number
      integer :: star_type = unknown
@@ -72,7 +76,7 @@ module iso_eep_support
      integer :: neep !number of eeps
      integer :: ncol !number of columns in history file
      integer :: nfil !number of filters for mags
-     character(len=col_width), allocatable :: cols(:) !for history columns
+     type(column), allocatable :: cols(:) !for history columns
      character(len=20), allocatable :: labels(:) !for mags
      logical :: has_phase = .false.
      integer, allocatable :: eep(:)
@@ -103,18 +107,12 @@ contains
     y = exp(ln10*x)
   end function pow10
 
-  elemental function sq(x) result(y) !square of x, y=x*x
-    real(dp), intent(in) :: x
-    real(dp) :: y
-    y = x*x
-  end function sq
-
-  subroutine process_history_columns(history_columns_list,col,ierr)
+  subroutine process_history_columns(history_columns_list,ierr)
     character(len=file_path), intent(in) :: history_columns_list
-    character(len=col_width), allocatable, intent(out) :: col(:)
     integer, intent(out) :: ierr
-    integer :: i, io, ncol(2), nchar, column_length, pass
+    integer :: i, io, ncols(2), nchar, column_length, pass
     character(len=file_path) :: line, column_name
+    logical :: is_int
     ierr=0
     io=alloc_iounit(ierr)
     open(io,file=trim(history_columns_list),action='read',status='old',iostat=ierr)
@@ -123,10 +121,11 @@ contains
        call free_iounit(io)
        return
     endif
-    ncol=0
+    ncols=0
     do pass=1,2
-       if(pass==2) allocate(col(ncol(1)))
+       if(pass==2) allocate(cols(ncols(1)))
        inner_loop: do while(.true.)
+          is_int = .false.
           read(io,'(a)',iostat=ierr) line
           if(ierr/=0) exit inner_loop
 
@@ -144,20 +143,21 @@ contains
           i=index(line,'!')-1
           if(i<0) i=len_trim(line)
 
-          if(i==0) then       ! comment line
+          if(i==0) then       !comment line
              if(verbose) write(*,*) ' comment: ', trim(line)
              cycle inner_loop
           else if(index(line(1:i),'number')>0) then
              if(verbose) write(*,*) '****** ', trim(line)
-             if(verbose) write(*,*) '****** index of number > 0, cycling'
-             cycle inner_loop !ignore integers
+             if(verbose) write(*,*) '****** index of number > 0 => integer'
+             is_int = .true.
           else if(index(line(1:i),'num_')==1)then
              if(verbose) write(*,*) '****** ', trim(line)
-             if(verbose) write(*,*) '****** index of num_ == 1, cycling'
-             cycle inner_loop !ignore integers
+             if(verbose) write(*,*) '****** index of num_ == 1 => integer'
+             is_int = .true.
           endif
+
           column_name = line
-          ncol(pass)=ncol(pass)+1
+          ncols(pass)=ncols(pass)+1
           if(i==0) then
              column_length=len_trim(column_name)
           else
@@ -166,28 +166,36 @@ contains
           do i=1,column_length
              if(column_name(i:i)==' ') column_name(i:i)='_'
           enddo
-          if(verbose) write(*,'(2i5,a32,i5)') pass, ncol(pass),trim(column_name(1:column_length)), column_length
+          if(verbose) write(*,'(2i5,a32,i5)') pass, ncols(pass),trim(column_name(1:column_length)), column_length
           if(pass==2) then
-             col(ncol(pass)) = trim(column_name(1:column_length))
+             cols(ncols(pass))% name = trim(column_name(1:column_length))
+             if(is_int) then
+                cols(ncols(pass))% type = column_int
+             else
+                cols(ncols(pass))% type = column_dbl
+             endif
+             cols(ncols(pass))% loc = ncols(pass)
           endif
        end do inner_loop
        if(pass==1) rewind(io)
        if(pass==2) close(io)
     end do
-    if(ncol(1)==ncol(2)) ierr=0
+    if(ncols(1)==ncols(2)) then
+       ierr=0
+       ncol=ncols(1)
+    endif
     call free_iounit(io)
 
     if(verbose) write(*,*) ' ncol = ', ncol
 
-
   end subroutine process_history_columns
 
-  integer function locate_column(col_name,columns)
-    character(len=col_width), intent(in) :: col_name, columns(:)
+  integer function locate_column(col_name)
+    character(len=col_width), intent(in) :: col_name
     integer :: i
     locate_column = -1
-    do i=1,size(columns)
-       if(trim(columns(i))==trim(col_name)) then 
+    do i=1,size(cols)
+       if(trim(cols(i)% name)==trim(col_name)) then 
           locate_column = i
           return
        endif
@@ -227,7 +235,7 @@ contains
          x% version_number, 'NO', star_label(x% star_type)
     write(io,'(a10,20i8)') '   EEPs:  ', x% eep
     write(io,'(299(27x,i5))') (j,j=1,x% ncol + 1)
-    write(io,'(299a32)') adjustr(x% cols), 'distance'
+    write(io,'(299a32)') adjustr(x% cols(:)% name), 'distance'
     do j=x% eep(1),x% ntrack
        write(io,'(299(1pes32.16e3))') x% tr(:,j), x% dist(j)
     enddo
@@ -246,7 +254,7 @@ contains
          x% version_number, 'YES', star_label(x% star_type)
     write(io,'(a10,20i8)') '   EEPs:  ', x% eep
     write(io,'(299(27x,i5))') (j,j=1,x% ncol+2)
-    write(io,'(299a32)') adjustr(x% cols), 'distance', 'phase'
+    write(io,'(299a32)') adjustr(x% cols(:)% name), 'distance', 'phase'
     do j=x% eep(1),x% ntrack
        write(io,'(299(1pes32.16e3))') x% tr(:,j), x% dist(j), x% phase(j)
     enddo
@@ -307,7 +315,6 @@ contains
     integer, intent(out) :: ierr
     character(len=8192) :: line
     character(len=file_path) :: binfile
-    character(len=3) :: type_string(2)
     integer :: i, ilo, ihi, io, j, imass, iversion
     integer, allocatable :: output(:) !ncol
     logical :: binfile_exists
@@ -318,8 +325,6 @@ contains
        write(*,*)  '    head = ', head
        write(*,*)  '    xtra = ', xtra
     endif
-
-    type_string = (/ 'flt', 'int' /)
 
     ! using unformatted binary files makes the process of creating
     ! EEP files much faster. so check to see if the .bin exists and,
@@ -365,7 +370,7 @@ contains
     !read first two lines of main section
     read(io,*)
     read(io,'(a)') line
-    call dict(line,ncol,cols,output)
+    call dict(line,output)
 
     !figure out how many data lines
     j=1
@@ -380,7 +385,7 @@ contains
     allocate(t% tr(t% ncol, t% ntrack),t% cols(t% ncol))
     allocate(t% eep_tr(t% ncol, primary), t% eep_dist(primary))
 
-    t% cols = cols(:)
+    t% cols = cols
 
     !ignore file header, already read it once
     rewind(io)
@@ -462,28 +467,34 @@ contains
     real(dp), parameter :: Teff_scale=2d0
     real(dp), parameter :: logL_scale=0.125d0
     real(dp), parameter :: age_scale=0.05d0
-    real(dp), parameter :: Rhoc_scale=0d0
-    real(dp), parameter :: Tc_scale=0d0
+    real(dp), parameter :: Rhoc_scale=0.01d0
+    real(dp), parameter :: Tc_scale=0.01d0
     integer :: j
 
     t% dist(1) = 0d0
     if(t% ntrack > 3)then
        do j = 2, t% ntrack
           t% dist(j) = t% dist(j-1) + sqrt( &
-                 Teff_scale*sq(t% tr(i_logTe,j) - t% tr(i_logTe,j-1))  &
-               + logL_scale*sq(t% tr(i_logL, j) - t% tr(i_logL, j-1))  &
-               + Rhoc_scale*sq(t% tr(i_Rhoc, j) - t% tr(i_Rhoc, j-1))  &
-               + Tc_scale*  sq(t% tr(i_Tc,   j) - t% tr(i_Tc,   j-1))  &
-               + age_scale* sq(log10(t% tr(i_age,j)) - log10(t% tr(i_age,j-1)))  &
+                 Teff_scale*sqdiff(t% tr(i_logTe,j) , t% tr(i_logTe,j-1))  &
+               + logL_scale*sqdiff(t% tr(i_logL, j) , t% tr(i_logL, j-1))  &
+               + Rhoc_scale*sqdiff(t% tr(i_Rhoc, j) , t% tr(i_Rhoc, j-1))  &
+               + Tc_scale*  sqdiff(t% tr(i_Tc,   j) , t% tr(i_Tc,   j-1))  &
+               + age_scale* sqdiff(log10(t% tr(i_age,j)) , log10(t% tr(i_age,j-1)))  &
                )
        enddo
     endif
   end subroutine distance_along_track
 
-  subroutine dict(input,ncol,cols,output)
+  elemental function sqdiff(x0,x1) result(y) !square of x, y=x*x
+    real(dp), intent(in) :: x0, x1
+    real(dp) :: y, dx
+    dx=x0-x1
+    y = dx*dx
+  end function sqdiff
+
+
+  subroutine dict(input,output)
     character(len=*), intent(in) :: input
-    integer :: ncol
-    character(len=col_width), intent(in) :: cols(ncol)
     integer, allocatable, intent(out) :: output(:)
     integer :: i,ihi,ilo,j
     logical :: have_col(ncol)
@@ -495,7 +506,7 @@ contains
        iloop: do i=1,max_col
           ilo =   1 + main*(i-1) + xtra*(i-1)
           ihi = ilo + main-1
-          if(adjustl(adjustr(input(ilo:ihi)))==trim(cols(j)))then
+          if(adjustl(adjustr(input(ilo:ihi)))==trim(cols(j)% name))then
              output(j)=i
              have_col(j) = .true.
              exit iloop
@@ -503,7 +514,7 @@ contains
        enddo iloop
     enddo
     do j=1,ncol
-       if(.not.have_col(j)) write(*,*) 'do not have ', trim(cols(j))
+       if(.not.have_col(j)) write(*,*) 'do not have ', trim(cols(j)% name)
     enddo
   end subroutine dict
 
@@ -544,33 +555,33 @@ contains
     character(len=file_path) :: history_columns_list
     integer, intent(out) :: ierr
     character(len=col_width) :: col_name
-    call process_history_columns(history_columns_list,cols,ierr)
+    call process_history_columns(history_columns_list,ierr)
     if(ierr/=0) then
        write(*,*) 'failed in process_history_columns'
        return
     endif
     ncol = size(cols) 
     if(verbose) write(*,*) ' number of history columns = ', ncol
-    col_name = 'star_age'; i_age = locate_column(col_name,cols)
-    col_name = 'star_mass'; i_mass= locate_column(col_name,cols)
-    col_name='log_LH'; i_logLH=locate_column(col_name,cols)
-    col_name='log_LHe'; i_logLHe=locate_column(col_name,cols)
-    col_name='log_Teff'; i_logTe=locate_column(col_name,cols)
-    col_name='log_L'; i_logL=locate_column(col_name,cols)
-    col_name='log_g'; i_logg=locate_column(col_name,cols)
-    col_name='log_center_T'; i_Tc=locate_column(col_name,cols)
-    col_name='log_center_Rho'; i_Rhoc=locate_column(col_name,cols)
-    col_name='center_h1'; i_Xc=locate_column(col_name,cols)
-    col_name='center_he4'; i_Yc=locate_column(col_name,cols)
-    col_name='center_c12'; i_Cc=locate_column(col_name,cols)
-    col_name='center_gamma'; i_gamma=locate_column(col_name,cols)
-    col_name='surface_h1'; i_surfH=locate_column(col_name,cols)
+    col_name = 'star_age'; i_age = locate_column(col_name)
+    col_name = 'star_mass'; i_mass= locate_column(col_name)
+    col_name='log_LH'; i_logLH=locate_column(col_name)
+    col_name='log_LHe'; i_logLHe=locate_column(col_name)
+    col_name='log_Teff'; i_logTe=locate_column(col_name)
+    col_name='log_L'; i_logL=locate_column(col_name)
+    col_name='log_g'; i_logg=locate_column(col_name)
+    col_name='log_center_T'; i_Tc=locate_column(col_name)
+    col_name='log_center_Rho'; i_Rhoc=locate_column(col_name)
+    col_name='center_h1'; i_Xc=locate_column(col_name)
+    col_name='center_he4'; i_Yc=locate_column(col_name)
+    col_name='center_c12'; i_Cc=locate_column(col_name)
+    col_name='center_gamma'; i_gamma=locate_column(col_name)
+    col_name='surface_h1'; i_surfH=locate_column(col_name)
     if(old_core_mass_names)then
-       col_name='h1_boundary_mass'; i_he_core = locate_column(col_name,cols)
-       col_name='he4_boundary_mass'; i_co_core = locate_column(col_name,cols)
+       col_name='h1_boundary_mass'; i_he_core = locate_column(col_name)
+       col_name='he4_boundary_mass'; i_co_core = locate_column(col_name)
     else
-       col_name='he_core_mass'; i_he_core = locate_column(col_name,cols)
-       col_name='c_core_mass'; i_co_core = locate_column(col_name,cols)
+       col_name='he_core_mass'; i_he_core = locate_column(col_name)
+       col_name='c_core_mass'; i_co_core = locate_column(col_name)
     endif
     if(verbose)then
        write(*,*) ' star_age column = ', i_age

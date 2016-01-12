@@ -44,19 +44,19 @@ contains
     iT=0; ig=0; iL=0; iH=0; iHe=0; iC=0; iO=0
 
     do i=1, iso% ncol
-       if(trim(iso% cols(i)) == 'log_Teff') then
+       if(trim(iso% cols(i)% name) == 'log_Teff') then
           iT=i
-       else if(trim(iso% cols(i)) == 'log_g') then
+       else if(trim(iso% cols(i)% name) == 'log_g') then
           ig=i
-       else if(trim(iso% cols(i))== 'log_L') then
+       else if(trim(iso% cols(i)% name)== 'log_L') then
           iL=i
-       else if(trim(iso% cols(i))=='surface_h1')then
+       else if(trim(iso% cols(i)% name)=='surface_h1')then
           iH=i
-       else if(trim(iso% cols(i))=='surface_he4')then
+       else if(trim(iso% cols(i)% name)=='surface_he4')then
           iHe=i   
-       else if(trim(iso% cols(i))=='surface_c12')then
+       else if(trim(iso% cols(i)% name)=='surface_c12')then
           iC=i
-       else if(trim(iso% cols(i))=='surface_o16')then
+       else if(trim(iso% cols(i)% name)=='surface_o16')then
           iO=i
        endif
     enddo
