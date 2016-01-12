@@ -16,6 +16,7 @@ contains
   subroutine secondary_eep(t,s)
     ! takes a regular track (read from history) and creates an
     ! EEP track with a fixed number of regularly spaced points
+    ! requires that the primary EEPs have already been found.
     type(track), intent(in) :: t
     type(track), intent(out) :: s
     integer :: i, j, k, num_p, num_s
@@ -45,7 +46,6 @@ contains
     s% cols = t% cols
 
     ! allocate and fill new track
-
     allocate(s% tr(s% ncol,s% ntrack))
     allocate(s% dist(s% ntrack))
     allocate(s% eep(s% neep))
@@ -66,13 +66,19 @@ contains
   end subroutine secondary_eep
 
   subroutine eep_interpolate(t,j,k,s)
+    !t is the input track from MESA history file
+    !s is the EEP-based track under construction
+    !j is the primary EEP number 
+    !k is the secondary EEP number
+    !this routine takes a slice from t and interpolates into the
+    !corresponding slice in s
     type(track), intent(in) :: t
     integer, intent(in) :: j, k
     type(track), intent(inout) :: s
     real(dp) :: alpha, beta, dist, delta, new_dist, dx, a(3), x(4), y(4)
     real(dp), pointer :: vec(:)
     integer :: i, jj, j0, j1, n, num_eep
-    logical, parameter :: linear = .false.
+    logical, parameter :: linear = .true.
 
     if(t% eep(j) == t% eep(j+1)) return
 
@@ -117,25 +123,27 @@ contains
 
 
   subroutine primary_eep(t)
-    ! sets the locations of the primary EEPs in a track read from a .log
+    ! sets the locations of the primary EEPs in a track read from a history data file
     type(track), intent(inout) :: t
-    integer :: ieep
+    integer :: ieep, inc
     t% EEP = 0 !initialize
     ieep=1
+    inc=2
     t% EEP(ieep) = PreMS_Tc(t,5.0d0,1); if(check(t,ieep)) return; ieep=ieep+1
     t% EEP(ieep) = ZAMS(t,10); if(check(t,ieep)) return; ieep=ieep+1
-    t% EEP(ieep) = TAMS(t,3.5d-1,t% EEP(ieep-1)+2); if(check(t,ieep)) return; ieep=ieep+1
-    t% EEP(ieep) = TAMS(t,1d-12,t% EEP(ieep-1)+2); if(check(t,ieep)) return; ieep=ieep+1
-    t% EEP(ieep) = RGBTip(t,t% EEP(ieep-1)+2); if(check(t,ieep)) return; ieep=ieep+1
-    t% EEP(ieep) = ZAHB(t,t% EEP(ieep-1)+2); if(check(t,ieep)) return; ieep=ieep+1
-    t% EEP(ieep) = TAHB(t,1d-4,t% EEP(ieep-1)+2); if(check(t,ieep)) return; ieep=ieep+1
+    t% EEP(ieep) = TAMS(t,3.5d-1,t% EEP(ieep-1)+inc); if(check(t,ieep)) return; ieep=ieep+1
+    t% EEP(ieep) = TAMS(t,1d-12,t% EEP(ieep-1)+inc); if(check(t,ieep)) return; ieep=ieep+1
+    t% EEP(ieep) = RGBTip(t,t% EEP(ieep-1)+inc); if(check(t,ieep)) return; ieep=ieep+1
+    t% EEP(ieep) = ZAHB(t,t% EEP(ieep-1)+inc); if(check(t,ieep)) return; ieep=ieep+1
+    t% EEP(ieep) = TAHB(t,1d-4,t% EEP(ieep-1)+inc); if(check(t,ieep)) return; ieep=ieep+1
     if(t% star_type == star_low_mass)then
-       t% EEP(ieep) = TPAGB(t,t% EEP(ieep-1)+2); if(check(t,ieep)) return; ieep=ieep+1
-       t% EEP(ieep) = PostAGB(t,t% EEP(ieep-1)+2); if(check(t,ieep)) return; ieep=ieep+1
-       t% EEP(ieep) = WDCS(t, t% EEP(ieep-1)+2)
+       t% EEP(ieep) = TPAGB(t,t% EEP(ieep-1)+inc); if(check(t,ieep)) return; ieep=ieep+1
+       t% EEP(ieep) = PostAGB(t,t% EEP(ieep-1)+inc); if(check(t,ieep)) return; ieep=ieep+1
+       t% EEP(ieep) = WDCS(t, t% EEP(ieep-1)+inc)
     elseif(t% star_type == star_high_mass)then
-       t% EEP(ieep) = CarbonBurn(t,t% EEP(ieep-1)+2)
+       t% EEP(ieep) = CarbonBurn(t,t% EEP(ieep-1)+inc)
     endif
+    
   end subroutine primary_eep
 
   logical function check(t,i)
