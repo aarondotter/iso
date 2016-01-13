@@ -80,6 +80,7 @@
       s% neep = s_old(1)% neep
       s% ntrack = s_old(1)% ntrack
       s% version_number = s_old(1)% version_number
+      s% star_type = s_old(1)% star_type
       allocate(s% eep(s% neep))
       s% eep = s_old(1)% eep
       allocate(s% tr(s% ncol, s% ntrack), s% dist(s% ntrack), s% phase(s% ntrack))
