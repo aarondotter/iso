@@ -1,4 +1,4 @@
-![alt text](images/iso.png)
+![alt text](plots/iso.png)
 
 ## Overview
 
