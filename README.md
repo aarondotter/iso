@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project is designed to provide a means of transforming [MESA](http://mesa.sourceforge.net) history files into a uniform basis for interpolation and then construct new stellar evolution tracks and isochrones from that basis. It is developed in Fortran.
+This project provides a means to transform [MESA](http://mesa.sourceforge.net) history files into a uniform basis for interpolation and then construct new stellar evolution tracks and isochrones from that basis. It is developed in Fortran.
 
 The theory is described in [this paper]().
 
@@ -29,4 +29,13 @@ cd iso
 
 ./mk
 ```
+
+## Getting Started
+
+The basic workflow is split into two parts:
+
+1. Convert the MESA history files into EEP-based tracks (.eep files) via the program `make_eep`.
+
+2. Use the EEP files to create new stellar evolution tracks with `make_track` and/or isochrones with `make_iso`.
+
 
