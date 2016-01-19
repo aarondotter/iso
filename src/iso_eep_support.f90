@@ -296,7 +296,7 @@ contains
     read(io,'(10x,299i8)') x% eep
     read(io,*) ! column numbers
     if(x% has_phase) then
-       read(io,'(299a32)') x% cols ! column names
+       read(io,'(299a32)') x% cols(:)% name ! column names
        do j=x% eep(1), x% ntrack
           read(io,'(299(1pes32.16e3))')  x% tr(:,j), x% dist(j), x% phase(j)
        enddo

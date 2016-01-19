@@ -33,22 +33,10 @@
       do i=1,num
          s_old(i)% filename = trim(eep_files(i))
          call read_eep(s_old(i))
-         write(*,*) s_old(i)% initial_mass
-         !debugging
-         write(*,*) s_old(i)% has_phase, s_old(i)% ncol
-
       enddo
-
 
       s_new = blend(s_old,weights)
       s_new% filename = trim(eep_dir) // '/' // trim(output)
-
-      write(*,*) s_new% has_phase, s_new% ncol, s_new% cols(1:3)
-
-      write(*,*)
-      write(*,*) trim(s_new% filename)
-      write(*,*) s_new% initial_mass, s_new% version_number
-      write(*,*)
 
       call write_track(s_new)
       
@@ -76,7 +64,9 @@
       s% has_phase = s_old(1)% has_phase
       s% ncol = s_old(1)% ncol
       allocate(s% cols(s% ncol))
-      s% cols = s_old(1)% cols
+      s% cols(:)% type = s_old(1)% cols(:)% type
+      s% cols(:)% loc  = s_old(1)% cols(:)% loc
+      s% cols(:)% name = s_old(1)% cols(:)% name
       s% neep = s_old(1)% neep
       s% ntrack = s_old(1)% ntrack
       s% version_number = s_old(1)% version_number
@@ -126,11 +116,9 @@
       read(io,'(a)') output
       close(io)
       call free_iounit(io)
-      write(*,*) trim(eep_dir)
-      write(*,*) num
+      write(*,*) ' blending ', num, ' tracks:'
       write(*,'(99a32)') eep_files
       write(*,*) weights, ' => ', sum(weights)
-      write(*,*) trim(output)
       end subroutine read_input
 
       end program blend_eeps
