@@ -8,6 +8,8 @@ The theory is described in [this paper]().
 
 ## Prerequisites
 
+(Note: If you already have MESA installed, then you most likely meet all these requirements!)
+
 1. `git` if you want to clone the repository.  Alternatively, you can download a zip file from the github page.
 
 2. `make` to handle compilation.  make is distributed as a package in Linux distributions and comes as part of the Xcode Command Line Tools in Mac OS X.
