@@ -4,7 +4,7 @@
 
 This project provides a means to transform [MESA](http://mesa.sourceforge.net) history files into a uniform basis for interpolation and then construct new stellar evolution tracks and isochrones from that basis. It is developed in Fortran.
 
-The theory is described in [this paper](http://stacks.iop.org/0067-0049/222/8).
+The theory is described in [this paper](http://stacks.iop.org/0067-0049/222/8).  You are encouraged to read the paper before attempting to use these programs. If you use these programs in your research, please cite the paper!
 
 ## Prerequisites
 
@@ -55,7 +55,7 @@ The isochrone section follows the track/eep section; it contains:
 
 See the file `input.example` for the general layout.
 
-A variety of code options can be set via two namelists, both reside in the file `input.nml`.
+A variety of code options can be set via two namelists, both reside in the file `input.nml`. The number of secondary EEPs that are desired between each pair of primary EEPs is set in the file `input.eep`. If this file does not exist, the code will set a default (small) number of 50 secondary EEPs between each pair of primary EEPs.
 
 
 
