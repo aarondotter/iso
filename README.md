@@ -19,24 +19,24 @@ The theory is described in [this paper](http://stacks.iop.org/0067-0049/222/8). 
 4. A modern Fortran compiler (but if you have MESA installed already, you'll have it).
 
 5. In order to identify primary EEPs in MESA history files, several history columns are required:
-   + star_age
-   + star_mass
-   + log_LH
-   + log_LHe 
-   + log_Teff 
-   + log_L
-   + log_g 
-   + log_center_T 
-   + log_center_Rho 
-   + center_h1 
-   + center_he4
-   + center_c12
-   + center_gamma
-   + surface_h1 
-   + he_core_mass
-   + c_core_mass
+   + `star_age`
+   + `star_mass`
+   + `log_LH`
+   + `log_LHe` 
+   + `log_Teff` 
+   + `log_L`
+   + `log_g` 
+   + `log_center_T` 
+   + `log_center_Rho` 
+   + `center_h1`
+   + `center_he4`
+   + `center_c12`
+   + `center_gamma`
+   + `surface_h1`
+   + `he_core_mass`
+   + `c_core_mass`
 
-6. The `history_columns.list' file that was used in generating the MESA history files. By default it resides in $MESA_DIR/star/defaults/history_columns.list.
+6. The `history_columns.list` file that was used in generating the MESA history files. By default it resides in `$MESA_DIR/star/defaults/history_columns.list`.
 
 7. Synthetic color-magnitude diagrams require a set of bolometric correction tables. These will be made available coincident with the release of MIST Paper I.
 
