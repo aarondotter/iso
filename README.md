@@ -40,4 +40,6 @@ The basic workflow is split into two parts:
 
 2. Use the EEP files to create new stellar evolution tracks with `make_track` and/or isochrones with `make_iso`.
 
+## Things to look out for
 
+* Sometime around MESA revision 5000, the name of the "core mass" history columns changed from, e.g., `h1_boundary_mass` (old) to `he_core_mass` (new). This is dealt with in the code by the variable `old_core_mass_names`: to use the old names, set this to `.true.`; otherwise leave it `.false.`.
