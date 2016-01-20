@@ -13,7 +13,7 @@
 #specify isochrones
 isochrones_example.txt
 min_max
+log10
 51
 5.0
 10.0
-single
