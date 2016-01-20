@@ -9,3 +9,16 @@
   7  100
   8  600
   9  300 
+
+
+This file tells make_eep how many secondary EEP intervals there are 
+(1st line) and how many secondary EEPs to place in each interval.
+The number between each pair of primaries is specified on a line
+as 
+
+XXXYYYYY
+
+3 digits to specify secondary EEP interval and 5 to specify the number
+of secondary EEPs to place in that interval.
+
+For N=10 primary EEPs there will be N-1=9 secondary intervals.

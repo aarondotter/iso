@@ -1,5 +1,6 @@
 &track_controls
 
+!work in progress
 
 /
 
@@ -10,7 +11,7 @@
 
    do_PAV = .true.
 
-   do_colors = .true.
+   do_colors = .false.
    BC_table_list = 'bc_table.list'
 
    do_Cstars = .false.
