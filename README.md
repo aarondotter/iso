@@ -58,7 +58,16 @@ See the file `input.example` for the general layout.
 A variety of code options can be set via two namelists, both reside in the file `input.nml`. The number of secondary EEPs that are desired between each pair of primary EEPs is set in the file `input.eep`. If this file does not exist, the code will set a default (small) number of 50 secondary EEPs between each pair of primary EEPs.
 
 
+After these input files are configured correctly, run the codes using the following commands:
 
-## Things to look out for
+`./make_eep input.example`
+
+check terminal output for error messages.
+
+`./make_iso input.example`
+
+If all goes well, then you'll have a fresh set of isochrones to explore.
+
+# NOTES 
 
 * Sometime around MESA revision 5000, the name of the "core mass" history columns changed from, e.g., `h1_boundary_mass` (old) to `he_core_mass` (new). This is dealt with in the code by the variable `old_core_mass_names`: to use the old names, set this to `.true.`; otherwise leave it `.false.`.
