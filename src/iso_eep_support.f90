@@ -234,10 +234,10 @@ contains
     write(io,'(1p1e20.10,4i8,a8,2x,a10)') x% initial_mass, x% ntrack, x% neep, x% ncol, &
          x% version_number, 'NO', star_label(x% star_type)
     write(io,'(a10,20i8)') '   EEPs:  ', x% eep
-    write(io,'(299(27x,i5))') (j,j=1,x% ncol + 1)
-    write(io,'(299a32)') adjustr(x% cols(:)% name), 'distance'
+    write(io,'(299(27x,i5))') (j,j=1,x% ncol)
+    write(io,'(299a32)') adjustr(x% cols(:)% name)
     do j=x% eep(1),x% ntrack
-       write(io,'(299(1pes32.16e3))') x% tr(:,j), x% dist(j)
+       write(io,'(299(1pes32.16e3))') x% tr(:,j)
     enddo
     close(io)
     call free_iounit(io)
@@ -253,10 +253,10 @@ contains
     write(io,'(1p1e20.10,4i8,a8,2x,a10)') x% initial_mass, x% ntrack, x% neep, x% ncol, & 
          x% version_number, 'YES', star_label(x% star_type)
     write(io,'(a10,20i8)') '   EEPs:  ', x% eep
-    write(io,'(299(27x,i5))') (j,j=1,x% ncol+2)
-    write(io,'(299a32)') adjustr(x% cols(:)% name), 'distance', 'phase'
+    write(io,'(299(27x,i5))') (j,j=1,x% ncol+1)
+    write(io,'(299a32)') adjustr(x% cols(:)% name), 'phase'
     do j=x% eep(1),x% ntrack
-       write(io,'(299(1pes32.16e3))') x% tr(:,j), x% dist(j), x% phase(j)
+       write(io,'(299(1pes32.16e3))') x% tr(:,j), x% phase(j)
     enddo
     close(io)
     call free_iounit(io)
@@ -286,7 +286,7 @@ contains
 
     call set_star_type_from_label(type_label,x)
 
-    allocate(x% tr(x% ncol, x% ntrack), x% dist(x% ntrack), x% eep(x% neep), x% cols(x% ncol))
+    allocate(x% tr(x% ncol, x% ntrack), x% eep(x% neep), x% cols(x% ncol))
     if(index(phase_info,'YES')/=0) then
        x% has_phase = .true.
        allocate(x% phase(x% ntrack))
@@ -298,12 +298,12 @@ contains
     if(x% has_phase) then
        read(io,'(299a32)') x% cols(:)% name ! column names
        do j=x% eep(1), x% ntrack
-          read(io,'(299(1pes32.16e3))')  x% tr(:,j), x% dist(j), x% phase(j)
+          read(io,'(299(1pes32.16e3))')  x% tr(:,j), x% phase(j)
        enddo
     else
        read(io,'(299a32)') x% cols
        do j=x% eep(1), x% ntrack
-          read(io,'(299(1pes32.16e3))') x% tr(:,j), x% dist(j)
+          read(io,'(299(1pes32.16e3))') x% tr(:,j)
        enddo
     endif
     close(io)
