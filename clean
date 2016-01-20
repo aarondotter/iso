@@ -1,1 +1,1 @@
-cd src; make clean
+cd make; make clean

@@ -1,1 +1,1 @@
-clear; cd src; make $1
+clear; cd make; make $1

@@ -57,7 +57,7 @@ module iso_eep_support
   integer :: eep_interval(primary-1) ! number of secondary EEPs
   ! between the primaries
 
-  !holds an evolutionary track
+  !holds an evolutionary track, use an array of these for multiple tracks
   type track
      character(len=file_path) :: filename
      type(column), allocatable :: cols(:)
@@ -186,7 +186,7 @@ contains
     endif
     call free_iounit(io)
 
-    if(verbose) write(*,*) ' ncol = ', ncol
+    if(verbose) write(*,*) 'process_history_columns: ncol = ', ncol
 
   end subroutine process_history_columns
 
@@ -345,7 +345,7 @@ contains
     io=alloc_iounit(ierr)
     open(unit=io,file=trim(trim(history_dir) // '/' // t% filename),status='old',action='read')
     !read first 3 lines of header
-    !currently don't use all of this, but could...
+    !currently don't use all of this info, but could...
     imass=0
     iversion=0
     do j=1,3
@@ -550,8 +550,8 @@ contains
 
   subroutine setup_columns(history_columns_list,ierr)
     !reads a history_columns.list file to determine what columns to write
-    !to the .eep files; the identifies those columns that are required to
-    !locate eeps in the evolutionary tracks
+    !to the .eep files; it identifies those important columns that are 
+    !required to identify eeps in the evolutionary tracks
     character(len=file_path) :: history_columns_list
     integer, intent(out) :: ierr
     character(len=col_width) :: col_name
@@ -585,11 +585,8 @@ contains
     endif
     if(verbose)then
        write(*,*) ' star_age column = ', i_age
-       write(*,*) ' star_mass column= ', i_mass
-       
-       
+       write(*,*) ' star_mass column= ', i_mass      
     endif
-
   end subroutine setup_columns
 
   subroutine set_star_type_from_label(label,t)
@@ -614,6 +611,7 @@ contains
        return
     endif
 
+    !only reach center_gamma_limit if the star evolves to a WD
     if( t% tr(i_gamma,n) > center_gamma_limit) then
        t% star_type = star_low_mass
        return
@@ -625,18 +623,20 @@ contains
        return
     endif
 
+    !alternative test for high-mass stars is that they reach a
+    !central temperature threshhold
     if(t% tr(i_Tc,n) > log_center_T_limit)then
        t% star_type = star_high_mass
     else
        t% star_type = star_low_mass
     endif
 
+    !last gasp test for high-mass stars is the initial mass...
     if(t% initial_mass >= min_for_high_mass_star) then
        t% star_type = star_high_mass
     else
        t% star_type = star_low_mass
     endif
-
   end subroutine set_star_type_from_history
-
+    
 end module iso_eep_support
