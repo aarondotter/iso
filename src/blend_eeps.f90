@@ -105,17 +105,15 @@ contains
     s% star_type = s_old(1)% star_type
     allocate(s% eep(s% neep))
     s% eep = s_old(1)% eep
-    allocate(s% tr(s% ncol, s% ntrack), s% dist(s% ntrack), s% phase(s% ntrack))
+    allocate(s% tr(s% ncol, s% ntrack), s% phase(s% ntrack))
     if(s_old(1)% has_phase)then
        s% phase = s_old(1)% phase
     endif
 
     s% tr = 0d0
-    s% dist = 0d0
 
     do j = 1, s% ntrack
        do k=1,n
-          s% dist(j) = s% dist(j) + weights(k)*s_old(k)% dist(j)
           s% tr(:,j) = s% tr(:,j) + weights(k)*s_old(k)% tr(:,j)
        enddo
     enddo
