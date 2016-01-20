@@ -70,7 +70,7 @@ Both programs read the same input file. An input file is divided into two sectio
 
 The isochrone section follows the track/eep section; it contains:
 + the isochrone output file name
-+ one of two options that specify how the ages will be input, either `min_max` or `list'.
++ one of two options that specify how the ages will be input, either `min_max` or `list`.
   If `min_max` then you'll give the desired number of isochrones, the minimum age and the maximum age on three successive lines.
   If `list` then you'll give the desired number of isochrones followed by a list of individual ages, one per line.
 + The scale of ages, either `linear` or `log10`, in which the isochrone ages will be specified. Isochrone ages are always given in years. For example, 10 Gyr could be specified as either 1e10 (linear) or 10.0 (log10).
