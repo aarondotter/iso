@@ -1,0 +1,8 @@
+#input file containing list of EEPs
+input.v029p00
+#number of new tracks to interpolate
+3
+#masses and output filenames 
+1.001 test1001.eep
+3.003 test3003.eep
+5.005 test5005.eep

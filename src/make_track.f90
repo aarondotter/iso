@@ -15,7 +15,7 @@ program make_track
   integer :: i, ierr=0, num_tracks_t=0, num_tracks_s=0
   logical, parameter :: debug=.true.
   logical :: output_to_eep_dir = .false.
-  !namelist /track_controls/ 
+  namelist /track_controls/ output_to_eep_dir
 
   !check command line arguments
   if(command_argument_count()<1) then
@@ -118,13 +118,13 @@ contains
 
     io=alloc_iounit(ierr)
 
-    !open(unit=io,file='input.nml', action='read', status='old', iostat=ierr)
-    !if(ierr/=0) then
-    !   write(0,*) ' make_track: problem reading input.nml '
-    !   return
-    !endif
-    !read(io, nml=track_controls, iostat=ierr)
-    !close(io)
+    open(unit=io,file='input.nml', action='read', status='old', iostat=ierr)
+    if(ierr/=0) then
+       write(0,*) ' make_track: problem reading input.nml '
+       return
+    endif
+    read(io, nml=track_controls, iostat=ierr)
+    close(io)
 
     open(unit=io,file=trim(input_file),status='old',action='read',iostat=ierr)
     if(ierr/=0) then

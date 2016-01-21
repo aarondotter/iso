@@ -1,6 +1,7 @@
 &track_controls
 
 !work in progress
+output_to_eep_dir = .true.
 
 /
 
