@@ -1,7 +1,8 @@
 &track_controls
 
-!work in progress
-output_to_eep_dir = .true.
+!write the new tracks to the original EEP directory if true
+!otherwise you can specify an absolute path for each track in the input 
+output_to_eep_dir = .false.
 
 /
 

@@ -13,7 +13,7 @@ program make_track
   character(len=file_path) :: input_file
   type(track), allocatable :: s(:), t(:) !existing set
   integer :: i, ierr=0, num_tracks_t=0, num_tracks_s=0
-  logical, parameter :: debug=.true.
+  logical, parameter :: debug=.false.
   logical :: output_to_eep_dir = .false.
   namelist /track_controls/ output_to_eep_dir
 
