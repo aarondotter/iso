@@ -10,6 +10,10 @@ module iso_eep_support
   logical, parameter :: old_core_mass_names=.false.
   integer, parameter :: col_width = 32, file_path = 256
 
+  !for isochrones
+  integer, parameter :: age_scale_linear = 0
+  integer, parameter :: age_scale_log10  = 1
+  integer :: age_scale = -1
 
   logical, parameter ::check_initial_mass = .true.
   real(dp) :: mass_eps = 1d-6
@@ -24,13 +28,13 @@ module iso_eep_support
 
   character(len=10) :: star_label(4)=['   unknown', 'substellar', '  low-mass', ' high-mass']
 
-  ! central gamma limit for high- / intermediate-mass stars
+  ! central limits for high- / intermediate-mass stars, set these from input nml
   real(dp) :: center_gamma_limit=1d2 
   real(dp) :: center_carbon_limit=1d-4
   real(dp) :: log_center_T_limit=9d0
   real(dp) :: min_for_high_mass_star=1d1 !Msun
 
-  ! format specs
+  ! default column format specs
   integer :: head !=29
   integer :: main !=28
   integer :: xtra !=0
@@ -89,7 +93,7 @@ module iso_eep_support
 
   !holds a set of isochrones
   type isochrone_set
-     integer :: version_number
+     integer :: version_number, number_of_isochrones
      integer, allocatable :: num_valid_eeps(:)
      type(isochrone), allocatable :: iso(:)
      real(sp) :: Av, Rv
@@ -261,6 +265,72 @@ contains
     close(io)
     call free_iounit(io)
   end subroutine write_track_phase
+
+  !writes a series of n isochrones to filename
+  subroutine write_isochrones_to_file(set)
+    type(isochrone_set), intent(in) :: set
+    integer :: i, ierr, io, n
+    io=alloc_iounit(ierr)
+    n=set% number_of_isochrones
+    write(0,*) ' isochrone output file = ', trim(set% filename)
+    open(io,file=trim(set% filename),action='write',status='unknown',iostat=ierr)
+    write(io,'(a25,i5)') '# number of isochrones = ', n
+    write(io,'(a25,i5)') '# MESA version number  = ', set% version_number
+    do i=1,n
+       call write_isochrone_to_file(io,set% iso(i))
+       if(i<n) write(io,*)
+       if(i<n) write(io,*)
+    enddo
+    close(io)
+    call free_iounit(io)
+  end subroutine write_isochrones_to_file
+
+  !writes one age isochrone to the open io unit
+  subroutine write_isochrone_to_file(io,iso)
+    integer, intent(in) :: io
+    type(isochrone), intent(in) :: iso
+    if(iso% has_phase)then
+       call write_isochrone_to_file_phase(io,iso)
+    else
+       call write_isochrone_to_file_orig(io,iso)
+    endif
+  end subroutine write_isochrone_to_file
+
+  subroutine write_isochrone_to_file_orig(io,iso)
+    integer, intent(in) :: io
+    type(isochrone), intent(in) :: iso
+    integer :: i, my_ncol
+    my_ncol = iso% ncol + 2 !add two for eep and age
+    write(io,'(a25,2i5)') '# number of EEPs, cols = ', iso% neep, my_ncol
+    write(io,'(a1,i4,299i32)') '#    ', (i,i=1,my_ncol)
+    if(age_scale==age_scale_log10)then
+       write(io,'(a5,299a32)') '# EEP', 'log10_isochrone_age_yr', adjustr(iso% cols(:)% name)
+    elseif(age_scale==age_scale_linear)then
+       write(io,'(a5,299a32)') '# EEP', 'isochrone_age_yr', adjustr(iso% cols(:)% name)
+    endif
+    do i=1,iso% neep
+       write(io,'(i5,299(1pes32.16e3))') iso% eep(i), iso% age, iso% data(:,i)
+    enddo
+  end subroutine write_isochrone_to_file_orig
+
+  subroutine write_isochrone_to_file_phase(io,iso)
+    integer, intent(in) :: io
+    type(isochrone), intent(in) :: iso
+    integer :: i, my_ncol
+    my_ncol = iso% ncol + 3 !add three for eep, phase, and age
+    write(io,'(a25,2i5)') '# number of EEPs, cols = ', iso% neep, my_ncol
+    write(io,'(a1,i4,299i32)') '#    ', (i,i=1,my_ncol)
+    if(age_scale==age_scale_log10)then
+       write(io,'(a5,299a32)') '# EEP', 'log10_isochrone_age_yr', adjustr(iso% cols(:)% name), 'phase'
+    elseif(age_scale==age_scale_linear)then
+       write(io,'(a5,299a32)') '# EEP', 'isochrone_age_yr', adjustr(iso% cols(:)% name), 'phase'
+    endif
+    do i=1,iso% neep
+       write(io,'(i5,299(1pes32.16e3))') iso% eep(i), iso% age, &
+            iso% data(:,i), real(iso% phase(i),kind=dp)
+    enddo
+  end subroutine write_isochrone_to_file_phase
+
 
   subroutine read_eep(x)
     type(track), intent(inout) :: x

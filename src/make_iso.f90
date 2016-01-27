@@ -13,15 +13,12 @@ program make_isochrone
   implicit none
 
   character(len=file_path) :: input_file, history_columns_list
-  integer :: i, ierr, io, j, niso, ntrk, ngood, first, prev, i_Minit
+  integer :: i, ierr, io, j, ntrk, ngood, first, prev, i_Minit
   type(track), allocatable :: s(:), t(:)
   type(isochrone_set) :: set
 
   logical :: use_double_eep
   integer, parameter :: piecewise_monotonic = 4
-  integer, parameter :: age_scale_linear = 0
-  integer, parameter :: age_scale_log10  = 1
-  integer :: age_scale
 
   !default some namelist parameters
   logical :: iso_debug = .false.
@@ -89,7 +86,7 @@ program make_isochrone
   set% version_number = t(1)% version_number
 
   !create isochrones 
-  do i=1,niso
+  do i=1,set% number_of_isochrones
      call do_isochrone_for_age(t,set% iso(i))
   enddo
   call write_isochrones_to_file(set)
@@ -618,71 +615,6 @@ contains
   end function iso_interpolate
 
 
-  !writes a series of n isochrones to filename
-  subroutine write_isochrones_to_file(set)
-    type(isochrone_set), intent(in) :: set
-    integer :: i, ierr, io,n
-    io=alloc_iounit(ierr)
-    n=size(set% iso)
-    write(0,*) ' isochrone output file = ', trim(set% filename)
-    open(io,file=trim(set% filename),action='write',status='unknown',iostat=ierr)
-    write(io,'(a25,i5)') '# number of isochrones = ', n
-    write(io,'(a25,i5)') '# MESA version number  = ', set% version_number
-    do i=1,n
-       call write_isochrone_to_file(io,set% iso(i))
-       if(i<n) write(io,*)
-       if(i<n) write(io,*)
-    enddo
-    close(io)
-    call free_iounit(io)
-  end subroutine write_isochrones_to_file
-
-  !writes one age isochrone to the open io unit
-  subroutine write_isochrone_to_file(io,iso)
-    integer, intent(in) :: io
-    type(isochrone), intent(in) :: iso
-    if(iso% has_phase)then
-       call write_isochrone_to_file_phase(io,iso)
-    else
-       call write_isochrone_to_file_orig(io,iso)
-    endif
-  end subroutine write_isochrone_to_file
-
-  subroutine write_isochrone_to_file_orig(io,iso)
-    integer, intent(in) :: io
-    type(isochrone), intent(in) :: iso
-    integer :: my_ncol
-    my_ncol = iso% ncol + 2 !add two for eep and age
-    write(io,'(a25,2i5)') '# number of EEPs, cols = ', iso% neep, my_ncol
-    write(io,'(a1,i4,299i32)') '#    ', (i,i=1,my_ncol)
-    if(age_scale==age_scale_log10)then
-       write(io,'(a5,299a32)') '# EEP', 'log10_isochrone_age_yr', adjustr(iso% cols(:)% name)
-    elseif(age_scale==age_scale_linear)then
-       write(io,'(a5,299a32)') '# EEP', 'isochrone_age_yr', adjustr(iso% cols(:)% name)
-    endif
-    do i=1,iso% neep
-       write(io,'(i5,299(1pes32.16e3))') iso% eep(i), iso% age, iso% data(:,i)
-    enddo
-  end subroutine write_isochrone_to_file_orig
-
-  subroutine write_isochrone_to_file_phase(io,iso)
-    integer, intent(in) :: io
-    type(isochrone), intent(in) :: iso
-    integer :: my_ncol
-    my_ncol = iso% ncol + 3 !add three for eep, phase, and age
-    write(io,'(a25,2i5)') '# number of EEPs, cols = ', iso% neep, my_ncol
-    write(io,'(a1,i4,299i32)') '#    ', (i,i=1,my_ncol)
-    if(age_scale==age_scale_log10)then
-       write(io,'(a5,299a32)') '# EEP', 'log10_isochrone_age_yr', adjustr(iso% cols(:)% name), 'phase'
-    elseif(age_scale==age_scale_linear)then
-       write(io,'(a5,299a32)') '# EEP', 'isochrone_age_yr', adjustr(iso% cols(:)% name), 'phase'
-    endif
-    do i=1,iso% neep
-       write(io,'(i5,299(1pes32.16e3))') iso% eep(i), iso% age, &
-            iso% data(:,i), real(iso% phase(i),kind=dp)
-    enddo
-  end subroutine write_isochrone_to_file_phase
-
   subroutine write_cmds_to_file(set)
     type(isochrone_set), intent(inout) :: set
     character(len=256) :: output
@@ -750,7 +682,7 @@ contains
     character(len=col_width) :: col_name
     character(len=10) :: list_type, age_type
     character(len=6) :: eep_style
-    integer :: i
+    integer :: i, niso
     real(dp) :: age_low, age_high, age_step
     ierr=0
     ntrk=0
@@ -807,8 +739,9 @@ contains
     else
        stop ' make_iso: age scale must be given as "linear" or "log10"'
     endif
-    read(io,*) niso
-    allocate(set% iso(niso))
+    read(io,*) set% number_of_isochrones
+    allocate(set% iso(set% number_of_isochrones))
+    niso = set% number_of_isochrones
     if(trim(list_type)=='min_max') then
        read(io,*) age_low
        read(io,*) age_high
@@ -829,6 +762,8 @@ contains
     else
        stop ' make_iso: ages must be given as "list" or "min_max"'
     endif
+
+    set% number_of_isochrones = niso
 
     read(io,'(a6)',iostat=ierr) eep_style
     if(ierr==0 .and. eep_style=='double') then 
