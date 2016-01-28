@@ -122,9 +122,9 @@ contains
     ! - for interp_pm: piecewise_monotonic
     interp_method = piecewise_monotonic
 
-    if(age_scale==age_scale_linear)then
+    if(iso% age_scale==age_scale_linear)then
        age = log10(iso% age)
-    elseif(age_scale==age_scale_log10)then
+    elseif(iso% age_scale==age_scale_log10)then
        age = iso% age
     endif
     mass=0d0
@@ -661,10 +661,10 @@ contains
     write(io,'(a25,2i5)') '# number of EEPs, cols = ', iso% neep, iso% nfil + 6
     write(io,'(a1,i4,5i32,299(17x,i3))') '#    ', (i,i=1,iso% nfil+6)
 
-    if(age_scale==age_scale_linear)then
+    if(iso% age_scale==age_scale_linear)then
        write(io,'(a5,5a32,299a20)') '# EEP', 'isochrone_age_yr', 'initial_mass', 'log_Teff', &
             'log_g', 'log_L', adjustr(iso% labels)
-    elseif(age_scale==age_scale_log10)then
+    elseif(iso% age_scale==age_scale_log10)then
        write(io,'(a5,5a32,299a20)') '# EEP', 'log10_isochrone_age_yr', 'initial_mass', 'log_Teff', &
             'log_g', 'log_L', adjustr(iso% labels)
     endif
@@ -682,7 +682,7 @@ contains
     character(len=col_width) :: col_name
     character(len=10) :: list_type, age_type
     character(len=6) :: eep_style
-    integer :: i, niso
+    integer :: i, niso, age_scale
     real(dp) :: age_low, age_high, age_step
     ierr=0
     ntrk=0
@@ -764,6 +764,9 @@ contains
     endif
 
     set% number_of_isochrones = niso
+    do i=1,niso
+       set% iso(i)% age_scale = age_scale
+    enddo
 
     read(io,'(a6)',iostat=ierr) eep_style
     if(ierr==0 .and. eep_style=='double') then 

@@ -13,7 +13,6 @@ module iso_eep_support
   !for isochrones
   integer, parameter :: age_scale_linear = 0
   integer, parameter :: age_scale_log10  = 1
-  integer :: age_scale = -1
 
   logical, parameter ::check_initial_mass = .true.
   real(dp) :: mass_eps = 1d-6
@@ -80,6 +79,7 @@ module iso_eep_support
      integer :: neep !number of eeps
      integer :: ncol !number of columns in history file
      integer :: nfil !number of filters for mags
+     integer :: age_scale ! either linear or log10
      type(column), allocatable :: cols(:) !for history columns
      character(len=20), allocatable :: labels(:) !for mags
      logical :: has_phase = .false.
@@ -303,9 +303,9 @@ contains
     my_ncol = iso% ncol + 2 !add two for eep and age
     write(io,'(a25,2i5)') '# number of EEPs, cols = ', iso% neep, my_ncol
     write(io,'(a1,i4,299i32)') '#    ', (i,i=1,my_ncol)
-    if(age_scale==age_scale_log10)then
+    if(iso% age_scale==age_scale_log10)then
        write(io,'(a5,299a32)') '# EEP', 'log10_isochrone_age_yr', adjustr(iso% cols(:)% name)
-    elseif(age_scale==age_scale_linear)then
+    elseif(iso% age_scale==age_scale_linear)then
        write(io,'(a5,299a32)') '# EEP', 'isochrone_age_yr', adjustr(iso% cols(:)% name)
     endif
     do i=1,iso% neep
@@ -320,9 +320,9 @@ contains
     my_ncol = iso% ncol + 3 !add three for eep, phase, and age
     write(io,'(a25,2i5)') '# number of EEPs, cols = ', iso% neep, my_ncol
     write(io,'(a1,i4,299i32)') '#    ', (i,i=1,my_ncol)
-    if(age_scale==age_scale_log10)then
+    if(iso% age_scale==age_scale_log10)then
        write(io,'(a5,299a32)') '# EEP', 'log10_isochrone_age_yr', adjustr(iso% cols(:)% name), 'phase'
-    elseif(age_scale==age_scale_linear)then
+    elseif(iso% age_scale==age_scale_linear)then
        write(io,'(a5,299a32)') '# EEP', 'isochrone_age_yr', adjustr(iso% cols(:)% name), 'phase'
     endif
     do i=1,iso% neep
@@ -531,6 +531,81 @@ contains
     close(io) 
     call free_iounit(io)
   end subroutine write_history_bin
+
+
+  subroutine read_isochrone_file(s,ierr)
+    type(isochrone_set), intent(inout) :: s
+    integer, intent(out) :: ierr
+    integer :: io, i, n
+    ierr=0
+    io=alloc_iounit(ierr)
+    open(io,file=trim(s% filename), action='read', status='old')
+    read(io,'(25x,i5)') s% number_of_isochrones
+    read(io,'(25x,i5)') s% version_number
+
+    !make room
+    n=s% number_of_isochrones
+    allocate(s% iso(n))
+
+    do i=1,n
+       call read_one_isochrone_from_file(io,s% iso(i))
+       if(i<n) read(io,*)
+       if(i<n) read(io,*)
+    enddo
+    
+    close(io)
+    call free_iounit(io)
+    
+    write(*,*) s% version_number
+    do i=1,n
+       write(*,*) s% iso(i)% age, s% iso(i)% has_phase, s% iso(i)% neep
+    enddo
+
+  end subroutine read_isochrone_file
+
+  
+  subroutine read_one_isochrone_from_file(io,iso)
+    integer, intent(in) :: io
+    type(isochrone), intent(out) :: iso
+    integer :: i, my_ncol
+    real(dp) :: phase
+    type(column), allocatable :: cols(:)
+    read(io,'(25x,2i5)') iso% neep, my_ncol
+    read(io,*) !skip column numbers
+    allocate(cols(my_ncol))
+    read(io,'(2x,a3,299a32)') cols(:)% name
+    
+    if(index(cols(2)% name, 'log10')>0)then
+       iso% age_scale = age_scale_log10
+    else
+       iso% age_scale = age_scale_linear
+    endif
+
+    iso% has_phase = index(cols(my_ncol)% name, 'phase') > 0 
+
+    if(iso% has_phase)then
+       iso% ncol = my_ncol - 3
+    else
+       iso% ncol = my_ncol - 2
+    endif
+    
+    allocate(iso% cols(iso% ncol))
+    iso% cols(:)% name = cols(3:iso% ncol+2)% name
+
+    if(iso% has_phase) allocate(iso% phase(iso% neep))
+
+    allocate(iso% eep(iso% neep), iso% data(iso% ncol, iso% neep))
+    do i=1,iso% neep
+       if(iso% has_phase)then
+          read(io,'(i5,299(1pes32.16e3))') iso% eep(i), iso% age, iso% data(:,i), phase
+          iso% phase(i) = int(phase)
+       else
+          read(io,'(i5,299(1pes32.16e3))') iso% eep(i), iso% age, iso% data(:,i)
+       endif
+    enddo
+    
+  end subroutine read_one_isochrone_from_file
+
 
   subroutine distance_along_track(t)
     type(track), intent(inout) :: t
