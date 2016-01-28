@@ -542,25 +542,17 @@ contains
     open(io,file=trim(s% filename), action='read', status='old')
     read(io,'(25x,i5)') s% number_of_isochrones
     read(io,'(25x,i5)') s% version_number
-
     !make room
     n=s% number_of_isochrones
     allocate(s% iso(n))
-
+    !read the data
     do i=1,n
        call read_one_isochrone_from_file(io,s% iso(i))
        if(i<n) read(io,*)
        if(i<n) read(io,*)
-    enddo
-    
+    enddo    
     close(io)
     call free_iounit(io)
-    
-    write(*,*) s% version_number
-    do i=1,n
-       write(*,*) s% iso(i)% age, s% iso(i)% has_phase, s% iso(i)% neep
-    enddo
-
   end subroutine read_isochrone_file
 
   

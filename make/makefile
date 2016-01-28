@@ -18,8 +18,12 @@ ISO=make_iso
 EEP=make_eep
 TRK=make_track
 BLEND=blend_eeps
+INTERP=iso_interp
 
-all: $(EEP) $(ISO) $(BLEND) $(TRK)
+all: $(EEP) $(ISO) $(BLEND) $(TRK) $(INTERP)
+
+$(INTERP): iso_interp.o iso_eep_support.o
+	$(FC) $(OMP) -o $(ROOT_DIR)/$(INTERP) $^ $(LOAD_MESA)
 
 $(ISO): make_iso.o iso_eep_support.o iso_color.o BC_tables.o
 	$(FC) $(OMP) -o $(ROOT_DIR)/$(ISO) $^ $(LOAD_MESA)
@@ -32,6 +36,8 @@ $(BLEND): blend_eeps.o iso_eep_support.o
 
 $(TRK): make_track.o iso_eep_support.o
 	$(FC) $(OMP) -o $(ROOT_DIR)/$(TRK) $^ $(LOAD_MESA)
+
+iso_interp.o: $(SRC_DIR)/iso_interp.f90 iso_eep_support.o
 
 make_track.o: $(SRC_DIR)/make_track.f90 iso_eep_support.o
 
