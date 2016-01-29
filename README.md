@@ -4,7 +4,7 @@
 
 This project provides a means to transform [MESA](http://mesa.sourceforge.net) history files into a uniform basis for interpolation and then construct new stellar evolution tracks and isochrones from that basis. It is developed in Fortran.
 
-The theory is described in [this paper](http://stacks.iop.org/0067-0049/222/8).  You are encouraged to read the paper before attempting to use these programs. If you use these programs in your research, please cite the paper!
+The theory is described in [this ApJS paper](http://adsabs.harvard.edu/abs/2016ApJS..222....8D).  You are encouraged to read the paper before attempting to use these programs. If you use these programs in your research, please cite the paper!
 
 ## Prerequisites
 
