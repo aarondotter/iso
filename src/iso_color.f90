@@ -78,13 +78,14 @@ contains
     else
        nc=0
     endif
+
     do i=1,iso% neep
        logT = real(iso% data(iT,i),kind=sp)
        logg = real(iso% data(ig,i),kind=sp)
        logL = real(iso% data(iL,i),kind=sp)
        X    = real(iso% data(iH,i),kind=sp)
        Y    = real(iso% data(iHe,i),kind=sp)
-       Z    = min(1.0 - X - Y,0.0) 
+       Z    = 1.0 - X - Y 
        FeH  = min(max(log10(Z/X) - FeH_sol, b(1)% FeH), b(nb)% FeH)
        C_div_O = log10((16d0/12d0) * iso% data(iC,i) / iso% data(iO,i))
 

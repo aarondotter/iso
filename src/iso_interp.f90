@@ -168,14 +168,11 @@ contains
     real(dp), intent(in) :: Z(n), newZ
     type(isochrone_set), intent(in) :: s(n)
     type(isochrone_set), intent(inout) :: t
-    integer :: i, j, k, neep, eeps_lo(n), eeps_hi(n)
+    integer :: i, j, neep, eeps_lo(n), eeps_hi(n)
     integer :: eep, eep_lo, eep_hi, ioff(n), ncol
-    real(dp) :: f(n)
-
-    call coeff(Z,f,newZ,n)
 
     do i=1,n
-       write(*,*) trim(s(i)% filename), Z(i), f(i)
+       write(*,*) trim(s(i)% filename), Z(i)
     enddo
 
     do i=1,t% number_of_isochrones
@@ -193,40 +190,72 @@ contains
        if(t% iso(i)% has_phase) allocate(t% iso(i)% phase(neep))      
        t% iso(i)% data = 0d0
 
-       !the EEP offsets are for alignment
-       do k=1,n
-          ioff(k) = eep_lo - s(k)% iso(i)% eep(1)  
+       !the EEP offsets are for alignment: we only interpolate at constant EEP number
+       do j=1,n
+          ioff(j) = eep_lo - s(j)% iso(i)% eep(1)  
        enddo
 
        !loop over the EEPs
+!$omp parallel do private(eep)
        do eep=1,neep
           t% iso(i)% eep(eep) = eep_lo + eep - 1
           t% iso(i)% phase(eep) = s(1)% iso(i)% phase(eep+ioff(1))
-          do k=1,n
-             t% iso(i)% data(:,eep) = t% iso(i)% data(:,eep) + f(k)*s(k)% iso(i)% data(:,eep+ioff(k))
-          enddo
+          if(n==2)then 
+             t% iso(i)% data(:,eep) = linear(ncol, Z, newZ, s(1)% iso(i)% data(:,eep+ioff(1)), s(2)% iso(i)% data(:,eep+ioff(2)))
+          else if(n==3) then
+             t% iso(i)% data(:,eep) = quadratic(ncol, Z, newZ, s(1)% iso(i)% data(:,eep+ioff(1)), &
+                  s(2)% iso(i)% data(:,eep+ioff(2)), s(3)% iso(i)% data(:, eep+ioff(3)))   
+          else if(n==4) then 
+             t% iso(i)% data(:,eep) = cubic( ncol, Z, newZ, s(1)% iso(i)% data(:,eep+ioff(1)), &
+                  s(2)% iso(i)% data(:,eep+ioff(2)), s(3)% iso(i)% data(:, eep+ioff(3)), s(4)% iso(i)% data(:,eep+ioff(4)) )
+          endif
        enddo
+!$omp end parallel do
     enddo
   end subroutine do_interp
 
 
-  subroutine coeff(a,b,x,n)
-    ! {a} are the tabulated values for use in interpolation
-    ! {b} are coefficients of the interpolating polynomial
-    !  x  is the abscissa to be interpolated
-    !  n  is the number of points to be used, interpolating polynomial
-    !     has order n-1 
-    integer, intent(in) :: n
-    real(dp), intent(in) :: a(n), x
-    real(dp), intent(out) :: b(n)
-    integer :: i,j
-    b=1d0
-    do i=1,n
-       do j=1,n
-          if(j/=i) b(i)=b(i)*(x-a(j))/(a(i)-a(j))
-       enddo
+  function linear(ncol,Z,newZ,x,y) result(res)
+    integer, intent(in) :: ncol
+    real(dp), intent(in) :: Z(2), newZ, x(ncol), y(ncol)
+    real(dp) :: res(ncol), alfa, beta
+    alfa = (Z(2)-newZ)/(Z(2)-Z(1))
+    beta = 1d0 - alfa
+    res = alfa*x + beta*y
+  end function linear
+
+
+  function quadratic(ncol,Z,newZ,w,x,y) result(res)
+    integer, intent(in) :: ncol
+    real(dp), intent(in) :: Z(3), newZ, w(ncol), x(ncol), y(ncol)
+    real(dp) :: res(ncol), x12, x23, x00
+    integer :: i, ierr
+    character(len=file_path) :: str
+    ierr= 0
+    x00 = newZ - Z(2) 
+    x12 = Z(2) - Z(1)
+    x23 = Z(3) - Z(2)
+    do i=1,ncol
+       call interp_3_to_1(x12, x23, x00, w(i), x(i), y(i), res(i), str, ierr)
     enddo
-  end subroutine coeff
+  end function quadratic
+
+
+  function cubic(ncol,Z,newZ,v,w,x,y) result(res)
+    integer, intent(in) :: ncol
+    real(dp), intent(in) :: Z(4), newZ, v(ncol), w(ncol), x(ncol), y(ncol)
+    real(dp) :: res(ncol), x12, x23, x34, x00
+    integer :: i, ierr
+    character(len=file_path) :: str
+    ierr= 0
+    x00 = newZ - Z(2)
+    x12 = Z(2) - Z(1)
+    x23 = Z(3) - Z(2)
+    x34 = Z(4) - Z(3)
+    do i=1,ncol
+       call interp_4_to_1(x12, x23, x34, x00, v(i), w(i), x(i), y(i), res(i), str, ierr)
+    enddo
+  end function cubic
 
 
 end program iso_interp
