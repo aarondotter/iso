@@ -22,7 +22,7 @@ INTERP=iso_interp
 
 all: $(EEP) $(ISO) $(BLEND) $(TRK) $(INTERP)
 
-$(INTERP): iso_interp.o iso_eep_support.o
+$(INTERP): iso_interp.o iso_eep_support.o iso_color.o BC_tables.o
 	$(FC) $(OMP) -o $(ROOT_DIR)/$(INTERP) $^ $(LOAD_MESA)
 
 $(ISO): make_iso.o iso_eep_support.o iso_color.o BC_tables.o
@@ -64,4 +64,4 @@ check: $(ISO) $(EEP)
 	cd ..; ./make_iso input.041214
 
 clean:
-	rm -f $(ROOT_DIR)/$(EEP) $(ROOT_DIR)/$(ISO) $(ROOT_DIR)/$(BLEND) *.mod *.o
+	rm -f $(ROOT_DIR)/$(EEP) $(ROOT_DIR)/$(ISO) $(ROOT_DIR)/$(BLEND) $(ROOT_DIR)/$(TRK) $(ROOT_DIR)/$(INTERP) *.mod *.o

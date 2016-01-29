@@ -27,7 +27,7 @@ program make_isochrone
   logical :: do_colors = .false.
   logical :: do_Cstars = .false.
   character(len=file_path) :: BC_table_list='', Cstar_table_list=''
-  character(len=file_path) :: cmd_suffix = '.cmd'
+  character(len=file_path) :: cmd_suffix = 'cmd'
   real(sp) :: extinction_Av = 0.0, extinction_Rv = 0.0
 
   namelist /iso_controls/ iso_debug, do_smooth, do_PAV, do_colors, do_Cstars, &
@@ -613,67 +613,6 @@ contains
     iso_interpolate = y
 
   end function iso_interpolate
-
-
-  subroutine write_cmds_to_file(set)
-    type(isochrone_set), intent(inout) :: set
-    character(len=256) :: output
-    integer :: i, io, n, ierr
-    if(set% cmd_suffix/='') output = trim(set% filename) // '.' // trim(set% cmd_suffix)
-    n=size(set% iso)
-    write(0,*) ' cmd output file = ', trim(output)
-    io = alloc_iounit(ierr)
-    if(ierr/=0) return
-    open(io,file=trim(output),action='write',status='unknown',iostat=ierr)
-    if(ierr/=0) return
-    write(io,'(a25,i5)')    '# number of isochrones = ', n
-    write(io,'(a25,i5)')    '# MESA version number  = ', set% version_number
-    write(io,'(a25,2f6.3)') '# values of Av and Rv  = ', set% Av
-    do i=1,n
-       set% iso(i)% Av = set% Av
-       call write_cmd_to_file(io, set% iso(i))
-       if(i<n) write(io,*)
-       if(i<n) write(io,*)
-    enddo
-    close(io)
-    call free_iounit(io)
-  end subroutine write_cmds_to_file
-
-  subroutine write_cmd_to_file(io,iso)
-    integer, intent(in) :: io
-    type(isochrone), intent(inout) :: iso
-    integer :: i, iT, ig, iL, ierr
-    ierr=0; iT=0; ig=0; iL=0
-
-    do i=1, iso% ncol
-       if(trim(iso% cols(i)% name) == 'log_Teff') then
-          iT=i
-       else if(trim(iso% cols(i)% name) == 'log_g') then
-          ig=i
-       else if(trim(iso% cols(i)% name)== 'log_L') then
-          iL=i
-       endif
-    enddo
-
-    call get_mags(iso,do_Cstars,ierr)
-    if(ierr/=0) write(0,*) ' problem in get_mags '
-
-    write(io,'(a25,2i5)') '# number of EEPs, cols = ', iso% neep, iso% nfil + 6
-    write(io,'(a1,i4,5i32,299(17x,i3))') '#    ', (i,i=1,iso% nfil+6)
-
-    if(iso% age_scale==age_scale_linear)then
-       write(io,'(a5,5a32,299a20)') '# EEP', 'isochrone_age_yr', 'initial_mass', 'log_Teff', &
-            'log_g', 'log_L', adjustr(iso% labels)
-    elseif(iso% age_scale==age_scale_log10)then
-       write(io,'(a5,5a32,299a20)') '# EEP', 'log10_isochrone_age_yr', 'initial_mass', 'log_Teff', &
-            'log_g', 'log_L', adjustr(iso% labels)
-    endif
-
-    do i = 1,iso% neep
-       write(io,'(i5,5(1pes32.16e3),299(0pf20.6))') iso% eep(i), iso% age, iso% data(i_Minit,i), &
-            iso% data(iT,i), iso% data(ig,i), iso% data(iL,i), iso% mags(:,i)
-    enddo
-  end subroutine write_cmd_to_file
 
 
   subroutine read_iso_input(ierr)

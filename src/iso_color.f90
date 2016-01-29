@@ -2,7 +2,7 @@ module iso_color
 
   !MESA modules
   use const_def, only: sp
-  use utils_lib, only: alloc_iounit, free_iounit
+  use utils_lib, only: alloc_iounit, free_iounit, has_bad_real
   use interp_1d_lib
 
   !local modules
@@ -16,8 +16,8 @@ module iso_color
   real(sp), parameter :: SolBol=4.74
   real(sp), parameter :: FeH_sol = -1.8729 !log10(Z/X) = log10(0.0134) from AGSS09
   type(BC_table), allocatable :: b(:), c(:)
-
-  public iso_color_init, get_mags
+  logical :: BC_do_Cstars = .false.
+  public iso_color_init, write_cmds_to_file
 
 contains
 
@@ -25,43 +25,43 @@ contains
     character(len=file_path), intent(in) :: bc_table_list, cstar_table_list
     logical, intent(in) :: do_Cstars
     integer, intent(out) :: ierr
+    BC_do_Cstars = do_Cstars
     call BC_table_init(bc_table_list,b,ierr)
-    if(do_Cstars) call BC_table_init(cstar_table_list,c,ierr)
+    if(BC_do_Cstars) call BC_table_init(cstar_table_list,c,ierr)
     if(ierr/=0) write(0,*) 'BC tables initialized!'
   end subroutine iso_color_init
 
-  subroutine get_mags(iso,do_Cstars,ierr)
+  subroutine get_mags(iso,ierr)
     type(isochrone), intent(inout) :: iso
-    logical, intent(in) :: do_Cstars
     integer, intent(out) :: ierr
-    integer :: i, nb, nc, j, jZ=0, n
+    integer :: i, nb, nc, j, n, jZ
     real(sp), allocatable :: res(:)
     real(sp) :: logT, logg, logL, X, Y, Z, FeH
     real(sp) :: c_min_logT=0, c_max_logT=0, c_min_logg=0, c_max_logg=0
     real(dp) :: C_div_O
     logical :: Cstar_ok
     integer :: iT, ig, iL, iH, iHe, iC, iO
-    iT=0; ig=0; iL=0; iH=0; iHe=0; iC=0; iO=0
+    iT=0; ig=0; iL=0; iH=0; iHe=0; iC=0; iO=0; jZ=0
 
-    do i=1, iso% ncol
-       if(trim(iso% cols(i)% name) == 'log_Teff') then
+    do i = 1, iso% ncol
+       if(trim(adjustl(iso% cols(i)% name)) == 'log_Teff') then
           iT=i
-       else if(trim(iso% cols(i)% name) == 'log_g') then
+       else if(trim(adjustl(iso% cols(i)% name)) == 'log_g') then
           ig=i
-       else if(trim(iso% cols(i)% name)== 'log_L') then
+       else if(trim(adjustl(iso% cols(i)% name))== 'log_L') then
           iL=i
-       else if(trim(iso% cols(i)% name)=='surface_h1')then
+       else if(trim(adjustl(iso% cols(i)% name))=='surface_h1')then
           iH=i
-       else if(trim(iso% cols(i)% name)=='surface_he4')then
+       else if(trim(adjustl(iso% cols(i)% name))=='surface_he4')then
           iHe=i   
-       else if(trim(iso% cols(i)% name)=='surface_c12')then
+       else if(trim(adjustl(iso% cols(i)% name))=='surface_c12')then
           iC=i
-       else if(trim(iso% cols(i)% name)=='surface_o16')then
+       else if(trim(adjustl(iso% cols(i)% name))=='surface_o16')then
           iO=i
        endif
     enddo
 
-    if(do_Cstars)then
+    if(BC_do_Cstars)then
        c_min_logT = minval(c(1)% logT); c_min_logg = minval(c(1)% logg)
        c_max_logT = maxval(c(1)% logT); c_max_logg = maxval(c(1)% logg)
     endif
@@ -71,9 +71,9 @@ contains
     allocate(iso% labels(iso% nfil))
     iso% labels = b(1)% labels
     res = 0.
-    iso% mags = 0.0
+    iso% mags = 0.
     nb=size(b)
-    if(do_Cstars)then
+    if(BC_do_Cstars)then
        nc=size(c)
     else
        nc=0
@@ -84,11 +84,11 @@ contains
        logL = real(iso% data(iL,i),kind=sp)
        X    = real(iso% data(iH,i),kind=sp)
        Y    = real(iso% data(iHe,i),kind=sp)
-       Z    = 1.0 - X - Y
-       FeH  = log10(Z/X) - FeH_sol
+       Z    = min(1.0 - X - Y,0.0) 
+       FeH  = min(max(log10(Z/X) - FeH_sol, b(1)% FeH), b(nb)% FeH)
        C_div_O = log10((16d0/12d0) * iso% data(iC,i) / iso% data(iO,i))
 
-       Cstar_OK = (do_Cstars) .and. (C_div_O > 0d0) .and. (logT > c_min_logT) .and. &
+       Cstar_OK = (BC_do_Cstars) .and. (C_div_O > 0d0) .and. (logT > c_min_logT) .and. &
             (logT < c_max_logT) .and. (logg > c_min_logg) .and. (logg < c_max_logg)
 
        if( Cstar_OK )then !use Cstar grid
@@ -150,6 +150,17 @@ contains
 
           endif
 
+       endif
+       
+       if(has_bad_real(iso% nfil, res))then
+          write(0,*) ' logT =', logT
+          write(0,*) ' logg =', logg
+          write(0,*) ' logL =', logL
+          write(0,*) '  FeH =', FeH
+          write(0,*) '    X =', X
+          write(0,*) '    Y =', Y
+          write(0,*) '    Z =', Z
+          stop
        endif
 
        iso% mags(:,i) = SolBol - 2.5*logL - res
@@ -229,6 +240,70 @@ contains
     end subroutine cubic
 
   end subroutine get_mags
+
+
+  subroutine write_cmds_to_file(set)
+    type(isochrone_set), intent(inout) :: set
+    character(len=256) :: output
+    integer :: i, io, n, ierr
+    if(set% cmd_suffix/='') output = trim(set% filename) // '.' // trim(set% cmd_suffix)
+    n=size(set% iso)
+    write(0,*) ' cmd output file = ', trim(output)
+    io = alloc_iounit(ierr)
+    if(ierr/=0) return
+    open(io,file=trim(output),action='write',status='unknown',iostat=ierr)
+    if(ierr/=0) return
+    write(io,'(a25,i5)')    '# number of isochrones = ', n
+    write(io,'(a25,i5)')    '# MESA version number  = ', set% version_number
+    write(io,'(a25,2f6.3)') '# CCM89 extinction: Av = ', set% Av
+    do i=1,n
+       set% iso(i)% Av = set% Av
+       call write_cmd_to_file(io, set% iso(i))
+       if(i<n) write(io,*)
+       if(i<n) write(io,*)
+    enddo
+    close(io)
+    call free_iounit(io)
+  end subroutine write_cmds_to_file
+  
+
+  subroutine write_cmd_to_file(io,iso)
+    integer, intent(in) :: io
+    type(isochrone), intent(inout) :: iso
+    integer :: i, iT, ig, iL, ierr, iM
+    ierr=0; iT=0; ig=0; iL=0; iM=0
+
+    do i=1, iso% ncol
+       if(trim(adjustl(iso% cols(i)% name)) == 'log_Teff') then
+          iT=i
+       else if(trim(adjustl(iso% cols(i)% name)) == 'log_g') then
+          ig=i
+       else if(trim(adjustl(iso% cols(i)% name)) == 'log_L') then
+          iL=i
+       else if(trim(adjustl(iso% cols(i)% name)) == 'initial_mass')then
+          iM=i
+       endif
+    enddo
+
+    call get_mags(iso,ierr)
+    if(ierr/=0) write(0,*) ' problem in get_mags '
+
+    write(io,'(a25,2i5)') '# number of EEPs, cols = ', iso% neep, iso% nfil + 6
+    write(io,'(a1,i4,5i32,299(17x,i3))') '#    ', (i,i=1,iso% nfil+6)
+
+    if(iso% age_scale==age_scale_linear)then
+       write(io,'(a5,5a32,299a20)') '# EEP', 'isochrone_age_yr', 'initial_mass', 'log_Teff', &
+            'log_g', 'log_L', adjustr(iso% labels)
+    elseif(iso% age_scale==age_scale_log10)then
+       write(io,'(a5,5a32,299a20)') '# EEP', 'log10_isochrone_age_yr', 'initial_mass', 'log_Teff', &
+            'log_g', 'log_L', adjustr(iso% labels)
+    endif
+
+    do i = 1,iso% neep
+       write(io,'(i5,5(1pes32.16e3),299(0pf20.6))') iso% eep(i), iso% age, iso% data(iM,i), &
+            iso% data(iT,i), iso% data(ig,i), iso% data(iL,i), iso% mags(:,i)
+    enddo
+  end subroutine write_cmd_to_file
 
 
 end module iso_color

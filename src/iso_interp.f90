@@ -8,6 +8,7 @@ program iso_interp
 
   !local modules
   use iso_eep_support
+  use iso_color
 
   implicit none
 
@@ -16,6 +17,7 @@ program iso_interp
   real(dp), allocatable :: Z_div_H(:)
   real(dp) :: new_Z_div_H
   integer :: ierr = 0, n, i
+  logical :: do_colors
 
   call read_interp_input(ierr)
   if(ierr/=0) stop ' iso_interp: failed reading input list'
@@ -32,9 +34,91 @@ program iso_interp
   call interpolate(n,Z_div_H,new_Z_div_H,s,t,ierr)
 
   !write the new isochrone to file
-  if(ierr==0) call write_isochrones_to_file(t)
+  if(ierr==0) then
+     call write_isochrones_to_file(t)
+     if(do_colors) call write_cmds_to_file(t)
+  endif
 
 contains
+
+
+  subroutine read_interp_input(ierr)
+    integer, intent(out) :: ierr
+    integer :: io, i
+    character(len=file_path) :: iso_list, arg
+    character(len=file_path) :: bc_list, cstar_list
+    ierr = 0
+    if(command_argument_count() < 3) then
+       ierr=-1
+       write(0,*) 'iso_interp            '
+       write(0,*) '   usage:             '
+       write(0,*) ' ./iso_interp [list] [Z/H] [output] [Av]'
+       write(0,*) '  Av is optional;                       '
+       write(0,*) '   will generate a .cmd file if included'
+       return
+    else if(command_argument_count() > 3) then
+       do_colors=.true.
+       t% cmd_suffix = 'cmd'
+       bc_list = 'bc_table.list'
+       cstar_list = 'cstar_table.list'
+       call iso_color_init(bc_list,.false.,cstar_list,ierr)
+       if(ierr/=0) then 
+          write(0,'(a)') ' problem reading BC_table_list = ', trim(bc_list)
+          do_colors=.false.
+       endif
+    endif
+
+    call get_command_argument(1,iso_list)
+    call get_command_argument(2,arg)
+    read(arg,*) new_Z_div_H
+    call get_command_argument(3,t% filename)
+    if(do_colors)then
+       call get_command_argument(4, arg)
+       read(arg,*) t% Av
+       t% Rv = 3.1
+    endif
+
+    io=alloc_iounit(ierr)
+    open(io,file=trim(iso_list),action='read',status='old')
+    read(io,*) n
+    allocate(s(n),Z_div_H(n))
+    do i=1,n
+       read(io,'(f5.2,1x,a)') Z_div_H(i), s(i)% filename
+    enddo
+    close(io)
+    call free_iounit(io)
+  end subroutine read_interp_input
+
+
+  subroutine consistency_check(s,ierr)
+    type(isochrone_set), intent(in) :: s(:)
+    integer, intent(out) :: ierr
+    integer :: n, i
+
+    ierr = 0
+
+    n=size(s)
+
+    if(any(s(:)% number_of_isochrones /= s(1)% number_of_isochrones))then
+       write(0,*) ' iso_interp : failed consistency check - inconsistent number of isochrones '
+       ierr=-1
+       do i=1,n
+          write(0,*) trim(s(i)% filename), s(i)% version_number
+       enddo
+    endif
+
+    if(any(s(:)% version_number /= s(1)% version_number))then
+       write(0,*) ' iso_interp : failed consistency check - inconsistent version number '
+       ierr=-1
+       do i=1,n
+          write(0,*) trim(s(i)% filename), s(i)% number_of_isochrones
+       enddo
+    endif
+
+    !more checks here as needed
+
+  end subroutine consistency_check
+
 
   subroutine interpolate(n,Z,newZ,s,t,ierr)
     integer, intent(in) :: n
@@ -62,16 +146,18 @@ contains
 
     order = hi - lo + 1  ! either 4, 3, or 2
 
-    t% number_of_isochrones =s(1)% number_of_isochrones
-    t% version_number = s(1)% version_number
+    t% number_of_isochrones =s(lo)% number_of_isochrones
+    t% version_number = s(lo)% version_number
     allocate(t% iso(t% number_of_isochrones))
-    t% iso(:)% age_scale = s(1)% iso(:)% age_scale
-    t% iso(:)% has_phase = s(1)% iso(:)% has_phase
-    t% iso(:)% age       = s(1)% iso(:)% age
-    t% iso(:)% ncol      = s(1)% iso(:)% ncol
-    do i = 1, t%number_of_isochrones
+    t% iso(:)% age_scale = s(lo)% iso(:)% age_scale
+    t% iso(:)% has_phase = s(lo)% iso(:)% has_phase
+    t% iso(:)% age       = s(lo)% iso(:)% age
+    t% iso(:)% ncol      = s(lo)% iso(:)% ncol
+    do i = 1, t% number_of_isochrones
        allocate(t% iso(i)% cols(t% iso(i)% ncol))
-       t% iso(i)% cols = s(1)% iso(i)% cols
+       t% iso(i)% cols(:)% name = s(lo)% iso(i)% cols(:)% name
+       t% iso(i)% cols(:)% type = s(lo)% iso(i)% cols(:)% type
+       t% iso(i)% cols(:)% loc = s(lo)% iso(i)% cols(:)% loc
     enddo
     call do_interp(order,Z(lo:hi),newZ,s(lo:hi),t)
   end subroutine interpolate
@@ -142,63 +228,5 @@ contains
     enddo
   end subroutine coeff
 
-
-  subroutine read_interp_input(ierr)
-    integer, intent(out) :: ierr
-    integer :: io, i
-    character(len=file_path) :: iso_list, arg
-    ierr = 0
-    if(command_argument_count() < 3) then
-       ierr=-1
-       write(0,*) 'iso_interp            '
-       write(0,*) '   usage:             '
-       write(0,*) ' ./iso_interp [list] [Z/H] [output] '
-       return
-    endif
-
-    call get_command_argument(1,iso_list)
-    call get_command_argument(2,arg)
-    read(arg,*) new_Z_div_H
-    call get_command_argument(3,t% filename)
-
-    io=alloc_iounit(ierr)
-    open(io,file=trim(iso_list),action='read',status='old')
-    read(io,*) n
-    allocate(s(n),Z_div_H(n))
-    do i=1,n
-       read(io,'(f5.2,1x,a)') Z_div_H(i), s(i)% filename
-    enddo
-    close(io)
-    call free_iounit(io)
-  end subroutine read_interp_input
-
-  subroutine consistency_check(s,ierr)
-    type(isochrone_set), intent(in) :: s(:)
-    integer, intent(out) :: ierr
-    integer :: n, i
-
-    ierr = 0
-
-    n=size(s)
-
-    if(any(s(:)% number_of_isochrones /= s(1)% number_of_isochrones))then
-       write(0,*) ' iso_interp : failed consistency check - inconsistent number of isochrones '
-       ierr=-1
-       do i=1,n
-          write(0,*) trim(s(i)% filename), s(i)% version_number
-       enddo
-    endif
-
-    if(any(s(:)% version_number /= s(1)% version_number))then
-       write(0,*) ' iso_interp : failed consistency check - inconsistent version number '
-       ierr=-1
-       do i=1,n
-          write(0,*) trim(s(i)% filename), s(i)% number_of_isochrones
-       enddo
-    endif
-
-    !more checks here as needed
-
-  end subroutine consistency_check
 
 end program iso_interp
