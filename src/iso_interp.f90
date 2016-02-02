@@ -16,7 +16,7 @@ program iso_interp
   type(isochrone_set) :: t
   real(dp), allocatable :: Z_div_H(:)
   real(dp) :: new_Z_div_H
-  integer :: ierr = 0, n, i
+  integer :: ierr, n, i
   logical :: do_colors
 
   call read_interp_input(ierr)
@@ -126,12 +126,13 @@ contains
     type(isochrone_set), intent(in) :: s(n)
     type(isochrone_set), intent(inout) :: t
     integer, intent(out) :: ierr
-    integer :: loc=0, lo=0, hi=0, order=0
+    integer :: loc, lo, hi, order
+    loc=0; order=0; lo=0; hi=0
 
     ierr = 0
 
     do loc=1,n-1
-       if(newZ >= Z_div_H(loc) .and. newZ < Z_div_H(loc+1)) exit
+       if(newZ >= Z(loc) .and. newZ < Z(loc+1)) exit
     enddo
 
     if(loc==0)then
@@ -141,8 +142,8 @@ contains
     endif
 
     !try for cubic interpolation but do something else if not
-    lo=max(loc-1,1)
-    hi=min(loc+2,n)
+    lo=max(loc,1)
+    hi=min(loc+3,n)
 
     order = hi - lo + 1  ! either 4, 3, or 2
 
