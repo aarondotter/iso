@@ -445,7 +445,7 @@ contains
     type(track), intent(in) :: t
     integer, intent(in) :: guess
     integer :: my_guess, i
-    real(dp), parameter :: limit_XY=1d-8, limit_C=1d-4
+    real(dp), parameter :: limit_XY=1d-8
     CarbonBurn = 0
     if(guess < 1)then
        my_guess = 1
