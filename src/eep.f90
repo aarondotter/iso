@@ -273,7 +273,7 @@ contains
     enddo
     ! Xc test fails so consider instead the age for low mass tracks
     ! if the age of the last point > Max_Age, accept it
-    if(t% initial_mass <= 0.5d0 .and. t% tr(i_age,t% ntrack) >= max_age) TAMS = t% ntrack
+    if(t% initial_mass <= very_low_mass_limit .and. t% tr(i_age,t% ntrack) >= max_age) TAMS = t% ntrack
   end function TAMS
 
   integer function RGBTip(t,guess)

@@ -14,10 +14,11 @@ program make_eeps
   character(len=file_path) :: input_file, history_columns_list
   character(len=file_path), allocatable :: history_files(:)
   type(track), pointer :: t=>NULL(), s=>NULL()
-  logical :: do_eep_output = .true., do_phases = .true.
+  logical :: do_phases = .true.
 
-  namelist /eep_controls/ do_eep_output, do_phases, &
-       center_gamma_limit, center_carbon_limit, log_center_T_limit, min_for_high_mass_star
+  namelist /eep_controls/ do_phases, center_gamma_limit, &
+       center_carbon_limit, log_center_T_limit, &
+       high_mass_limit, very_low_mass_limit
 
   ierr=0
   if(command_argument_count()<1) then
@@ -47,10 +48,8 @@ program make_eeps
         call alloc_track(t% filename,s)
         call secondary_eep(t,s)
         if(do_phases) call set_track_phase(s)
-        if(do_eep_output) then
-           s% filename = trim(eep_dir) // '/' // trim(s% filename) // '.eep'
-           call write_track(s)
-        endif
+        s% filename = trim(eep_dir) // '/' // trim(s% filename) // '.eep'
+        call write_track(s)
         deallocate(s)
         nullify(s)
      endif

@@ -13,7 +13,7 @@ output_to_eep_dir = .false.
 
    do_PAV = .true.
 
-   do_colors = .false.
+   do_colors = .true.
    BC_table_list = 'bc_table.list'
 
    do_Cstars = .false.
@@ -30,13 +30,23 @@ output_to_eep_dir = .false.
 
 &eep_controls
 
-   do_eep_output = .true.
-
+   !include FSPS phases in EEPs and isochrones
    do_phases = .true.
 
+   !set the WDCS primary EEP if center_gamma < center_gamma_limit
    center_gamma_limit = 19
+
+   !set the CarbonBurn primary EEP if center_c12 < center_carbon_limit
    center_carbon_limit = 0.05
+
+   !set star_type to high_mass_star if max(log_center_T) > this 
    log_center_T_limit = 8.5 
-   min_for_high_mass_star = 10.0 !Msun
+
+   !set star_type to high mass star if M_init >= this
+   high_mass_limit = 10.0 !Msun
+
+   !if Minit < this treat the last point in the track as the TAMS
+   !regardless of center h1
+   very_low_mass_limit = 0.5 !Msun
 
 / !end of eep_controls

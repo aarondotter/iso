@@ -31,7 +31,8 @@ module iso_eep_support
   real(dp) :: center_gamma_limit=1d2 
   real(dp) :: center_carbon_limit=1d-4
   real(dp) :: log_center_T_limit=9d0
-  real(dp) :: min_for_high_mass_star=1d1 !Msun
+  real(dp) :: high_mass_limit = 1d1 !Msun
+  real(dp) :: very_low_mass_limit = 0.5d0 !Msun
 
   ! default column format specs
   integer :: head !=29
@@ -769,7 +770,7 @@ contains
     endif
 
     !last gasp test for high-mass stars is the initial mass...
-    if(t% initial_mass >= min_for_high_mass_star) then
+    if(t% initial_mass >= high_mass_limit) then
        t% star_type = star_high_mass
     else
        t% star_type = star_low_mass
