@@ -251,7 +251,7 @@ contains
     if(t% star_type == sub_stellar) ZAMS = maxloc(t% tr(i_Tc,:),dim=1)
   end function ZAMS
 
-  integer function TAMS(t,Xmin,guess)
+  integer function TAMS(t,Xmin,guess) !also IAMS with a higher Xmin
     type(track), intent(in) :: t
     real(dp), intent(in) :: Xmin
     integer, intent(in) :: guess
@@ -455,7 +455,7 @@ contains
        my_guess = guess
     endif
     do i=my_guess, t% ntrack
-       if(t% tr(i_Xc,i) < limit_XY .and. t% tr(i_Yc,i) < limit_XY .and. t% tr(i_Cc,i) < limit_C)then
+       if(t% tr(i_Xc,i) < limit_XY .and. t% tr(i_Yc,i) < limit_XY .and. t% tr(i_Cc,i) < center_carbon_limit)then
           CarbonBurn=i
           exit
        endif
