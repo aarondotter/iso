@@ -50,10 +50,16 @@ output_to_eep_dir = .false.
    very_low_mass_limit = 0.6 !Msun
 
    !weight the distance metric center Rho and T terms by central H
-   weight_center_rho_T_by_Xc = .false.
+   !suggested values
+   weight_center_rho_T_by_Xc = .true.
+   Tc_scale = 1d0
+   Rhoc_scale = 1d0
+   !or if not weighting these terms
+   ! weight_center_rho_T_by_Xc = .false.
+   ! Tc_scale = 1d-2
+   ! Rhoc_scale = 1d-2
 
-   Tc_scale = 0.01d0
-   Rhoc_scale = 0.01d0
+   !suggested values
    age_scale = 0.05d0
    Teff_scale = 2.0d0
    logL_scale = 0.125d0

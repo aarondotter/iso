@@ -49,8 +49,8 @@ module iso_eep_support
   real(dp) :: Teff_scale=2d0
   real(dp) :: logL_scale=0.125d0
   real(dp) :: age_scale=0.05d0
-  real(dp) :: Rhoc_scale=0.01d0
-  real(dp) :: Tc_scale=0.01d0
+  real(dp) :: Rhoc_scale=1d0
+  real(dp) :: Tc_scale=1d0
 
   !for columns
   integer, parameter :: max_col = 180
@@ -626,7 +626,7 @@ contains
        do j = 2, t% ntrack
           
           if(weight_center_rho_T_by_Xc)then
-             weight = max(0d0, max_center_h1 - t% tr(i_Xc,j))/max_center_h1
+             weight = max(0d0, t% tr(i_Xc,j)/max_center_h1)
           endif
           
           !build up the distance between EEPs piece by piece
