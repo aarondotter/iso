@@ -44,6 +44,14 @@ module iso_eep_support
   integer :: i_logg, i_Tc, i_Rhoc, i_Xc, i_Yc, i_he_core, i_co_core
   integer :: i_Cc, i_gamma, i_surfH
 
+  ! for use when constructing EEP distance
+  logical :: weight_center_rho_T_by_Xc
+  real(dp) :: Teff_scale=2d0
+  real(dp) :: logL_scale=0.125d0
+  real(dp) :: age_scale=0.05d0
+  real(dp) :: Rhoc_scale=0.01d0
+  real(dp) :: Tc_scale=0.01d0
+
   !for columns
   integer, parameter :: max_col = 180
   integer :: ncol
@@ -602,23 +610,33 @@ contains
 
   subroutine distance_along_track(t)
     type(track), intent(inout) :: t
-    real(dp), parameter :: Teff_scale=2d0
-    real(dp), parameter :: logL_scale=0.125d0
-    real(dp), parameter :: age_scale=0.05d0
-    real(dp), parameter :: Rhoc_scale=0.01d0
-    real(dp), parameter :: Tc_scale=0.01d0
+    real(dp) :: tmp_dist, weight, max_center_h1
     integer :: j
+
+    if(weight_center_rho_T_by_Xc)then
+       max_center_h1 = maxval(t% tr(i_Xc,:))
+       if(max_center_h1 <= 0d0) max_center_h1 = 1d0
+    else
+       max_center_h1 = 1d0
+       weight = 1d0
+    endif
 
     t% dist(1) = 0d0
     if(t% ntrack > 3)then
        do j = 2, t% ntrack
-          t% dist(j) = t% dist(j-1) + sqrt( &
-                 Teff_scale*sqdiff(t% tr(i_logTe,j) , t% tr(i_logTe,j-1))  &
-               + logL_scale*sqdiff(t% tr(i_logL, j) , t% tr(i_logL, j-1))  &
-               + Rhoc_scale*sqdiff(t% tr(i_Rhoc, j) , t% tr(i_Rhoc, j-1))  &
-               + Tc_scale*  sqdiff(t% tr(i_Tc,   j) , t% tr(i_Tc,   j-1))  &
-               + age_scale* sqdiff(log10(t% tr(i_age,j)) , log10(t% tr(i_age,j-1)))  &
-               )
+          
+          if(weight_center_rho_T_by_Xc)then
+             weight = max(0d0, max_center_h1 - t% tr(i_Xc,j))/max_center_h1
+          endif
+          
+          !build up the distance between EEPs piece by piece
+          tmp_dist =            Teff_scale*sqdiff(t% tr(i_logTe,j) , t% tr(i_logTe,j-1))
+          tmp_dist = tmp_dist + logL_scale*sqdiff(t% tr(i_logL, j) , t% tr(i_logL, j-1))
+          tmp_dist = tmp_dist + weight * Rhoc_scale * sqdiff(t% tr(i_Rhoc, j) , t% tr(i_Rhoc, j-1))
+          tmp_dist = tmp_dist + weight * Tc_scale*  sqdiff(t% tr(i_Tc,   j) , t% tr(i_Tc,   j-1))
+          tmp_dist = tmp_dist + age_scale* sqdiff(log10(t% tr(i_age,j)) , log10(t% tr(i_age,j-1))) 
+
+          t% dist(j) = t% dist(j-1) + sqrt(tmp_dist)
        enddo
     endif
   end subroutine distance_along_track
@@ -629,7 +647,6 @@ contains
     dx=x0-x1
     y = dx*dx
   end function sqdiff
-
 
   subroutine dict(input,output)
     character(len=*), intent(in) :: input

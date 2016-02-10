@@ -13,7 +13,7 @@ output_to_eep_dir = .false.
 
    do_PAV = .true.
 
-   do_colors = .true.
+   do_colors = .false.
    BC_table_list = 'bc_table.list'
 
    do_Cstars = .false.
@@ -47,6 +47,15 @@ output_to_eep_dir = .false.
 
    !if Minit < this treat the last point in the track as the TAMS
    !regardless of center h1
-   very_low_mass_limit = 0.5 !Msun
+   very_low_mass_limit = 0.6 !Msun
+
+   !weight the distance metric center Rho and T terms by central H
+   weight_center_rho_T_by_Xc = .false.
+
+   Tc_scale = 0.01d0
+   Rhoc_scale = 0.01d0
+   age_scale = 0.05d0
+   Teff_scale = 2.0d0
+   logL_scale = 0.125d0
 
 / !end of eep_controls

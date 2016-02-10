@@ -18,7 +18,8 @@ program make_eeps
 
   namelist /eep_controls/ do_phases, center_gamma_limit, &
        center_carbon_limit, log_center_T_limit, &
-       high_mass_limit, very_low_mass_limit
+       high_mass_limit, very_low_mass_limit, weight_center_rho_T_by_Xc, &
+       Teff_scale, logL_scale, age_scale, Tc_scale, Rhoc_scale
 
   ierr=0
   if(command_argument_count()<1) then
