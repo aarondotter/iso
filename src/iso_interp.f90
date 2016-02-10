@@ -18,7 +18,7 @@ program iso_interp
   real(dp) :: new_Z_div_H
   integer :: ierr, n, i
   logical :: do_colors
-
+  
   call read_interp_input(ierr)
   if(ierr/=0) stop ' iso_interp: failed reading input list'
 
@@ -48,6 +48,8 @@ contains
     character(len=file_path) :: iso_list, arg
     character(len=file_path) :: bc_list, cstar_list
     ierr = 0
+    do_colors = .false.
+
     if(command_argument_count() < 3) then
        ierr=-1
        write(0,*) 'iso_interp            '
@@ -126,13 +128,16 @@ contains
     type(isochrone_set), intent(in) :: s(n)
     type(isochrone_set), intent(inout) :: t
     integer, intent(out) :: ierr
-    integer :: loc, lo, hi, order
+    integer :: i, loc, lo, hi, order
     loc=0; order=0; lo=0; hi=0
 
     ierr = 0
 
-    do loc=1,n-1
-       if(newZ >= Z(loc) .and. newZ < Z(loc+1)) exit
+    do i=1,n-1
+       if(newZ >= Z(i) .and. newZ < Z(i+1)) then
+          loc=i
+          exit
+       endif
     enddo
 
     if(loc==0)then
@@ -141,11 +146,18 @@ contains
        return
     endif
 
-    !try for cubic interpolation but do something else if not
-    lo=max(loc,1)
-    hi=min(loc+3,n)
+    !this results in either cubic (order=4) or linear (order=2)
+    if(loc==n-1 .or. loc==1)then
+       lo=loc
+       hi=loc+1
+    else
+       lo=loc-1
+       hi=loc+2
+    endif
 
     order = hi - lo + 1  ! either 4, 3, or 2
+
+    print *, Z(lo:hi), newZ
 
     t% number_of_isochrones =s(lo)% number_of_isochrones
     t% version_number = s(lo)% version_number
@@ -233,7 +245,7 @@ contains
     integer :: i, ierr
     character(len=file_path) :: str
     ierr= 0
-    x00 = newZ - Z(2) 
+    x00 = newZ - Z(1) 
     x12 = Z(2) - Z(1)
     x23 = Z(3) - Z(2)
     do i=1,ncol
@@ -249,7 +261,7 @@ contains
     integer :: i, ierr
     character(len=file_path) :: str
     ierr= 0
-    x00 = newZ - Z(2)
+    x00 = newZ - Z(1)
     x12 = Z(2) - Z(1)
     x23 = Z(3) - Z(2)
     x34 = Z(4) - Z(3)
