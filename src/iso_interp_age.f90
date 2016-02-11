@@ -27,7 +27,6 @@ program iso_interp_age
 
 contains
 
-
   subroutine read_interp_age_input(ierr)
     integer, intent(out) :: ierr
     integer :: age_scale, age_type, number_of_ages, i
@@ -45,6 +44,12 @@ contains
        write(0,*) '     [output] = output file name (can be same as input)'
        write(0,*) '     [age_scale] = integer, 0 for linear or 1 for log10'
        write(0,*) '     [age_type]  = integer, 0 for single, 1 for range, 2 for list'
+       write(0,*)
+       write(0,*) '     for age_type = single, enter the age'
+       write(0,*)
+       write(0,*) '     for age_type = range, enter the number, minimum and maximum age'
+
+
        write(0,*) '     [age(s)] = real               '
        return
     endif
