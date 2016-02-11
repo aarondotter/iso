@@ -244,7 +244,10 @@ contains
 
     ZAMS2 = i
 
-    ZAMS = (ZAMS1+ZAMS2)/2
+    !currently we choose to use ZAMS1 definition but can also
+    !incorporate the ZAMS2 definition, or even average the 2
+
+    ZAMS = ZAMS1 !(ZAMS1+ZAMS2)/2
 
     !in case no H-burning occurs, take the location of the highest 
     !central temperature

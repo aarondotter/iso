@@ -18,12 +18,16 @@ ISO=make_iso
 EEP=make_eep
 TRK=make_track
 BLEND=blend_eeps
-INTERP=iso_interp
+INTMET=iso_interp_met
+INTAGE=iso_interp_age
 
-all: $(EEP) $(ISO) $(BLEND) $(TRK) $(INTERP)
+all: $(EEP) $(ISO) $(BLEND) $(TRK) $(INTMET) $(INTAGE)
 
-$(INTERP): iso_interp.o iso_eep_support.o iso_color.o BC_tables.o
-	$(FC) $(OMP) -o $(ROOT_DIR)/$(INTERP) $^ $(LOAD_MESA)
+$(INTMET): iso_interp_met.o iso_eep_support.o iso_color.o BC_tables.o
+	$(FC) $(OMP) -o $(ROOT_DIR)/$(INTMET) $^ $(LOAD_MESA)
+
+$(INTAGE): iso_interp_age.o iso_eep_support.o iso_color.o BC_tables.o
+	$(FC) $(OMP) -o $(ROOT_DIR)/$(INTAGE) $^ $(LOAD_MESA)
 
 $(ISO): make_iso.o iso_eep_support.o iso_color.o BC_tables.o
 	$(FC) $(OMP) -o $(ROOT_DIR)/$(ISO) $^ $(LOAD_MESA)
@@ -37,7 +41,9 @@ $(BLEND): blend_eeps.o iso_eep_support.o
 $(TRK): make_track.o iso_eep_support.o
 	$(FC) $(OMP) -o $(ROOT_DIR)/$(TRK) $^ $(LOAD_MESA)
 
-iso_interp.o: $(SRC_DIR)/iso_interp.f90 iso_eep_support.o
+iso_interp_met.o: $(SRC_DIR)/iso_interp_met.f90 iso_eep_support.o BC_tables.o iso_color.o
+
+iso_interp_age.o: $(SRC_DIR)/iso_interp_age.f90 iso_eep_support.o BC_tables.o iso_color.o
 
 make_track.o: $(SRC_DIR)/make_track.f90 iso_eep_support.o
 
@@ -60,8 +66,6 @@ BC_tables.o: $(SRC_DIR)/BC_tables.f90
 %.o : $(SRC_DIR)/%.f90
 	$(FC) $(OMP) $(FFLAGS) $(INCLUDE) -c $<
 
-check: $(ISO) $(EEP)
-	cd ..; ./make_iso input.041214
-
 clean:
-	rm -f $(ROOT_DIR)/$(EEP) $(ROOT_DIR)/$(ISO) $(ROOT_DIR)/$(BLEND) $(ROOT_DIR)/$(TRK) $(ROOT_DIR)/$(INTERP) *.mod *.o
+	rm -f $(ROOT_DIR)/$(EEP) $(ROOT_DIR)/$(ISO) $(ROOT_DIR)/$(BLEND) $(ROOT_DIR)/$(TRK) $(ROOT_DIR)/$(INTMET) $(ROOT_DIR)/$(INTAGE)
+	rm -f *.mod *.o
