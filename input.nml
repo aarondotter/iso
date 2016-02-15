@@ -30,6 +30,10 @@ output_to_eep_dir = .false.
 
 &eep_controls
 
+   !if making isochrones repeatedly from the same set of tracks, set to true
+   !this creates a binary track file that is read in much faster than text
+   make_bin_tracks = .true.
+
    !include FSPS phases in EEPs and isochrones
    do_phases = .true.
 
@@ -51,13 +55,13 @@ output_to_eep_dir = .false.
 
    !weight the distance metric center Rho and T terms by central H
    !suggested values
-   weight_center_rho_T_by_Xc = .true.
-   Tc_scale = 1d0
-   Rhoc_scale = 1d0
+   !weight_center_rho_T_by_Xc = .true.
+   !Tc_scale = 1d0
+   !Rhoc_scale = 1d0
    !or if not weighting these terms
-   ! weight_center_rho_T_by_Xc = .false.
-   ! Tc_scale = 1d-2
-   ! Rhoc_scale = 1d-2
+   weight_center_rho_T_by_Xc = .false.
+   Tc_scale = 1d-2
+   Rhoc_scale = 1d-2
 
    !suggested values
    age_scale = 0.05d0

@@ -27,7 +27,10 @@ module iso_eep_support
 
   character(len=10) :: star_label(4)=['   unknown', 'substellar', '  low-mass', ' high-mass']
 
-  ! central limits for high- / intermediate-mass stars, set these from input nml
+  !eep_controls quantities
+  logical :: make_bin_tracks=.true. !faster for repeated isochrone construction
+
+  ! central limits for high- / intermediate-mass stars, set these from input eep_controls nml
   real(dp) :: center_gamma_limit=1d2 
   real(dp) :: center_carbon_limit=1d-4
   real(dp) :: log_center_T_limit=9d0
@@ -410,13 +413,15 @@ contains
     ! if it does, read it and be done. otherwise read the .data
     ! file and write a new .bin at the end.
     ! time goes from t=2min to t<3sec for 94 tracks. tight!
-    binfile=trim(history_dir) // '/' // trim(t% filename) // '.bin'
-    inquire(file=binfile,exist=binfile_exists)
+    if(make_bin_tracks)then
+       binfile=trim(history_dir) // '/' // trim(t% filename) // '.bin'
+       inquire(file=binfile,exist=binfile_exists)
 
-    if(binfile_exists)then
-       call read_history_bin(t)
-       call distance_along_track(t)
-       return
+       if(binfile_exists)then
+          call read_history_bin(t)
+          call distance_along_track(t)
+          return
+       endif
     endif
 
     ! if the binfile does not exist, then we read the history files and write new
@@ -498,7 +503,7 @@ contains
        if(abs(t% initial_mass - t% tr(i_mass,1)) > mass_eps) t% initial_mass = t% tr(i_mass,1)
     endif
 
-    call write_history_bin(t)
+    if(make_bin_tracks) call write_history_bin(t)
 
   end subroutine read_history_file
 
