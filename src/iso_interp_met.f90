@@ -20,6 +20,7 @@ program iso_interp_met
   logical :: do_colors
   logical, parameter :: force_linear = .false.
   logical, parameter :: debug = .false.
+  logical, parameter :: do_PAV = .true.
   
   call read_interp_input(ierr)
   if(ierr/=0) stop ' iso_interp_met: failed reading input list'
@@ -193,9 +194,11 @@ contains
     call do_interp(order,Z(lo:hi),newZ,s(lo:hi),t)
 
     !PAV?
-    do i=1,t% number_of_isochrones
-       call PAV(t% iso(i)% data(i_Minit,:))
-    enddo
+    if(do_PAV)then
+       do i=1,t% number_of_isochrones
+          call PAV(t% iso(i)% data(i_Minit,:))
+       enddo
+    endif
 
   end subroutine interpolate_Z
 
