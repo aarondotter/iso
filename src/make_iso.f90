@@ -93,6 +93,7 @@ program make_isochrone
   if(do_colors) call write_cmds_to_file(set)
 
   !all done.
+  deallocate(s,t)
 
 contains
 
@@ -107,7 +108,7 @@ contains
     real(dp), allocatable :: result1(:,:), result2(:,:), mass_tmp(:)
     logical, allocatable :: skip(:,:)
     integer, allocatable :: valid(:), count(:)
-    real(dp), parameter :: age_delta = 0.75d0
+    real(dp), parameter :: age_delta = 0.5d0
 
     ierr = 0
 
@@ -155,7 +156,8 @@ contains
     do k=1,n
        if(s(k)% star_type == star_high_mass .and. s(k)% neep < max_neep_high) then
           skip(k,:) = .true.
-       else if(s(k)% initial_mass >= 0.6d0 .and. s(k)% star_type == star_low_mass .and. s(k)% neep < max_neep_low) then
+       else if(s(k)% initial_mass > very_low_mass_limit &
+            .and. s(k)% star_type == star_low_mass .and. s(k)% neep < max_neep_low) then
           skip(k,:) = .true.
        endif
     enddo
@@ -208,11 +210,10 @@ contains
           
        endif
 
+       !count tells the total number of valid tracks for each EEP
        do k=1,n
           if(.not.skip(k,eep)) count(eep)=count(eep)+1
        enddo
-
-
 
        if(iso_debug) write(*,*) '  EEP, count, n = ', eep, count(eep), n
        if(count(eep) < 2)then
@@ -244,7 +245,7 @@ contains
           endif
        enddo
 
-       if(do_smooth.and.all(masses>0.5,dim=1)) call smooth(masses,ages)
+       if(do_smooth.and.all(masses>very_low_mass_limit,dim=1)) call smooth(masses,ages)
 
        !check to see if the input age is found within the
        !current set of ages. if not, skip to the next EEP.
@@ -533,7 +534,7 @@ contains
     real(dp), intent(in) :: x(:), y(:), x_in
     integer, parameter :: n_new = 1
     real(dp) :: x0(n_new), y0(n_new)
-    real(dp), pointer :: work1(:)
+    real(dp), pointer :: work1(:)=>NULL()
     character(len=col_width), intent(in) :: label
     integer, intent(out) :: ierr
     integer :: n_old
@@ -796,42 +797,5 @@ contains
     y0 = sum(y*w)/sum(w)      
     deallocate(w)
   end function npoint
-  
-  subroutine PAV(y) !pool-adjancent violators algorithm applied in place
-    !based on python implementation at https://gist.github.com/fabianp/3081831
-    real(dp), intent(inout) :: y(:)
-    integer :: i, n, start, last, m
-    real(dp), allocatable :: d(:)
-    integer, allocatable :: lvls(:,:)
-    n=size(y)
-    allocate(d(n-1),lvls(n,2))
-    do i=1,n
-       lvls(i,:)=i
-    enddo
-    do while(.true.)
-       d=y(2:n)-y(1:n-1)
-       if(all(d>=0)) exit !test for monotonicity
-       i=locate(d) !finds the first point in d that is < 0
-       start = lvls(i,1)
-       last = lvls(i+1,2)
-       m = last - start + 1
-       y(start:last) = sum(y(start:last))/real(m)
-       lvls(start:last,1)=start
-       lvls(start:last,2)=last
-    enddo
-  end subroutine PAV  
-
-  integer function locate(y)
-    real(dp), intent(in) :: y(:)
-    integer :: i, n
-    n=size(y)
-    do i=1,n
-       if(y(i)<0.0)then
-          locate=i
-          return
-       endif
-    enddo
-    locate=0
-  end function locate
 
 end program make_isochrone

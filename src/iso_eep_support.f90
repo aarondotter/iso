@@ -798,5 +798,42 @@ contains
        t% star_type = star_low_mass
     endif
   end subroutine set_star_type_from_history
-    
+
+  subroutine PAV(y) !pool-adjancent violators algorithm applied in place
+    !based on python implementation at https://gist.github.com/fabianp/3081831
+    real(dp), intent(inout) :: y(:)
+    integer :: i, n, start, last, m
+    real(dp), allocatable :: d(:)
+    integer, allocatable :: lvls(:,:)
+    n=size(y)
+    allocate(d(n-1),lvls(n,2))
+    do i=1,n
+       lvls(i,:)=i
+    enddo
+    do while(.true.)
+       d=y(2:n)-y(1:n-1)
+       if(all(d>=0)) exit !test for monotonicity
+       i=locate(d) !finds the first point in d that is < 0
+       start = lvls(i,1)
+       last = lvls(i+1,2)
+       m = last - start + 1
+       y(start:last) = sum(y(start:last))/real(m)
+       lvls(start:last,1)=start
+       lvls(start:last,2)=last
+    enddo
+  end subroutine PAV  
+  
+  integer function locate(y)
+    real(dp), intent(in) :: y(:)
+    integer :: i, n
+    n=size(y)
+    do i=1,n
+       if(y(i)<0.0)then
+          locate=i
+          return
+       endif
+    enddo
+    locate=0
+  end function locate
+   
 end module iso_eep_support

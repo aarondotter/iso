@@ -16,8 +16,10 @@ program iso_interp_met
   type(isochrone_set) :: t
   real(dp), allocatable :: Z_div_H(:)
   real(dp) :: new_Z_div_H
-  integer :: ierr, n, i
+  integer :: ierr, n, i, i_Minit
   logical :: do_colors
+  logical, parameter :: force_linear = .false.
+  logical, parameter :: debug = .false.
   
   call read_interp_input(ierr)
   if(ierr/=0) stop ' iso_interp_met: failed reading input list'
@@ -26,6 +28,9 @@ program iso_interp_met
      call read_isochrone_file(s(i),ierr)
      if(ierr/=0)  stop ' iso_interp_met: failed in read_isochrone_file'
   enddo
+
+  !need this for PAV
+  i_Minit=locate_Minit(s(1)% iso(1))
 
   call consistency_check(s,ierr)
   if(ierr/=0) stop ' iso_interp_met: failed consistency check(s)'
@@ -41,6 +46,17 @@ program iso_interp_met
 
 contains
 
+  function locate_Minit(iso) result(i)
+    type(isochrone), intent(in) :: iso
+    integer :: i, j
+    do j=1,iso% ncol
+       if(trim(adjustl(iso% cols(j)% name))=='initial_mass')then
+          i=j
+          return
+       endif
+    enddo
+    i=0
+  end function locate_Minit
 
   subroutine read_interp_input(ierr)
     integer, intent(out) :: ierr
@@ -147,7 +163,10 @@ contains
     endif
 
     !this results in either cubic (order=4) or linear (order=2)
-    if(loc==n-1 .or. loc==1)then
+    if(force_linear)then
+       lo=loc
+       hi=loc+1
+    elseif(loc==n-1 .or. loc==1)then
        lo=loc
        hi=loc+1
     else
@@ -156,8 +175,6 @@ contains
     endif
 
     order = hi - lo + 1  ! either 4, 3, or 2
-
-    print *, Z(lo:hi), newZ
 
     t% number_of_isochrones =s(lo)% number_of_isochrones
     t% version_number = s(lo)% version_number
@@ -172,7 +189,14 @@ contains
        t% iso(i)% cols(:)% type = s(lo)% iso(i)% cols(:)% type
        t% iso(i)% cols(:)% loc = s(lo)% iso(i)% cols(:)% loc
     enddo
+
     call do_interp(order,Z(lo:hi),newZ,s(lo:hi),t)
+
+    !PAV?
+    do i=1,t% number_of_isochrones
+       call PAV(t% iso(i)% data(i_Minit,:))
+    enddo
+
   end subroutine interpolate_Z
 
 
@@ -181,8 +205,11 @@ contains
     real(dp), intent(in) :: Z(n), newZ
     type(isochrone_set), intent(in) :: s(n)
     type(isochrone_set), intent(inout) :: t
-    integer :: i, j, neep, eeps_lo(n), eeps_hi(n)
+    integer :: i, j, k, neep, eeps_lo(n), eeps_hi(n)
     integer :: eep, eep_lo, eep_hi, ioff(n), ncol
+    logical :: eep_good(n)
+    logical, pointer :: good(:)=>NULL()
+    integer, pointer :: new_eep(:)=>NULL()
 
     do i=1,n
        write(*,*) trim(s(i)% filename), Z(i)
@@ -196,37 +223,74 @@ contains
        enddo
        eep_lo = maxval(eeps_lo)
        eep_hi = minval(eeps_hi)
-       t% iso(i)% neep = eep_hi - eep_lo + 1
-       neep = t% iso(i)% neep
+
+       allocate(good(eep_hi),new_eep(eep_hi))
+       good=.false.
+       new_eep=0
+       neep=0
+       eep_loop: do eep=eep_lo, eep_hi
+          eep_good=.false.
+          j_loop: do j=1,n
+             k_loop: do k=1,s(j)% iso(i)% neep
+                if(s(j)% iso(i)% eep(k)==eep)then
+                   eep_good(j)=.true.
+                   exit k_loop
+                endif
+             enddo k_loop
+          enddo j_loop
+          if(all(eep_good,1)) then
+             neep = neep + 1
+             good(eep) = .true.
+             new_eep(eep) = neep
+          elseif(debug)then
+             write(*,*) ' bad EEP = ', eep
+          endif
+       enddo eep_loop
+
+       t% iso(i)% neep = neep
        ncol = t% iso(i)% ncol
        allocate(t% iso(i)% eep(neep), t% iso(i)% data(ncol,neep))
-       if(t% iso(i)% has_phase) allocate(t% iso(i)% phase(neep))      
+       t% iso(i)% eep  = 0
        t% iso(i)% data = 0d0
 
-       !the EEP offsets are for alignment: we only interpolate at constant EEP number
-       do j=1,n
-          ioff(j) = eep_lo - s(j)% iso(i)% eep(1)  
-       enddo
+       if(t% iso(i)% has_phase) then
+          allocate(t% iso(i)% phase(neep))      
+          t% iso(i)% phase = 0d0
+       endif
 
        !loop over the EEPs
-!$omp parallel do private(eep)
-       do eep=1,neep
-          t% iso(i)% eep(eep) = eep_lo + eep - 1
-          t% iso(i)% phase(eep) = s(1)% iso(i)% phase(eep+ioff(1))
-          if(n==2)then 
-             t% iso(i)% data(:,eep) = linear(ncol, Z, newZ, s(1)% iso(i)% data(:,eep+ioff(1)), s(2)% iso(i)% data(:,eep+ioff(2)))
-          else if(n==3) then
-             t% iso(i)% data(:,eep) = quadratic(ncol, Z, newZ, s(1)% iso(i)% data(:,eep+ioff(1)), &
-                  s(2)% iso(i)% data(:,eep+ioff(2)), s(3)% iso(i)% data(:, eep+ioff(3)))   
-          else if(n==4) then 
-             t% iso(i)% data(:,eep) = cubic( ncol, Z, newZ, s(1)% iso(i)% data(:,eep+ioff(1)), &
-                  s(2)% iso(i)% data(:,eep+ioff(2)), s(3)% iso(i)% data(:, eep+ioff(3)), s(4)% iso(i)% data(:,eep+ioff(4)) )
+!$omp parallel do private(eep,ioff)
+       do eep=eep_lo, eep_hi
+          if(good(eep)) then
+             t% iso(i)% eep(new_eep(eep)) = eep
+             ioff=0
+             do j=1,n
+                do k=1,s(j)% iso(i)% neep
+                   if(s(j)% iso(i)% eep(k) == eep)then
+                      ioff(j)=k
+                      exit
+                   endif
+                enddo
+             enddo
+             if(t%iso(i)% has_phase) t% iso(i)% phase(new_eep(eep)) = s(1)% iso(i)% phase(ioff(1))
+             if(n==2)then 
+                t% iso(i)% data(:,new_eep(eep)) = linear( ncol, Z, newZ, &
+                     s(1)% iso(i)% data(:,ioff(1)), &
+                     s(2)% iso(i)% data(:,ioff(2)) )
+             else if(n==4) then
+                t% iso(i)% data(:,new_eep(eep)) = cubic_pm( ncol, Z, newZ, &
+                     s(1)% iso(i)% data(:,ioff(1)), &
+                     s(2)% iso(i)% data(:,ioff(2)), &
+                     s(3)% iso(i)% data(:,ioff(3)), &
+                     s(4)% iso(i)% data(:,ioff(4)) )
+             endif
           endif
        enddo
 !$omp end parallel do
+       deallocate(good)
+       nullify(good)
     enddo
   end subroutine do_interp
-
 
   function linear(ncol,Z,newZ,x,y) result(res)
     integer, intent(in) :: ncol
@@ -237,38 +301,72 @@ contains
     res = alfa*x + beta*y
   end function linear
 
-
-  function quadratic(ncol,Z,newZ,w,x,y) result(res)
-    integer, intent(in) :: ncol
-    real(dp), intent(in) :: Z(3), newZ, w(ncol), x(ncol), y(ncol)
-    real(dp) :: res(ncol), x12, x23, x00
-    integer :: i, ierr
-    character(len=file_path) :: str
-    ierr= 0
-    x00 = newZ - Z(1) 
-    x12 = Z(2) - Z(1)
-    x23 = Z(3) - Z(2)
-    do i=1,ncol
-       call interp_3_to_1(x12, x23, x00, w(i), x(i), y(i), res(i), str, ierr)
-    enddo
-  end function quadratic
-
-
-  function cubic(ncol,Z,newZ,v,w,x,y) result(res)
+  function cubic_pm(ncol,Z,newZ,v,w,x,y) result(res)
     integer, intent(in) :: ncol
     real(dp), intent(in) :: Z(4), newZ, v(ncol), w(ncol), x(ncol), y(ncol)
-    real(dp) :: res(ncol), x12, x23, x34, x00
+    real(dp) :: res(ncol), Q(4), a(3), dZ
     integer :: i, ierr
-    character(len=file_path) :: str
     ierr= 0
-    x00 = newZ - Z(1)
-    x12 = Z(2) - Z(1)
-    x23 = Z(3) - Z(2)
-    x34 = Z(4) - Z(3)
+    dZ = newZ - Z(2)
     do i=1,ncol
-       call interp_4_to_1(x12, x23, x34, x00, v(i), w(i), x(i), y(i), res(i), str, ierr)
+       Q=[v(i),w(i),x(i),y(i)]
+       call interp_4pt_pm(Z, Q, a)
+       res(i) = Q(2) + dZ*(a(1) + dZ*(a(2) + dZ*a(3)))
     enddo
-  end function cubic
+  end function cubic_pm
+
+!!$  function quadratic(ncol,Z,newZ,w,x,y) result(res)
+!!$    integer, intent(in) :: ncol
+!!$    real(dp), intent(in) :: Z(3), newZ, w(ncol), x(ncol), y(ncol)
+!!$    real(dp) :: res(ncol), x12, x23, x00
+!!$    integer :: i, ierr
+!!$    character(len=file_path) :: str
+!!$    ierr= 0
+!!$    x00 = newZ - Z(1) 
+!!$    x12 = Z(2) - Z(1)
+!!$    x23 = Z(3) - Z(2)
+!!$    do i=1,ncol
+!!$       call interp_3_to_1(x12, x23, x00, w(i), x(i), y(i), res(i), str, ierr)
+!!$    enddo
+!!$  end function quadratic
+
+!!$
+!!$  function cubic(ncol,Z,newZ,v,w,x,y) result(res)
+!!$    integer, intent(in) :: ncol
+!!$    real(dp), intent(in) :: Z(4), newZ, v(ncol), w(ncol), x(ncol), y(ncol)
+!!$    real(dp) :: res(ncol), x12, x23, x34, x00
+!!$    integer :: i, ierr
+!!$    character(len=file_path) :: str
+!!$    ierr= 0
+!!$    x00 = newZ - Z(1)
+!!$    x12 = Z(2) - Z(1)
+!!$    x23 = Z(3) - Z(2)
+!!$    x34 = Z(4) - Z(3)
+!!$    do i=1,ncol
+!!$       call interp_4_to_1(x12, x23, x34, x00, v(i), w(i), x(i), y(i), res(i), str, ierr)
+!!$    enddo
+!!$  end function cubic
+!!$
+!!$
+!!$  function cubic_generic(ncol,Z,newZ,v,w,x,y) result(res)
+!!$    integer, intent(in) :: ncol
+!!$    real(dp), intent(in) :: Z(4), newZ, v(ncol), w(ncol), x(ncol), y(ncol)
+!!$    real(dp) :: res(ncol), Q(4), x_new(1), y_new(1)
+!!$    integer, parameter :: nwork = max(pm_work_size, mp_work_size)        
+!!$    real(dp), target :: work_ary(4*nwork)
+!!$    real(dp), pointer :: work(:)
+!!$    integer :: i, ierr
+!!$    character(len=file_path) :: str
+!!$
+!!$    work => work_ary
+!!$    x_new(1) = newZ
+!!$    ierr= 0
+!!$    do i=1,ncol
+!!$       Q=[v(i),w(i),x(i),y(i)]
+!!$       call interpolate_vector(4, Z, 1, x_new, Q, y_new, interp_m3q, nwork, work, str, ierr)
+!!$       res(i) = y_new(1)
+!!$    enddo
+!!$  end function cubic_generic
 
 
 end program iso_interp_met
