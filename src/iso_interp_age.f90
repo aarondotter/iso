@@ -3,11 +3,10 @@ program iso_interp_age
   !MESA modules
   use const_def, only: dp
   use utils_lib
-  use interp_1d_def
-  use interp_1d_lib
 
   !local modules
   use iso_eep_support
+  use iso_interp_support
   use iso_color
 
   implicit none
@@ -15,11 +14,12 @@ program iso_interp_age
   type(isochrone_set) :: old, new
   integer, parameter :: single=0, range=1, list=2
   integer :: ierr
+  logical, parameter :: debug = .false.
+  logical, parameter :: force_linear=.true.
   
   call read_interp_age_input(ierr)
   if(ierr/=0) stop ' iso_interp_age: failed reading input list'
 
-  !if all checks pass, then proceed with interpolation
   call interpolate_age(old,new,ierr)
 
   !write the new isochrone to file
@@ -124,7 +124,6 @@ contains
 
   end subroutine read_interp_age_input
 
-
   subroutine interpolate_age(old,new,ierr)
     type(isochrone_set), intent(in) :: old
     type(isochrone_set), intent(inout) :: new
@@ -159,7 +158,10 @@ contains
        enddo
 
        !this results in either cubic (order=4) or linear (order=2)
-       if(loc==n-1 .or. loc==1)then
+       if(force_linear)then
+          lo=loc
+          hi=loc+1
+       elseif(loc==n-1 .or. loc==1)then
           lo=loc
           hi=loc+1
        else
@@ -177,19 +179,22 @@ contains
           new% iso(i)% cols(:)% type = old% iso(lo)% cols(:)% type
           new% iso(i)% cols(:)% loc  = old% iso(lo)% cols(:)% loc
        enddo
-       call do_interp(order,old% iso(lo:hi),new% iso(i))
+       call do_interp_one(order,old% iso(lo:hi),new% iso(i))
     enddo
+
   end subroutine interpolate_age
 
 
-  subroutine do_interp(n,s,t)
+  subroutine do_interp_one(n,s,t)
     integer, intent(in) :: n
     type(isochrone), intent(in) :: s(n)
     type(isochrone), intent(inout) :: t
-    integer :: j, neep, eeps_lo(n), eeps_hi(n)
+    integer :: j, k, neep, eeps_lo(n), eeps_hi(n)
     integer :: eep, eep_lo, eep_hi, ioff(n), ncol
     real(dp) :: ages(n), new_age
-
+    logical :: eep_good(n)
+    logical, allocatable :: good(:)
+    integer, allocatable :: eep_index(:)
     new_age = t% age
 
     do j=1,n
@@ -201,79 +206,71 @@ contains
 
     eep_lo = maxval(eeps_lo)
     eep_hi = minval(eeps_hi)
-    t% neep = eep_hi - eep_lo + 1
-    neep = t% neep
+
+    allocate(good(eep_hi),eep_index(eep_hi))
+    good=.false.
+    eep_index=0
+    neep=0
+    eep_loop: do eep=eep_lo, eep_hi
+       eep_good=.false.
+       j_loop: do j=1,n
+          k_loop: do k=1,s(j)% neep
+             if(s(j)% eep(k)==eep)then
+                eep_good(j)=.true.
+                exit k_loop
+             endif
+          enddo k_loop
+       enddo j_loop
+       if(all(eep_good,1)) then
+          neep = neep + 1
+          good(eep) = .true.
+          eep_index(eep) = neep
+       elseif(debug)then
+          write(*,*) ' bad EEP = ', eep
+       endif
+    enddo eep_loop
+
+    t% neep = neep
     ncol = t% ncol
     allocate(t% eep(neep), t% data(ncol,neep))
-    if(t% has_phase) allocate(t% phase(neep))
+    t% eep  = 0
     t% data = 0d0
 
-    !the EEP offsets are for alignment: we only interpolate at constant EEP number
-    do j=1,n
-       ioff(j) = eep_lo - s(j)% eep(1)
-    enddo
+    if(t% has_phase) then
+       allocate(t% phase(neep))      
+       t% phase = 0d0
+    endif
 
     !loop over the EEPs
-!$omp parallel do private(eep)
-    do eep=1,neep
-       t% eep(eep) = eep_lo + eep - 1
-       t% phase(eep) = s(1)% phase(eep+ioff(1))
-       if(n==2)then 
-          t% data(:,eep) = linear(ncol, ages, new_age, s(1)% data(:,eep+ioff(1)), s(2)% data(:,eep+ioff(2)))
-       else if(n==3) then
-          t% data(:,eep) = quadratic(ncol, ages, new_age, s(1)% data(:,eep+ioff(1)), &
-               s(2)% data(:,eep+ioff(2)), s(3)% data(:, eep+ioff(3)))   
-       else if(n==4) then 
-          t% data(:,eep) = cubic( ncol, ages, new_age, s(1)% data(:,eep+ioff(1)), &
-               s(2)% data(:,eep+ioff(2)), s(3)% data(:, eep+ioff(3)), s(4)% data(:,eep+ioff(4)) )
+    !$omp parallel do private(eep)
+    do eep=eep_lo,eep_hi
+       if(good(eep))then
+          t% eep(eep_index(eep)) = eep
+          ioff=0
+          do j=1,n
+             do k=1,s(j)% neep
+                if(s(j)% eep(k) == eep)then
+                   ioff(j)=k
+                   exit
+                endif
+             enddo
+          enddo
+          if(t% has_phase) t% phase(eep_index(eep)) = s(1)% phase(ioff(1))
+          if(n==2)then 
+             t% data(:,eep_index(eep)) = linear(ncol, ages, new_age, &
+                  s(1)% data(:,ioff(1)), &
+                  s(2)% data(:,ioff(2)))
+          else if(n==4) then 
+             t% data(:,eep_index(eep)) = cubic_pm( ncol, ages, new_age, &
+                  s(1)% data(:,ioff(1)), &
+                  s(2)% data(:,ioff(2)), &
+                  s(3)% data(:,ioff(3)), &
+                  s(4)% data(:,ioff(4)))
+          endif
        endif
     enddo
-!$omp end parallel do
+    !$omp end parallel do
 
-  end subroutine do_interp
-
-
-  function linear(ncol,Z,newZ,x,y) result(res)
-    integer, intent(in) :: ncol
-    real(dp), intent(in) :: Z(2), newZ, x(ncol), y(ncol)
-    real(dp) :: res(ncol), alfa, beta
-    alfa = (Z(2)-newZ)/(Z(2)-Z(1))
-    beta = 1d0 - alfa
-    res = alfa*x + beta*y
-  end function linear
-
-
-  function quadratic(ncol,Z,newZ,w,x,y) result(res)
-    integer, intent(in) :: ncol
-    real(dp), intent(in) :: Z(3), newZ, w(ncol), x(ncol), y(ncol)
-    real(dp) :: res(ncol), x12, x23, x00
-    integer :: i, ierr
-    character(len=file_path) :: str
-    ierr= 0
-    x00 = newZ - Z(1) 
-    x12 = Z(2) - Z(1)
-    x23 = Z(3) - Z(2)
-    do i=1,ncol
-       call interp_3_to_1(x12, x23, x00, w(i), x(i), y(i), res(i), str, ierr)
-    enddo
-  end function quadratic
-
-
-  function cubic(ncol,Z,newZ,v,w,x,y) result(res)
-    integer, intent(in) :: ncol
-    real(dp), intent(in) :: Z(4), newZ, v(ncol), w(ncol), x(ncol), y(ncol)
-    real(dp) :: res(ncol), x12, x23, x34, x00
-    integer :: i, ierr
-    character(len=file_path) :: str
-    ierr= 0
-    x00 = newZ - Z(1)
-    x12 = Z(2) - Z(1)
-    x23 = Z(3) - Z(2)
-    x34 = Z(4) - Z(3)
-    do i=1,ncol
-       call interp_4_to_1(x12, x23, x34, x00, v(i), w(i), x(i), y(i), res(i), str, ierr)
-    enddo
-  end function cubic
-
+  end subroutine do_interp_one
 
 end program iso_interp_age
