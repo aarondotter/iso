@@ -17,7 +17,7 @@ program iso_interp_met
   real(dp) :: new_Z_div_H
   integer :: ierr, n, i, i_Minit
   logical :: do_colors
-  logical, parameter :: force_linear = .false.
+  logical, parameter :: force_linear = .true.
   logical, parameter :: debug = .false.
   logical, parameter :: do_PAV = .true.
   
