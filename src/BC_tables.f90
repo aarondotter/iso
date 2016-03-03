@@ -1,7 +1,5 @@
 module BC_tables
 
-  use const_def, only: sp
-  use utils_lib, only: alloc_iounit, free_iounit
   use interp_1d_def
   use interp_1d_lib_sg
   use interp_2d_lib_sg

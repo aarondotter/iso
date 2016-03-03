@@ -1,8 +1,6 @@
 module iso_color
 
   !MESA modules
-  use const_def, only: sp
-  use utils_lib, only: alloc_iounit, free_iounit, has_bad_real
   use interp_1d_lib
 
   !local modules
@@ -37,12 +35,15 @@ contains
     integer :: i, nb, nc, j, n, jZ
     real(sp), allocatable :: res(:)
     real(sp) :: logT, logg, logL, X, Y, Z, FeH
-    real(sp) :: c_min_logT=0, c_max_logT=0, c_min_logg=0, c_max_logg=0
+    real(sp) :: c_min_logT, c_max_logT, c_min_logg, c_max_logg
     real(dp) :: C_div_O
     logical :: Cstar_ok
     integer :: iT, ig, iL, iH, iHe, iC, iO
+    !a few initializations
+    c_min_logT=0; c_max_logT=0; c_min_logg=0; c_max_logg=0
     iT=0; ig=0; iL=0; iH=0; iHe=0; iC=0; iO=0; jZ=0
 
+    !locate columns
     do i = 1, iso% ncol
        if(trim(adjustl(iso% cols(i)% name)) == 'log_Teff') then
           iT=i
@@ -78,6 +79,7 @@ contains
     else
        nc=0
     endif
+
 
     do i=1,iso% neep
        logT = real(iso% data(iT,i),kind=sp)
@@ -161,11 +163,12 @@ contains
           write(0,*) '    X =', X
           write(0,*) '    Y =', Y
           write(0,*) '    Z =', Z
-          stop
+          stop 'get_mags: bad value!'
        endif
 
        iso% mags(:,i) = SolBol - 2.5*logL - res
     enddo
+
 
   contains
 

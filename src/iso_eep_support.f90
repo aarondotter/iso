@@ -2,7 +2,7 @@ module iso_eep_support
 
   !MESA modules
   use const_def, only: dp, sp
-  use utils_lib, only: alloc_iounit, free_iounit
+  use utils_lib, only: alloc_iounit, free_iounit, has_bad_real
 
   implicit none
 
