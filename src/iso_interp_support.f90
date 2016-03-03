@@ -1,7 +1,6 @@
 module iso_interp_support
 
   !MESA modules
-  use const_def, only: dp
   use interp_1d_def
   use interp_1d_lib
 

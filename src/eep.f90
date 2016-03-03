@@ -1,7 +1,6 @@
 module eep
 
   !MESA modules
-  use const_def, only: dp
   use interp_1d_lib, only: interp_4pt_pm
 
   !local modules

@@ -1,8 +1,6 @@
 program make_isochrone
 
   !MESA modules
-  use const_def, only: dp, sp
-  use utils_lib
   use interp_1d_def
   use interp_1d_lib
 

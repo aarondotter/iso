@@ -1,9 +1,5 @@
 program iso_interp_age
 
-  !MESA modules
-  use const_def, only: dp
-  use utils_lib
-
   !local modules
   use iso_eep_support
   use iso_interp_support

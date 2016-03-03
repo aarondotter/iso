@@ -1,6 +1,5 @@
 module phases
 
-  use const_lib, only: dp
   use iso_eep_support
 
   implicit none

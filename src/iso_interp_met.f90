@@ -1,7 +1,6 @@
 program iso_interp_met
 
   !MESA modules
-  use const_def, only: dp
   use utils_lib
 
   !local modules

@@ -1,7 +1,6 @@
 program make_track
+
   !MESA modules
-  use const_def, only: dp
-  use utils_lib
   use interp_1d_def
   use interp_1d_lib
 

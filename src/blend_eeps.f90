@@ -1,9 +1,5 @@
 program blend_eeps
 
-  !MESA modules
-  use const_def, only: dp
-  use utils_lib, only: alloc_iounit, free_iounit
-
   !local modules
   use iso_eep_support
 
