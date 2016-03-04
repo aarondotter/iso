@@ -1,6 +1,7 @@
 program make_isochrone
 
   !MESA modules
+  use utils_lib
   use interp_1d_def
   use interp_1d_lib
 
