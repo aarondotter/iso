@@ -9,9 +9,11 @@ output_to_eep_dir = .false.
 
 &iso_controls
 
-   do_smooth = .true.
+   do_smooth = .false.
 
    do_PAV = .true.
+
+   do_linear_interpolation = .false.
 
    do_colors = .false.
    BC_table_list = 'bc_table.list'

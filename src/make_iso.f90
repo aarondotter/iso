@@ -25,12 +25,14 @@ program make_isochrone
   logical :: do_PAV = .true.
   logical :: do_colors = .false.
   logical :: do_Cstars = .false.
+  logical :: do_linear_interpolation = .false.
   character(len=file_path) :: BC_table_list='', Cstar_table_list=''
   character(len=file_path) :: cmd_suffix = 'cmd'
   real(sp) :: extinction_Av = 0.0, extinction_Rv = 0.0
 
   namelist /iso_controls/ iso_debug, do_smooth, do_PAV, do_colors, do_Cstars, &
-  BC_table_list, Cstar_table_list, cmd_suffix, extinction_Av, extinction_Rv
+  BC_table_list, Cstar_table_list, cmd_suffix, extinction_Av, extinction_Rv, &
+  do_linear_interpolation
   
   !begin
   ierr=0
@@ -100,16 +102,19 @@ contains
     type(track), intent(in) :: s(:)
     type(isochrone), intent(inout) :: iso
     integer :: eep, hi, ierr, index, interp_method, j, k, l, lo, max_eep, n, pass
-    integer :: max_neep_low, max_neep_high
+    integer :: max_neep_low, max_neep_high, loc, khi, klo
     character(len=col_width) :: mass_age_string = 'mass from age'
-    real(dp) :: age, mass, min_age, max_age
+    real(dp) :: age, mass, min_age, max_age, y(2)
     real(dp), pointer :: ages(:)=>NULL(), masses(:)=>NULL()
     real(dp), allocatable :: result1(:,:), result2(:,:), mass_tmp(:)
     logical, allocatable :: skip(:,:)
     integer, allocatable :: valid(:), count(:)
-    real(dp), parameter :: age_delta = 0.5d0
+    real(dp), parameter :: age_delta = 0.5d0, tiny = 1d-12
 
     ierr = 0
+
+    khi = 0
+    klo = 0
 
     !initialize some quantities
     n = size(s) ! is the number of tracks
@@ -151,7 +156,7 @@ contains
        endif
     enddo
 
-    !now check each track to make sure it is complete for its typ
+    !now check each track to make sure it is complete for its type
     do k=1,n
        if(s(k)% star_type == star_high_mass .and. s(k)% neep < max_neep_high) then
           skip(k,:) = .true.
@@ -248,8 +253,14 @@ contains
 
        !check to see if the input age is found within the
        !current set of ages. if not, skip to the next EEP.
-       j = binary_search( count(eep), ages, 1, age)
-       if( j < 1 .or. j > count(eep)-1 ) cycle eep_loop1
+       khi = 0; klo = 0
+       loc = binary_search( count(eep), ages, 1, age)
+       if( loc < 1 .or. loc > count(eep)-1 ) cycle eep_loop1
+
+       do k=1,n
+          if(abs(masses(loc)-s(k)% initial_mass)<tiny)     klo = k
+          if(abs(masses(loc+1) - s(k)% initial_mass)<tiny) khi = k
+       enddo
 
        !check to see if masses and ages are monotonic
        !if not, then interpolation will fail
@@ -259,7 +270,7 @@ contains
        endif
 
        if(iso_debug) then 
-          write(*,*) ' j, count = ', j, count(eep)
+          write(*,*) ' loc, count = ', loc, count(eep)
           write(*,*) skip(:,eep)
           do k=1,count(eep)
              write(*,*) masses(k), ages(k), age
@@ -318,12 +329,18 @@ contains
           ! interpolate in age to find the EEP's initial mass
           index = i_Minit     ! special case for iso_intepolate
 
-          mass = iso_interpolate( eep, interp_method, n, &
-               s, skip(:,eep), count(eep), index, ages, age, mass_age_string, ierr)
-          if(ierr/=0)then
-             write(0,*) ' interpolation failed in age->mass'
-             cycle eep_loop1
+          if(do_linear_interpolation)then
+             mass = linear_interp(ages(loc:loc+1),masses(loc:loc+1),age)
+          else
+             mass = iso_interpolate( eep, interp_method, n, &
+                  s, skip(:,eep), count(eep), index, ages, age, &
+                  mass_age_string, ierr)
+             if(ierr/=0)then
+                write(0,*) ' interpolation failed in age->mass'
+                cycle eep_loop1
+             endif
           endif
+
           result1(i_Minit,eep) = mass
           valid(eep)=1
        endif
@@ -383,7 +400,17 @@ contains
           endif
        enddo
 
-       if(do_smooth.and.all(masses>0.5,dim=1)) call smooth(masses,ages)
+       !check to see if the input age is found within the
+       !current set of ages. if not, skip to the next EEP.
+       khi = 0; klo = 0
+       loc = binary_search( count(eep), ages, 1, age)
+       if( loc < 1 .or. loc > count(eep)-1 ) cycle eep_loop2
+
+       do k=1,n
+          if(abs(masses(loc)-s(k)% initial_mass)<tiny)     klo = k
+          if(abs(masses(loc+1) - s(k)% initial_mass)<tiny) khi = k
+       enddo
+
 
        !this block checks between two tracks at the current EEP to see if the 
        !age lies in between the two. if it does, then it outputs a linear mass 
@@ -439,12 +466,20 @@ contains
 
           do index = 2, ncol
              mass = result1(i_Minit,eep)
-             result1(index,eep) = iso_interpolate(eep, interp_method, n, &
-                  s, skip(:,eep), count(eep), index, masses, mass, cols(index)% name, ierr)
-             if(ierr/=0) then
-                write(0,*) ' mass interpolation failed for index = ', trim(cols(index)% name)
-                valid(eep)=0
-                cycle eep_loop2
+
+             y(1) = s(klo)% tr(index,eep)
+             y(2) = s(khi)% tr(index,eep)
+
+             if(do_linear_interpolation)then
+                result1(index,eep) = linear_interp(masses(loc:loc+1), y, mass)
+             else
+                result1(index,eep) = iso_interpolate(eep, interp_method, n, &
+                     s, skip(:,eep), count(eep), index, masses, mass, cols(index)% name, ierr)
+                if(ierr/=0) then
+                   write(0,*) ' mass interpolation failed for index = ', trim(cols(index)% name)
+                   valid(eep)=0
+                   cycle eep_loop2
+                endif
              endif
           enddo
           valid(eep) = 1
@@ -527,6 +562,16 @@ contains
        endif
     enddo upper_loop
   end subroutine monotonic_mass_range
+
+
+  real(dp) function linear_interp(x,y,x_in)
+    real(dp), intent(in) :: x(2), y(2), x_in
+    real(dp) :: alfa, beta, dx
+    dx = x(2) - x(1)
+    alfa = (x(2) - x_in)/dx
+    beta = (x_in - x(1))/dx
+    linear_interp = alfa*y(1) + beta*y(2)
+  end function linear_interp
 
 
   real(dp) function interp_x_from_y(x,y,x_in,label,ierr)
