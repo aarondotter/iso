@@ -23,7 +23,6 @@ program make_isochrone
   logical :: do_smooth = .true.
   logical :: do_PAV = .true.
   logical :: do_linear_interpolation = .false.
-
   namelist /iso_controls/ iso_debug, do_smooth, do_PAV, do_linear_interpolation
   
   !begin

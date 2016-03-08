@@ -14,6 +14,7 @@ OMP=-fopenmp
 OPT=-O3
 FFLAGS= -ffree-form $(OPT) $(WARN) $(DEBUG)
 
+CMD=make_cmd
 ISO=make_iso
 EEP=make_eep
 TRK=make_track
@@ -21,7 +22,10 @@ BLEND=blend_eeps
 INTMET=iso_interp_met
 INTAGE=iso_interp_age
 
-all: $(EEP) $(ISO) $(BLEND) $(TRK) $(INTMET) $(INTAGE)
+all: $(EEP) $(ISO) $(BLEND) $(TRK) $(INTMET) $(INTAGE) $(CMD)
+
+$(CMD): make_cmd.o iso_color.o iso_eep_support.o BC_tables.o
+	$(FC) $(OMP) -o $(ROOT_DIR)/$(CMD) $^ $(LOAD_MESA)
 
 $(INTMET): iso_interp_met.o iso_eep_support.o iso_interp_support.o iso_color.o BC_tables.o
 	$(FC) $(OMP) -o $(ROOT_DIR)/$(INTMET) $^ $(LOAD_MESA)

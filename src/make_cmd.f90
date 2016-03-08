@@ -33,7 +33,7 @@ contains
 
   subroutine cmd_init(ierr)
     integer, intent(out) :: ierr
-    integer :: io 
+    integer :: io , i
 
     if(command_argument_count()<1)then
        write(*,*) ' make_cmd:   '
@@ -49,9 +49,14 @@ contains
     open(io,file='input.nml',action='read',status='old', iostat=ierr)
     read(io,nml=cmd_controls, iostat=ierr)
     close(io)
+    call free_iounit(io)
 
-    s% iso(:)% Av = extinction_Av
-    s% iso(:)% Rv = extinction_Rv
+    s% Av = extinction_Av
+    s% Rv = extinction_Rv
+    do i=1,s% number_of_isochrones
+       s% iso(i)% Av = s% Av
+       s% iso(i)% Rv = s% Rv
+    enddo
     s% cmd_suffix  = cmd_suffix
 
     call iso_color_init(BC_table_list,do_Cstars,Cstar_table_list,ierr)

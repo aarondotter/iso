@@ -766,7 +766,7 @@ contains
     n=t% ntrack
 
     !simple test for substellar is that central H is unchanged
-    if( maxval( abs(t% tr(i_Xc,:) - t% tr(i_Xc,1)) ) < 0.1d0)then
+    if( t% initial_mass < 0.1d0 .and. maxval( abs(t% tr(i_Xc,:) - t% tr(i_Xc,1)) ) < 0.1d0)then
        t% star_type = sub_stellar
        return
     endif
