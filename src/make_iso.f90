@@ -7,7 +7,6 @@ program make_isochrone
 
   !local modules
   use iso_eep_support
-  use iso_color
 
   implicit none
 
@@ -23,16 +22,9 @@ program make_isochrone
   logical :: iso_debug = .false.
   logical :: do_smooth = .true.
   logical :: do_PAV = .true.
-  logical :: do_colors = .false.
-  logical :: do_Cstars = .false.
   logical :: do_linear_interpolation = .false.
-  character(len=file_path) :: BC_table_list='', Cstar_table_list=''
-  character(len=file_path) :: cmd_suffix = 'cmd'
-  real(sp) :: extinction_Av = 0.0, extinction_Rv = 0.0
 
-  namelist /iso_controls/ iso_debug, do_smooth, do_PAV, do_colors, do_Cstars, &
-  BC_table_list, Cstar_table_list, cmd_suffix, extinction_Av, extinction_Rv, &
-  do_linear_interpolation
+  namelist /iso_controls/ iso_debug, do_smooth, do_PAV, do_linear_interpolation
   
   !begin
   ierr=0
@@ -91,7 +83,6 @@ program make_isochrone
      call do_isochrone_for_age(t,set% iso(i))
   enddo
   call write_isochrones_to_file(set)
-  if(do_colors) call write_cmds_to_file(set)
 
   !all done.
   deallocate(s,t)
@@ -661,7 +652,6 @@ contains
 
 
   subroutine read_iso_input(ierr)
-    use iso_color, only: iso_color_init
     integer, intent(out) :: ierr
     character(len=col_width) :: col_name
     character(len=10) :: list_type, age_type
@@ -678,14 +668,6 @@ contains
     if(ierr/=0) then
        write(0,'(a)') 'make_iso: problem reading iso_controls namelist'
        return
-    endif
-
-    if(do_colors)then
-       set% Av = extinction_Av
-       set% Rv = extinction_Rv
-       set% cmd_suffix = cmd_suffix
-       call iso_color_init(BC_table_list,do_Cstars,Cstar_table_list,ierr)
-       if(ierr/=0) write(0,'(a)') ' problem reading BC_table_list = ', trim(BC_table_list)
     endif
 
     call get_command_argument(1,input_file)

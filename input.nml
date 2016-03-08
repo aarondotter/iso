@@ -6,16 +6,8 @@ output_to_eep_dir = .false.
 
 /
 
+&cmd_controls
 
-&iso_controls
-
-   do_smooth = .false.
-
-   do_PAV = .true.
-
-   do_linear_interpolation = .false.
-
-   do_colors = .false.
    BC_table_list = 'bc_table.list'
 
    do_Cstars = .false.
@@ -26,6 +18,17 @@ output_to_eep_dir = .false.
    extinction_Av = 0.0
 
    extinction_Rv = 3.1
+
+/
+
+
+&iso_controls
+
+   do_smooth = .true.
+
+   do_PAV = .true.
+
+   do_linear_interpolation = .true.
 
 / !end of iso_controls namelist
 
