@@ -27,13 +27,13 @@ all: $(EEP) $(ISO) $(BLEND) $(TRK) $(INTMET) $(INTAGE) $(CMD)
 $(CMD): make_cmd.o iso_color.o iso_eep_support.o BC_tables.o
 	$(FC) $(OMP) -o $(ROOT_DIR)/$(CMD) $^ $(LOAD_MESA)
 
-$(INTMET): iso_interp_met.o iso_eep_support.o iso_interp_support.o iso_color.o BC_tables.o
+$(INTMET): iso_interp_met.o iso_eep_support.o iso_interp_support.o
 	$(FC) $(OMP) -o $(ROOT_DIR)/$(INTMET) $^ $(LOAD_MESA)
 
 $(INTAGE): iso_interp_age.o iso_eep_support.o iso_interp_support.o iso_color.o BC_tables.o
 	$(FC) $(OMP) -o $(ROOT_DIR)/$(INTAGE) $^ $(LOAD_MESA)
 
-$(ISO): make_iso.o iso_eep_support.o iso_color.o BC_tables.o
+$(ISO): make_iso.o iso_eep_support.o 
 	$(FC) $(OMP) -o $(ROOT_DIR)/$(ISO) $^ $(LOAD_MESA)
 
 $(EEP): make_eep.o phases.o eep.o iso_eep_support.o 
@@ -47,13 +47,15 @@ $(TRK): make_track.o iso_eep_support.o
 
 iso_interp_support.o: $(SRC_DIR)/iso_interp_support.f90 iso_eep_support.o
 
-iso_interp_met.o: $(SRC_DIR)/iso_interp_met.f90 iso_eep_support.o iso_interp_support.o BC_tables.o iso_color.o
+iso_interp_met.o: $(SRC_DIR)/iso_interp_met.f90 iso_eep_support.o iso_interp_support.o
 
-iso_interp_age.o: $(SRC_DIR)/iso_interp_age.f90 iso_eep_support.o iso_interp_support.o BC_tables.o iso_color.o
+iso_interp_age.o: $(SRC_DIR)/iso_interp_age.f90 iso_eep_support.o iso_interp_support.o
 
 make_track.o: $(SRC_DIR)/make_track.f90 iso_eep_support.o
 
-make_iso.o: $(SRC_DIR)/make_iso.f90 iso_eep_support.o iso_color.o BC_tables.o
+make_cmd.o: $(SRC_DIR)/make_cmd.f90 iso_eep_support.o iso_color.o BC_tables.o
+
+make_iso.o: $(SRC_DIR)/make_iso.f90 iso_eep_support.o
 
 make_eep.o: $(SRC_DIR)/make_eep.f90 phases.o eep.o iso_eep_support.o
 
@@ -73,5 +75,5 @@ BC_tables.o: $(SRC_DIR)/BC_tables.f90
 	$(FC) $(OMP) $(FFLAGS) $(INCLUDE) -c $<
 
 clean:
-	rm -f $(ROOT_DIR)/$(EEP) $(ROOT_DIR)/$(ISO) $(ROOT_DIR)/$(BLEND) $(ROOT_DIR)/$(TRK) $(ROOT_DIR)/$(INTMET) $(ROOT_DIR)/$(INTAGE)
+	rm -f $(ROOT_DIR)/$(EEP) $(ROOT_DIR)/$(ISO) $(ROOT_DIR)/$(BLEND) $(ROOT_DIR)/$(TRK) $(ROOT_DIR)/$(INTMET) $(ROOT_DIR)/$(INTAGE) $(ROOT_DIR)/$(CMD)
 	rm -f *.mod *.o

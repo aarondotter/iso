@@ -14,20 +14,14 @@ program make_cmd
   logical :: do_Cstars = .false.
   character(len=file_path) :: BC_table_list = '', cmd_suffix = 'cmd'
   character(len=file_path) :: Cstar_table_list = ''
-  real(sp) :: extinction_Av=0.0, extinction_Rv=0.0
+  real(sp) :: extinction_Av=0.0, extinction_Rv=0.0, Fe_div_H = 1.0d2
 
   namelist /cmd_controls/ extinction_Av, extinction_Rv, BC_table_list, &
-  Cstar_table_list, do_Cstars, cmd_suffix
+  Cstar_table_list, do_Cstars, cmd_suffix, Fe_div_H
 
   call cmd_init(ierr)
-  if(ierr==0)then
-
-     call read_isochrone_file(s,ierr)
-
-     call write_cmds_to_file(s)
-
-  endif
-
+  if(ierr==0) call read_isochrone_file(s,ierr)
+  if(ierr==0) call write_cmds_to_file(s)
 
 contains
 
@@ -59,7 +53,7 @@ contains
     enddo
     s% cmd_suffix  = cmd_suffix
 
-    call iso_color_init(BC_table_list,do_Cstars,Cstar_table_list,ierr)
+    call iso_color_init(BC_table_list,do_Cstars,Cstar_table_list,Fe_div_H,ierr)
 
   end subroutine cmd_init
 

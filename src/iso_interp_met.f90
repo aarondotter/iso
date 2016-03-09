@@ -6,7 +6,6 @@ program iso_interp_met
   !local modules
   use iso_eep_support
   use iso_interp_support
-  use iso_color
 
   implicit none
 
@@ -15,7 +14,6 @@ program iso_interp_met
   real(dp), allocatable :: Z_div_H(:)
   real(dp) :: new_Z_div_H
   integer :: ierr, n, i, i_Minit
-  logical :: do_colors
   logical, parameter :: force_linear = .true.
   logical, parameter :: debug = .false.
   logical, parameter :: do_PAV = .true.
@@ -40,7 +38,6 @@ program iso_interp_met
   !write the new isochrone to file
   if(ierr==0) then
      call write_isochrones_to_file(t)
-     if(do_colors) call write_cmds_to_file(t)
   endif
 
 contains
@@ -61,39 +58,20 @@ contains
     integer, intent(out) :: ierr
     integer :: io, i
     character(len=file_path) :: iso_list, arg
-    character(len=file_path) :: bc_list, cstar_list
     ierr = 0
-    do_colors = .false.
 
     if(command_argument_count() < 3) then
        ierr=-1
        write(0,*) 'iso_interp_met        '
        write(0,*) '   usage:             '
-       write(0,*) ' ./iso_interp_met [list] [Z/H] [output] [Av]'
-       write(0,*) '  Av is optional;                       '
-       write(0,*) '   will generate a .cmd file if included'
+       write(0,*) ' ./iso_interp_met [list] [Z/H] [output]'
        return
-    else if(command_argument_count() > 3) then
-       do_colors=.true.
-       t% cmd_suffix = 'cmd'
-       bc_list = 'bc_table.list'
-       cstar_list = 'cstar_table.list'
-       call iso_color_init(bc_list,.false.,cstar_list,ierr)
-       if(ierr/=0) then 
-          write(0,'(a)') ' problem reading BC_table_list = ', trim(bc_list)
-          do_colors=.false.
-       endif
     endif
 
     call get_command_argument(1,iso_list)
     call get_command_argument(2,arg)
     read(arg,*) new_Z_div_H
     call get_command_argument(3,t% filename)
-    if(do_colors)then
-       call get_command_argument(4, arg)
-       read(arg,*) t% Av
-       t% Rv = 3.1
-    endif
 
     io=alloc_iounit(ierr)
     open(io,file=trim(iso_list),action='read',status='old')

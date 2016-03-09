@@ -15,9 +15,11 @@ output_to_eep_dir = .false.
 
    cmd_suffix = 'cmd'
 
-   extinction_Av = 0.0
+   extinction_Av = 0.01
 
    extinction_Rv = 3.1
+
+   Fe_div_H = 0.0
 
 /
 

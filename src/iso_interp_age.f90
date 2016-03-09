@@ -3,7 +3,6 @@ program iso_interp_age
   !local modules
   use iso_eep_support
   use iso_interp_support
-  use iso_color
 
   implicit none
 

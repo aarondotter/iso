@@ -13,18 +13,24 @@ module iso_color
 
   real(sp), parameter :: SolBol=4.74
   real(sp), parameter :: FeH_sol = -1.8729 !log10(Z/X) = log10(0.0134) from AGSS09
+  real(sp) :: BC_Fe_div_H
   type(BC_table), allocatable :: b(:), c(:)
-  logical :: BC_do_Cstars = .false.
+  logical :: BC_do_Cstars = .false., do_fixed_Z = .false.
   public iso_color_init, write_cmds_to_file
 
 contains
 
-  subroutine iso_color_init(bc_table_list,do_Cstars,cstar_table_list,ierr)
+  subroutine iso_color_init(bc_table_list,do_Cstars,cstar_table_list,Fe_div_H,ierr)
     character(len=file_path), intent(in) :: bc_table_list, cstar_table_list
     logical, intent(in) :: do_Cstars
+    real(sp), intent(in) :: Fe_div_H
     integer, intent(out) :: ierr
     BC_do_Cstars = do_Cstars
     call BC_table_init(bc_table_list,b,ierr)
+    if(Fe_div_H < 1d2)then
+       BC_Fe_div_H = Fe_div_H
+       do_fixed_Z = .true.
+    endif
     if(BC_do_Cstars) call BC_table_init(cstar_table_list,c,ierr)
     if(ierr/=0) write(0,*) 'BC tables initialized!'
   end subroutine iso_color_init
@@ -85,10 +91,14 @@ contains
        logT = real(iso% data(iT,i),kind=sp)
        logg = real(iso% data(ig,i),kind=sp)
        logL = real(iso% data(iL,i),kind=sp)
-       X    = real(iso% data(iH,i),kind=sp)
-       Y    = real(iso% data(iHe,i),kind=sp)
-       Z    = 1.0 - X - Y 
-       FeH  = min(max(log10(Z/X) - FeH_sol, b(1)% FeH), b(nb)% FeH)
+       if(do_fixed_Z)then
+          FeH = BC_Fe_div_H
+       else
+          X    = real(iso% data(iH,i),kind=sp)
+          Y    = real(iso% data(iHe,i),kind=sp)
+          Z    = 1.0 - X - Y 
+          FeH  = min(max(log10(Z/X) - FeH_sol, b(1)% FeH), b(nb)% FeH)
+       endif
        C_div_O = log10((16d0/12d0) * iso% data(iC,i) / iso% data(iO,i))
 
        Cstar_OK = (BC_do_Cstars) .and. (C_div_O > 0d0) .and. (logT > c_min_logT) .and. &
