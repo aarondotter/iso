@@ -19,18 +19,25 @@ output_to_eep_dir = .false.
 
    extinction_Rv = 3.1
 
-   Fe_div_H = 0.0
+   Fe_div_H = 0.0  
 
 /
 
 
 &iso_controls
 
-   do_smooth = .true.
+   do_smooth = .false.
 
    do_PAV = .true.
 
    do_linear_interpolation = .true.
+
+   !the age-delta variable allows you to select tracks within a given range of age
+   !namely +/-log_age_delta for each EEP; only those within the limits will be
+   !considered for age-mass and mass-etc. interpolation
+   log_age_delta = 0.75
+
+   very_low_mass_limit=0.7
 
 / !end of iso_controls namelist
 
@@ -58,7 +65,7 @@ output_to_eep_dir = .false.
 
    !if Minit < this treat the last point in the track as the TAMS
    !regardless of center h1
-   very_low_mass_limit = 0.6 !Msun
+   very_low_mass_limit = 0.7 !Msun
 
    !weight the distance metric center Rho and T terms by central H
    !suggested values

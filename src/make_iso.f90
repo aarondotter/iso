@@ -23,8 +23,9 @@ program make_isochrone
   logical :: do_smooth = .true.
   logical :: do_PAV = .true.
   logical :: do_linear_interpolation = .false.
-  namelist /iso_controls/ iso_debug, do_smooth, do_PAV, do_linear_interpolation
-  
+  real(dp) :: log_age_delta = 1d0
+  namelist /iso_controls/ iso_debug, do_smooth, do_PAV, do_linear_interpolation, log_age_delta, very_low_mass_limit
+
   !begin
   ierr=0
   if(command_argument_count()<1) then
@@ -99,7 +100,7 @@ contains
     real(dp), allocatable :: result1(:,:), result2(:,:), mass_tmp(:)
     logical, allocatable :: skip(:,:)
     integer, allocatable :: valid(:), count(:)
-    real(dp), parameter :: age_delta = 0.5d0, tiny = 1d-12
+    real(dp), parameter :: tiny = 1d-12
 
     ierr = 0
 
@@ -135,28 +136,27 @@ contains
     skip = .false.
     count = 0
 
-    if(.not.do_linear_interpolation)then
-       !determine the largest number of EEPs in tracks of different types
-       max_neep_low = 0
-       max_neep_high = 0
-       do k=1,n
-          if(s(k)% star_type < star_high_mass)then
-             max_neep_low = max(max_neep_low, s(k)% neep)
-          else ! high-mass star
-             max_neep_high = max(max_neep_high, s(k)% neep)
-          endif
-       enddo
 
-       !now check each track to make sure it is complete for its type
-       do k=1,n
-          if(s(k)% star_type == star_high_mass .and. s(k)% neep < max_neep_high) then
-             skip(k,:) = .true.
-          else if(s(k)% initial_mass > very_low_mass_limit &
-               .and. s(k)% star_type == star_low_mass .and. s(k)% neep < max_neep_low) then
-             skip(k,:) = .true.
-          endif
-       enddo
-    endif
+    !determine the largest number of EEPs in tracks of different types
+    max_neep_low = 0
+    max_neep_high = 0
+    do k=1,n
+       if(s(k)% star_type < star_high_mass)then
+          max_neep_low = max(max_neep_low, s(k)% neep)
+       else ! high-mass star
+          max_neep_high = max(max_neep_high, s(k)% neep)
+       endif
+    enddo
+
+    !now check each track to make sure it is complete for its type
+    do k=1,n
+       if(s(k)% star_type == star_high_mass .and. s(k)% neep < max_neep_high) then
+          skip(k,:) = .true.
+       else if(s(k)% initial_mass > very_low_mass_limit &
+            .and. s(k)% star_type == star_low_mass .and. s(k)% neep < max_neep_low) then
+          skip(k,:) = .true.
+       endif
+    enddo
 
     eep_loop1: do eep=1,max_eep
 
@@ -166,8 +166,8 @@ contains
        !count keeps track of how many tracks will be used. if
        !fewer than 2 tracks satisfy the condition, skip the EEP
        do k=1,n
-          max_age=age + age_delta
-          min_age=age - age_delta
+          max_age=age + log_age_delta
+          min_age=age - log_age_delta
 
           if(s(k)% eep(1) > eep .or. s(k)% eep(s(k)% neep) < eep ) then
              skip(k,eep) = .true.
@@ -180,33 +180,32 @@ contains
 
        !this loop attempts to pick out non-monotonic points
 
-       if(.not.do_linear_interpolation)then
-          if(.true.) then !top-down
 
-             if(.not.use_double_eep)then
-                do k=n,2,-1
-                   if(skip(k,eep)) cycle
-                   do l=k-1,1
-                      if( skip(l,eep)) cycle
-                      if( s(k)% tr(i_age,eep) > s(l)% tr(i_age,eep) ) skip(l,eep) = .true.
-                   enddo
+       if(.true.)then
+          if(.not.use_double_eep)then
+             do k=n,2,-1
+                if(skip(k,eep)) cycle
+                do l=k-1,1
+                   if( skip(l,eep)) cycle
+                   if( s(k)% tr(i_age,eep) > s(l)% tr(i_age,eep) ) skip(l,eep) = .true.
                 enddo
-             endif
-
-          else !bottom-up
-
-             if(.not.use_double_eep)then
-                do k=1,n-1
-                   if(skip(k,eep)) cycle
-                   do l=k+1,n
-                      if( skip(l,eep)) cycle
-                      if( s(k)% tr(i_age,eep) < s(l)% tr(i_age,eep) ) skip(l,eep) = .true.
-                   enddo
-                enddo
-             endif
-
+             enddo
           endif
+
+       else !bottom-up
+
+          if(.not.use_double_eep)then
+             do k=1,n-1
+                if(skip(k,eep)) cycle
+                do l=k+1,n
+                   if( skip(l,eep)) cycle
+                   if( s(k)% tr(i_age,eep) < s(l)% tr(i_age,eep) ) skip(l,eep) = .true.
+                enddo
+             enddo
+          endif
+
        endif
+
 
        !count tells the total number of valid tracks for each EEP
        do k=1,n
