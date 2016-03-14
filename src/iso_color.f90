@@ -12,8 +12,8 @@ module iso_color
   private
 
   real(sp), parameter :: SolBol=4.74
-  real(sp), parameter :: Z_div_X_sol = 0.0181
-  real(sp), parameter :: FeH_sol = log10(Z_div_X_sol)
+  real(sp), parameter :: Z_sol = 0.0134
+  real(sp), parameter :: log_Z_sol = log10(Z_sol)
   real(sp) :: BC_Fe_div_H
   type(BC_table), allocatable :: b(:), c(:)
   logical :: BC_do_Cstars = .false., do_fixed_Z = .false.
@@ -21,14 +21,15 @@ module iso_color
 
 contains
 
-  subroutine iso_color_init(bc_table_list,do_Cstars,cstar_table_list,Fe_div_H,ierr)
+  subroutine iso_color_init(bc_table_list,do_Cstars,cstar_table_list,set_fixed_Fe_div_H,Fe_div_H,ierr)
     character(len=file_path), intent(in) :: bc_table_list, cstar_table_list
     logical, intent(in) :: do_Cstars
+    logical, intent(in) :: set_fixed_Fe_div_H
     real(sp), intent(in) :: Fe_div_H
     integer, intent(out) :: ierr
     BC_do_Cstars = do_Cstars
     call BC_table_init(bc_table_list,b,ierr)
-    if(Fe_div_H < 1d2)then
+    if(set_fixed_Fe_div_H)then
        BC_Fe_div_H = Fe_div_H
        do_fixed_Z = .true.
     endif
@@ -45,10 +46,10 @@ contains
     real(sp) :: c_min_logT, c_max_logT, c_min_logg, c_max_logg
     real(dp) :: C_div_O
     logical :: Cstar_ok
-    integer :: iT, ig, iL, iH, iHe, iC, iO
+    integer :: iT, ig, iL, iH, iHe, iC, iO, isurfZ, iCdivO
     !a few initializations
     c_min_logT=0; c_max_logT=0; c_min_logg=0; c_max_logg=0
-    iT=0; ig=0; iL=0; iH=0; iHe=0; iC=0; iO=0; jZ=0
+    iT=0; ig=0; iL=0; iH=0; iHe=0; iC=0; iO=0; jZ=0; isurfZ=0; iCdivO=0
 
     !locate columns
     do i = 1, iso% ncol
@@ -66,6 +67,10 @@ contains
           iC=i
        else if(trim(adjustl(iso% cols(i)% name))=='surface_o16')then
           iO=i
+       else if(trim(adjustl(iso% cols(i)% name))=='log_surf_z')then
+          isurfZ=i
+       else if(trim(adjustl(iso% cols(i)% name))=='surf_num_c12_div_num_o16')then
+          iCdivO=i
        endif
     enddo
 
@@ -95,12 +100,20 @@ contains
        if(do_fixed_Z)then
           FeH = BC_Fe_div_H
        else
-          X    = real(iso% data(iH,i),kind=sp)
-          Y    = real(iso% data(iHe,i),kind=sp)
-          Z    = 1.0 - X - Y 
-          FeH  = min(max(log10(Z/X) - FeH_sol, b(1)% FeH), b(nb)% FeH)
+          if(isurfZ>0)then
+             FeH = real(iso% data(isurfZ,i),kind=sp) - log_Z_sol
+          else
+             X    = real(iso% data(iH,i),kind=sp)
+             Y    = real(iso% data(iHe,i),kind=sp)
+             Z    = 1.0 - X - Y 
+             FeH = log10(Z) - log_Z_sol
+          endif
        endif
-       C_div_O = log10((16d0/12d0) * iso% data(iC,i) / iso% data(iO,i))
+       if(iCdivO>0)then
+          C_div_O  =log10(iso% data(iCdivO,i))
+       else
+          C_div_O = log10((16d0/12d0) * iso% data(iC,i) / iso% data(iO,i))
+       endif
 
        Cstar_OK = (BC_do_Cstars) .and. (C_div_O > 0d0) .and. (logT > c_min_logT) .and. &
             (logT < c_max_logT) .and. (logg > c_min_logg) .and. (logg < c_max_logg)
