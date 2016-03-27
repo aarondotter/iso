@@ -214,7 +214,8 @@ contains
     real(dp) :: Xmax, Xmin, Xc, LH, Lmin !g_max, 
     real(dp), parameter :: Lfac = 9.99d-1 !Xfac = 9.8d-1
     integer, intent(in) :: guess
-    integer :: i, my_guess, ZAMS1, ZAMS2
+    integer :: i, my_guess, ZAMS1, ZAMS2, ZAMS3
+
     ZAMS = 0
     Xmax = t% tr(i_Xc,1)
     Xmin = Xmax - 1.0d-3
@@ -224,6 +225,7 @@ contains
        my_guess = guess
     endif
 
+    !small amount of central H burned
     i = my_guess
     Xc = t% tr(i_Xc,i)
     do while(Xc > Xmin .and. i < t% ntrack )
@@ -233,6 +235,7 @@ contains
 
     ZAMS1 = i
 
+    !test of L_H/L_tot > some fraction
     LH = pow10(t% tr(i_logLH,i))
     Lmin = Lfac * pow10(t% tr(i_logL,i))
     do while(LH > Lmin)
@@ -243,16 +246,12 @@ contains
 
     ZAMS2 = i
 
-    !currently we choose to use ZAMS1 definition but can also
-    !incorporate the ZAMS2 definition, or even average the 2
+    ZAMS3=maxloc(t% tr(i_logg,1:ZAMS1),dim=1)
 
-    if(t% initial_mass <= very_low_mass_limit) then
-       ZAMS = ZAMS2 !(ZAMS1+ZAMS2)/2
-    elseif(t% initial_mass > very_low_mass_limit .and. t% initial_mass <= 1d0)then
-       ZAMS = (ZAMS1+ZAMS2)/2
-    else
-       ZAMS = ZAMS1
-    endif
+    !currently we choose to use ZAMS3 definition but can also
+    !incorporate the ZAMS2 definition, or even average 1,2,&3
+
+    ZAMS=ZAMS3
 
     !in case no H-burning occurs, take the location of the highest 
     !central temperature
