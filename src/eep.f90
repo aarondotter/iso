@@ -246,7 +246,13 @@ contains
     !currently we choose to use ZAMS1 definition but can also
     !incorporate the ZAMS2 definition, or even average the 2
 
-    ZAMS = ZAMS1 !(ZAMS1+ZAMS2)/2
+    if(t% initial_mass <= very_low_mass_limit) then
+       ZAMS = ZAMS2 !(ZAMS1+ZAMS2)/2
+    elseif(t% initial_mass > very_low_mass_limit .and. t% initial_mass <= 1d0)then
+       ZAMS = (ZAMS1+ZAMS2)/2
+    else
+       ZAMS = ZAMS1
+    endif
 
     !in case no H-burning occurs, take the location of the highest 
     !central temperature
