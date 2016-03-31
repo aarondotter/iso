@@ -4,7 +4,6 @@ module BC_tables
   use utils_lib
   use interp_1d_def
   use interp_1d_lib_sg
-  use interp_2d_lib_sg
 
   implicit none
 
@@ -107,7 +106,7 @@ contains
     num_lines = t% num_g * t% num_T
     do i=1,t% num_filter
        do j=1,t% num_Av
-          allocate(t% bcs(i,j)% data(4*num_lines))
+          allocate(t% bcs(i,j)% data(num_lines))
           read(io) t% bcs(i,j)% data
        enddo
     enddo
@@ -142,9 +141,10 @@ contains
   subroutine read_one_ascii(t,ierr)
     type(BC_table), intent(inout) :: t
     integer, intent(out) :: ierr
-    integer :: i, j, k, pass, ng, nT, num_lines, ibcTmin, ibcTmax, ibcgmin, ibcgmax, io
+    integer :: i, j, k, pass, ng, nT, num_lines, io
     real(sp) :: Teff, logg, logT
-    real(sp), allocatable :: grid(:,:), bcTmin(:), bcTmax(:), bcgmin(:), bcgmax(:), BCdata(:)
+    !integer :: ibcTmin, ibcTmax, ibcgmin, ibcgmax
+    real(sp), allocatable :: grid(:,:), BCdata(:) !, bcTmin(:), bcTmax(:), bcgmin(:), bcgmax(:)
 
     write(*,*) ' opening ', trim(t% filename)
     io=alloc_iounit(ierr)
@@ -166,7 +166,7 @@ contains
        read(io,'(31x,199a20)') t% labels(1:t% num_Filter)
 
        do k=1,t% num_filter
-          allocate(t% bcs(k,i)% data(4*num_lines))
+          allocate(t% bcs(k,i)% data(num_lines))
        enddo
 
        do j=1, num_lines
@@ -174,7 +174,7 @@ contains
           grid(1,j) = log10(Teff)
           grid(2,j) = logg
           do k=1,t% num_filter
-             t% bcs(k,i)% data(4*(j-1)+1) = BCdata(k)
+             t% bcs(k,i)% data(j) = BCdata(k)
           enddo
        enddo
     enddo
@@ -221,34 +221,50 @@ contains
        enddo
     enddo
 
-    !process 2-d interpolation data once; use "not a knot" bc's
-    allocate(bcgmin(ng),bcgmax(ng),bcTmin(nT),bcTmax(nT))
-    ibcTmin = 0; bcTmin(:) = 0d0
-    ibcTmax = 0; bcTmax(:) = 0d0
-    ibcgmin = 0; bcgmin(:) = 0d0
-    ibcgmax = 0; bcgmax(:) = 0d0
-
-    do i=1,t% num_filter       
-       do j=1,t% num_Av
-          call interp_mkbicub_sg(t% logg, t% num_g, t% logT, t% num_T, &
-               t% bcs(i,j)% data, t% num_g, ibcgmin, bcgmin, ibcgmax, bcgmax, &
-               ibcTmin, bcTmin, ibcTmax, bcTmax, t% iling, t% ilinT, ierr)
-       enddo
-    enddo
-
   end subroutine read_one_ascii
 
   function BC_interp_filter_fixed_Av(t,logg,logT,iflt,iAv,ierr) result(res)
     type(BC_table), intent(inout) :: t
     real(sp), intent(in) :: logT, logg
     integer, intent(in) :: iflt, iAv
-    real(sp) :: res, result(6)
     integer, intent(out) :: ierr
-    integer :: ict(6)=[1,0,0,0,0,0]     
-    call interp_evbicub_sg(logg, logT, t% logg, t% num_g, &
-         t% logT, t% num_T, t% iling, t% ilinT, t% bcs(iflt,iAv)% data, &
-         t% num_g, ict, result, ierr)
-    res=result(1)
+    real(sp) :: res
+    integer :: i, iT, ig, i11, i12, i21, i22
+    real(sp) :: dT, dg, T1, T2, g1, g2
+    it=1; ig=1; ierr=0
+    if(logT > t% logT(t% num_T)) then
+       iT = t% num_T - 1
+    elseif(logT < t% logT(1))then
+       iT = 1
+    else
+       do i = 1, t% num_T-1
+          if(logT >= t% logT(i) .and. logT < t% logT(i+1)) iT=i
+       enddo
+    endif
+    if(logg > t% logg(t% num_g)) then
+       ig = t% num_g - 1
+    elseif(logg < t% logg(1))then
+       ig = 1
+    else
+       do i = 1, t% num_g-1
+          if(logg >= t% logg(i) .and. logg < t% logg(i+1)) ig=i
+       enddo
+    endif
+    T1=t% logT(iT)
+    T2=t% logT(iT+1)
+    dT=T2-T1
+    g1=t% logg(ig)
+    g2=t% logg(ig+1)
+    dg=g2-g1
+    i11=(iT-1)*t% num_g + ig
+    i12=(iT-1)*t% num_g + ig + 1
+    i21=    iT*t% num_g + ig
+    i22=    iT*t% num_g + ig + 1
+    res =((g2 - logg)*(T2-logT)*t% bcs(iflt,iAv)% data(i11) & 
+        + (logg - g1)*(T2-logT)*t% bcs(iflt,iAv)% data(i12) &
+        + (g2 - logg)*(logT-T1)*t% bcs(iflt,iAv)% data(i21) &
+        + (logg - g1)*(logT-T1)*t% bcs(iflt,iAv)% data(i22))/(dT*dg)
+
   end function BC_interp_filter_fixed_Av
 
   subroutine BC_interp_filters_fixed_Av(t,logg,logT,iAv,res,ierr)
@@ -305,12 +321,16 @@ contains
     real(sp), intent(out) :: res(:)
     integer, intent(out) :: ierr
     integer :: i
+    real(sp) :: my_logT, my_logg, my_Av
     if(t% num_filter /= size(res)) then
        ierr=-1
        return
     endif
+    my_logT = min(max(logT, t% logT(1)), t% logT(t% num_T))
+    my_logg = min(max(logg, t% logg(1)), t% logg(t% num_g))
+    my_Av   = min(max(  Av, t%   Av(1)), t%   Av(t% num_Av))
     do i=1,t% num_filter
-       res(i)=BC_interp_filter(t,logg,logT,i,Av,ierr)
+       res(i)=BC_interp_filter(t,my_logg,my_logT,i,my_Av,ierr)
     enddo
   end subroutine BC_interp_filters
 

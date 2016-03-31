@@ -92,7 +92,6 @@ contains
        nc=0
     endif
 
-
     do i=1,iso% neep
        logT = real(iso% data(iT,i),kind=sp)
        logg = real(iso% data(ig,i),kind=sp)
@@ -115,7 +114,7 @@ contains
           C_div_O = log10((16d0/12d0) * iso% data(iC,i) / iso% data(iO,i))
        endif
 
-       Cstar_OK = (BC_do_Cstars) .and. (C_div_O > 0d0) .and. (logT > c_min_logT) .and. &
+       Cstar_OK = BC_do_Cstars .and. (C_div_O > 0d0) .and. (logT > c_min_logT) .and. &
             (logT < c_max_logT) .and. (logg > c_min_logg) .and. (logg < c_max_logg)
 
        if( Cstar_OK )then !use Cstar grid
@@ -133,6 +132,7 @@ contains
              call quadratic(c(1), c(2), c(3), logg, logT, iso% Av, FeH, res, ierr)
 
           else 
+
              do j=1,n-1
                 if(FeH >= c(j)% FeH .and. FeH < c(j+1)% FeH) jZ=j
              enddo
