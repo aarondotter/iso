@@ -228,42 +228,101 @@ contains
     real(sp), intent(in) :: logT, logg
     integer, intent(in) :: iflt, iAv
     integer, intent(out) :: ierr
-    real(sp) :: res
-    integer :: i, iT, ig, i11, i12, i21, i22
-    real(sp) :: dT, dg, T1, T2, g1, g2
-    it=1; ig=1; ierr=0
-    if(logT > t% logT(t% num_T)) then
-       iT = t% num_T - 1
+    real(sp) :: res, res1, res2
+    integer :: i, iT, ig, ng, nT
+    real(sp) :: dT, dg, T1, T2, g1, g2, x(4), y(4), a(3), dx
+    iT=0; ig=1; ierr=0
+
+    ng=t% num_g
+    nT=t% num_T
+
+    if(logT > t% logT(nT)) then
+       iT = nT
     elseif(logT < t% logT(1))then
-       iT = 1
+       iT = 0
     else
-       do i = 1, t% num_T-1
+       do i = 1, nT-1
           if(logT >= t% logT(i) .and. logT < t% logT(i+1)) iT=i
        enddo
     endif
-    if(logg > t% logg(t% num_g)) then
-       ig = t% num_g - 1
+    if(logg > t% logg(ng)) then
+       ig = ng
     elseif(logg < t% logg(1))then
-       ig = 1
+       ig = 0
     else
-       do i = 1, t% num_g-1
+       do i = 1, ng-1
           if(logg >= t% logg(i) .and. logg < t% logg(i+1)) ig=i
        enddo
     endif
-    T1=t% logT(iT)
-    T2=t% logT(iT+1)
-    dT=T2-T1
+
     g1=t% logg(ig)
     g2=t% logg(ig+1)
     dg=g2-g1
-    i11=(iT-1)*t% num_g + ig
-    i12=(iT-1)*t% num_g + ig + 1
-    i21=    iT*t% num_g + ig
-    i22=    iT*t% num_g + ig + 1
-    res =((g2 - logg)*(T2-logT)*t% bcs(iflt,iAv)% data(i11) & 
-        + (logg - g1)*(T2-logT)*t% bcs(iflt,iAv)% data(i12) &
-        + (g2 - logg)*(logT-T1)*t% bcs(iflt,iAv)% data(i21) &
-        + (logg - g1)*(logT-T1)*t% bcs(iflt,iAv)% data(i22))/(dT*dg)
+
+    if(ig==0.or.ig==ng) then
+
+       if(ig==0) ig=1
+       
+       if(iT==0)then
+          res = t% bcs(iflt,iAv)% data(1)
+       elseif(iT==nT)then
+          res = t% bcs(iflt,iAv)% data(nT*ng)
+       elseif(iT==1.or.iT==nT-1)then
+          T1=t% logT(iT)
+          T2=t% logT(iT+1)
+          dT=T2-T1
+          res1=t% bcs(iflt,iAv)% data((iT-1)*ng+ig)
+          res2=t% bcs(iflt,iAv)% data((iT  )*ng+ig)
+          res= ((T2-logT)*res1 + (logT-T1)*res2)/dT
+       else
+          x=t% logT(iT-1:iT+2)
+          dx = logT - x(2)
+          y(1) = t% bcs(iflt,iAv)% data((iT-2)*ng + ig)
+          y(2) = t% bcs(iflt,iAv)% data((iT-1)*ng + ig)
+          y(3) = t% bcs(iflt,iAv)% data((iT  )*ng + ig)
+          y(4) = t% bcs(iflt,iAv)% data((iT+1)*ng + ig)
+          call interp_4pt_pm_sg(x,y,a)
+          res = y(2) + dx*(a(1) + dx*(a(2) + dx*a(3)))
+       endif
+
+    else
+       
+       if(iT==0)then
+          res1 = t% bcs(iflt,iAv)% data(ig)
+          res2 = t% bcs(iflt,iAV)% data(ig+1)
+       elseif(iT==nT)then
+          res1 = t% bcs(iflT,iAv)% data((nT-1)*ng+ig)
+          res2 = t% bcs(iflT,iAv)% data((nT-1)*ng+ig+1)
+       elseif(iT==1.or.iT==nT-1)then
+          T1=t% logT(iT)
+          T2=t% logT(iT+1)
+          dT=T2-T1
+          res1 = ((T2-logT)*t% bcs(iflt,iAv)% data((iT-1)*ng+ig) &
+               + (logT-T1)*t% bcs(iflt,iAv)% data((iT  )*ng+ig))/dT
+          res2 = ((T2-logT)*t% bcs(iflt,iAv)% data((iT-1)*ng+ig+1) &
+               + (logT-T1)*t% bcs(iflt,iAv)% data((iT  )*ng+ig+1))/dT
+       else
+          x = t% logT(iT-1:iT+2)
+          dx = logT - x(2)
+          !at g1
+          y(1) = t% bcs(iflt,iAv)% data((iT-2)*ng + ig)
+          y(2) = t% bcs(iflt,iAv)% data((iT-1)*ng + ig)
+          y(3) = t% bcs(iflt,iAv)% data((iT  )*ng + ig)
+          y(4) = t% bcs(iflt,iAv)% data((iT+1)*ng + ig)
+          call interp_4pt_pm_sg(x,y,a)
+          res1 = y(2) + dx*(a(1) + dx*(a(2) + dx*a(3)))
+          !at g2
+          y(1) = t% bcs(iflt,iAv)% data((iT-2)*ng + ig+1)
+          y(2) = t% bcs(iflt,iAv)% data((iT-1)*ng + ig+1)
+          y(3) = t% bcs(iflt,iAv)% data((iT  )*ng + ig+1)
+          y(4) = t% bcs(iflt,iAv)% data((iT+1)*ng + ig+1)
+          call interp_4pt_pm_sg(x,y,a)
+          res2 = y(2) + dx*(a(1) + dx*(a(2) + dx*a(3)))
+       endif
+
+       res = ((g2-logg)*res1 + (logg-g1)*res2)/dg
+      
+    endif
 
   end function BC_interp_filter_fixed_Av
 
