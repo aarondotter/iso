@@ -145,6 +145,8 @@ contains
 
     do i = 1, new% number_of_isochrones
 
+       print *, i, new% iso(i)% age
+
        do j = 1, n-1
           if(new% iso(i)% age > old% iso(j)% age .and. new% iso(i)% age <= old% iso(j+1)% age)then
              loc=j
@@ -237,7 +239,6 @@ contains
     endif
 
     !loop over the EEPs
-    !$omp parallel do private(eep)
     do eep=eep_lo,eep_hi
        if(good(eep))then
           t% eep(eep_index(eep)) = eep
@@ -264,7 +265,6 @@ contains
           endif
        endif
     enddo
-    !$omp end parallel do
 
   end subroutine do_interp_one
 
