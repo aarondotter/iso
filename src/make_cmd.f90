@@ -17,7 +17,7 @@ program make_cmd
   logical :: set_fixed_Fe_div_H = .false.
   real(sp) :: extinction_Av=0.0, extinction_Rv=0.0, Fe_div_H = 0.0
 
-  namelist /cmd_controls/ extinction_Av, extinction_Rv, BC_table_list, &
+  namelist /cmd_controls/ BC_table_list, extinction_Av, extinction_Rv, &
   Cstar_table_list, do_Cstars, cmd_suffix, Fe_div_H, set_fixed_Fe_div_H
 
   call cmd_init(ierr)
@@ -29,10 +29,12 @@ contains
   subroutine cmd_init(ierr)
     integer, intent(out) :: ierr
     integer :: io , i
+    character(len=16) :: arg
 
     if(command_argument_count()<1)then
        write(*,*) ' make_cmd:   '
-       write(*,*) '   usage: ./make_cmd [isochrone file]'
+       write(*,*) '   usage: ./make_cmd [isochrone file] [Av]'
+       write(*,*) '     [Av] optional argument; if not set then take value from input.nml'
        write(*,*) '     all other options set through cmd_controls in input.nml'
        ierr=-1
        return
@@ -45,6 +47,12 @@ contains
     read(io,nml=cmd_controls, iostat=ierr)
     close(io)
     call free_iounit(io)
+
+
+    if(command_argument_count()>1)then
+       call get_command_argument(2, arg)
+       read(arg,*) extinction_Av
+    endif
 
     s% Av = extinction_Av
     s% Rv = extinction_Rv
