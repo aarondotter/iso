@@ -23,8 +23,8 @@ module BC_tables
 
 contains
 
-  subroutine BC_table_init(table_list,t,ierr)
-    character(len=*), intent(in) :: table_list
+  subroutine BC_table_init(phot_string,table_list,t,ierr)
+    character(len=*), intent(in) :: phot_string,table_list
     type(BC_table), allocatable, intent(inout) :: t(:)
     integer, intent(out) :: ierr
     integer :: i,n,io
@@ -42,6 +42,7 @@ contains
        if(ierr/=0) exit
        if(line=='' .or. line(1:1)=='#' .or. line(1:1)=='!') cycle
        read(line,'(a)') t(i)% filename
+       t(i)% filename = trim(t(i)% filename) // '.' // trim(phot_string)
        call load_one_BC(t(i),ierr)
        if(ierr/=0) exit
        if(i>1)then !check to make sure the tables are ordered properly

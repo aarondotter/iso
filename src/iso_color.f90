@@ -21,19 +21,20 @@ module iso_color
 
 contains
 
-  subroutine iso_color_init(bc_table_list,do_Cstars,cstar_table_list,set_fixed_Fe_div_H,Fe_div_H,ierr)
+  subroutine iso_color_init(phot_string,bc_table_list,do_Cstars,cstar_table_list,set_fixed_Fe_div_H,Fe_div_H,ierr)
+    character(len=32) :: phot_string
     character(len=file_path), intent(in) :: bc_table_list, cstar_table_list
     logical, intent(in) :: do_Cstars
     logical, intent(in) :: set_fixed_Fe_div_H
     real(sp), intent(in) :: Fe_div_H
     integer, intent(out) :: ierr
     BC_do_Cstars = do_Cstars
-    call BC_table_init(bc_table_list,b,ierr)
+    call BC_table_init(phot_string,bc_table_list,b,ierr)
     if(set_fixed_Fe_div_H)then
        BC_Fe_div_H = Fe_div_H
        do_fixed_Z = .true.
     endif
-    if(BC_do_Cstars) call BC_table_init(cstar_table_list,c,ierr)
+    if(BC_do_Cstars) call BC_table_init(phot_string,cstar_table_list,c,ierr)
     if(ierr/=0) write(0,*) 'BC tables initialized!'
   end subroutine iso_color_init
 

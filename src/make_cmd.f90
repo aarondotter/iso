@@ -29,18 +29,21 @@ contains
   subroutine cmd_init(ierr)
     integer, intent(out) :: ierr
     integer :: io , i
-    character(len=16) :: arg
+    character(len=32) :: phot_string, arg
 
     if(command_argument_count()<1)then
        write(*,*) ' make_cmd:   '
-       write(*,*) '   usage: ./make_cmd [isochrone file] [Av]'
+       write(*,*) '   usage: ./make_cmd [phot string] [isochrone file] [Av]'
+       write(*,*) '     [phot string] = UBVRIJHKs, etc.                    '
+       write(*,*) '     [isochrone file] = name of isochrone file to transform'
        write(*,*) '     [Av] optional argument; if not set then take value from input.nml'
        write(*,*) '     all other options set through cmd_controls in input.nml'
        ierr=-1
        return
     endif
-
-    call get_command_argument(1,s% filename)
+    
+    call get_command_argument(1,phot_string)
+    call get_command_argument(2,s% filename)
     
     io=alloc_iounit(ierr)
     open(io,file='input.nml',action='read',status='old', iostat=ierr)
@@ -49,8 +52,8 @@ contains
     call free_iounit(io)
 
 
-    if(command_argument_count()>1)then
-       call get_command_argument(2, arg)
+    if(command_argument_count()>2)then
+       call get_command_argument(3, arg)
        read(arg,*) extinction_Av
     endif
 
@@ -62,7 +65,7 @@ contains
     enddo
     s% cmd_suffix  = cmd_suffix
 
-    call iso_color_init(BC_table_list,do_Cstars,Cstar_table_list, &
+    call iso_color_init(phot_string,BC_table_list,do_Cstars,Cstar_table_list, &
          set_fixed_Fe_div_H,Fe_div_H,ierr)
 
   end subroutine cmd_init
