@@ -15,12 +15,12 @@ output_to_eep_dir = .false.
 
    cmd_suffix = 'cmd'
 
-   extinction_Av = 0.01
+   extinction_Av = 0.0
 
    extinction_Rv = 3.1
 
    set_fixed_Fe_div_H = .false.
-   Fe_div_H = 0.0  
+   Fe_div_H = 0.50
 
 /
 
@@ -44,6 +44,12 @@ output_to_eep_dir = .false.
 
 
 &eep_controls
+
+   version_string = '1.0'     ! 8 characters max
+   !                |--------|
+   initial_Y = 0.25d0
+   initial_Z = 0.014d0
+   Fe_div_H = 0d0
 
    !if making isochrones repeatedly from the same set of tracks, set to true
    !this creates a binary track file that is read in much faster than text
@@ -79,7 +85,7 @@ output_to_eep_dir = .false.
    Rhoc_scale = 1d-2
 
    !suggested values
-   age_scale = 0.05d0
+   age_scale = 1d0
    Teff_scale = 2.0d0
    logL_scale = 0.125d0
 

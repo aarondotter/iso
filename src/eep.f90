@@ -20,6 +20,10 @@ contains
     type(track), intent(out) :: s
     integer :: i, j, k, num_p, num_s
 
+    s% version_string = t% version_string
+    s% initial_Y = t% initial_Y
+    s% initial_Z = t% initial_Z
+    s% Fe_div_H  = t% Fe_div_H
     s% ncol = t% ncol
     s% star_type = t% star_type
     !determine total number of EEPs in this track
@@ -37,7 +41,7 @@ contains
     ! identify the attributes of the new EEP track
     s% filename = t% filename
     s% initial_mass = t% initial_mass
-    s% version_number = t% version_number
+    s% MESA_revision_number = t% MESA_revision_number
     s% ntrack = num_p + num_s
     s% neep = num_p
     s% ncol = t% ncol

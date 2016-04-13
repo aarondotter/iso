@@ -89,7 +89,7 @@ contains
     call read_isochrone_file(old,ierr)
     if(ierr/=0) return    
 
-    new% version_number = old% version_number
+    new% MESA_revision_number = old% MESA_revision_number
     new% number_of_isochrones = number_of_ages
 
     allocate(new% iso(new% number_of_isochrones))

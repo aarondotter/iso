@@ -8,16 +8,18 @@ program make_eeps
   implicit none
 
   integer :: i, ierr, io, num
+  character(len=8) :: version_string
   character(len=file_path) :: input_file, history_columns_list
   character(len=file_path), allocatable :: history_files(:)
   type(track), pointer :: t=>NULL(), s=>NULL()
   logical :: do_phases = .true.
+  real(dp) :: initial_Y, initial_Z, Fe_div_H
 
   namelist /eep_controls/ do_phases, center_gamma_limit, &
        center_carbon_limit, log_center_T_limit, &
        high_mass_limit, very_low_mass_limit, weight_center_rho_T_by_Xc, &
        Teff_scale, logL_scale, age_scale, Tc_scale, Rhoc_scale, &
-       make_bin_tracks
+       make_bin_tracks, initial_Y, initial_Z, Fe_div_H, version_string
 
   ierr=0
 
@@ -35,7 +37,12 @@ program make_eeps
   do i=1,num
      call alloc_track(history_files(i),t)
      call read_history_file(t,ierr)
-     write(*,*) trim(t% filename), t% neep, t% version_number
+     write(*,*) trim(t% filename), t% neep, t% MESA_revision_number
+     !now set header info
+     t% initial_Y = initial_Y
+     t% initial_Z = initial_Z
+     t% Fe_div_H  = Fe_div_H
+     t% version_string = version_string
      if(ierr/=0) then
         write(0,*) 'make_eep: problem reading!'
         cycle
@@ -72,6 +79,8 @@ contains
     endif
     read(io, nml=eep_controls, iostat=ierr)
     close(io)
+
+    version_string = adjustr(version_string)
 
     call get_command_argument(1,input_file)
 

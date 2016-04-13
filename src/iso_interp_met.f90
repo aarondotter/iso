@@ -124,7 +124,7 @@ contains
     order = hi - lo + 1  ! either 4, 3, or 2
 
     t% number_of_isochrones =s(lo)% number_of_isochrones
-    t% version_number = s(lo)% version_number
+    t% MESA_revision_number = s(lo)% MESA_revision_number
     allocate(t% iso(t% number_of_isochrones))
     t% iso(:)% age_scale = s(lo)% iso(:)% age_scale
     t% iso(:)% has_phase = s(lo)% iso(:)% has_phase

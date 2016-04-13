@@ -24,11 +24,11 @@ contains
        write(0,*) ' iso_interp_met : failed consistency check - inconsistent number of isochrones '
        ierr=-1
        do i=1,n
-          write(0,*) trim(s(i)% filename), s(i)% version_number
+          write(0,*) trim(s(i)% filename), s(i)% MESA_revision_number
        enddo
     endif
 
-    if(any(s(:)% version_number /= s(1)% version_number))then
+    if(any(s(:)% MESA_revision_number /= s(1)% MESA_revision_number))then
        write(0,*) ' iso_interp_met : failed consistency check - inconsistent version number '
        ierr=-1
        do i=1,n

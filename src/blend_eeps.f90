@@ -89,6 +89,10 @@ contains
     enddo
 
     s% initial_mass = s_old(1)% initial_mass
+    s% Fe_div_H = s_old(1)% Fe_div_H
+    s% version_string = s_old(1)% version_string
+    s% initial_Z = s_old(1)% initial_Z
+    s% initial_Y = s_old(1)% initial_Y
     s% has_phase = s_old(1)% has_phase
     s% ncol = s_old(1)% ncol
     allocate(s% cols(s% ncol))
@@ -97,7 +101,7 @@ contains
     s% cols(:)% name = s_old(1)% cols(:)% name
     s% neep = s_old(1)% neep
     s% ntrack = s_old(1)% ntrack
-    s% version_number = s_old(1)% version_number
+    s% MESA_revision_number = s_old(1)% MESA_revision_number
     s% star_type = s_old(1)% star_type
     allocate(s% eep(s% neep))
     s% eep = s_old(1)% eep

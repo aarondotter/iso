@@ -86,7 +86,7 @@ contains
     b% has_phase = a(m)% has_phase
     allocate(b% cols(b% ncol))
     b% cols = a(m)% cols
-    b% version_number = a(m)% version_number
+    b% MESA_revision_number = a(m)% MESA_revision_number
     allocate(b% eep(b% neep))
     allocate(b% tr(b% ncol, b% ntrack))
     if(b% has_phase) allocate(b% phase(b% ntrack))

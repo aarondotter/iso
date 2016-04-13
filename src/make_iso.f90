@@ -59,7 +59,7 @@ program make_isochrone
              stop ' make_iso: masses out of order'
         if( s(i)% has_phase.neqv.s(prev)% has_phase ) &
              stop ' make_iso: inconsistent phase info in tracks'
-        if( s(i)% version_number /= s(prev)% version_number )&
+        if( s(i)% MESA_revision_number /= s(prev)% MESA_revision_number )&
              stop ' make_iso: inconsistent version number in tracks'
      endif
      ngood=ngood+1
@@ -76,7 +76,7 @@ program make_isochrone
 
   !above checks pass => these are safe assignments
   set% iso(:)% has_phase = t(1)% has_phase
-  set% version_number = t(1)% version_number
+  set% MESA_revision_number = t(1)% MESA_revision_number
 
   !create isochrones 
   do i=1,set% number_of_isochrones
