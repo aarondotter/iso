@@ -94,7 +94,13 @@ contains
 
     allocate(new% iso(new% number_of_isochrones))
     new% iso(:)% has_phase = old% iso(1)% has_phase
-
+    new% version_string = old% version_string
+    new% Fe_div_H = old% Fe_div_H
+    new% initial_Y = old% initial_Y
+    new% initial_Z = old% initial_Z
+    new% iso(:)% Fe_div_H = new% Fe_div_H
+    new% iso(:)% initial_Y = new% initial_Y
+    new% iso(:)% initial_Z = new% initial_Z
 
     do i=1,new% number_of_isochrones
        new% iso(i)% age_scale = age_scale
@@ -104,18 +110,6 @@ contains
           new% iso(i)% age = age(i)
        endif
     enddo
-
-    if(.false.)then
-       do i=1,new% number_of_isochrones
-          write(*,*) new% iso(i)% age
-       enddo
-       
-       do i=1,old% number_of_isochrones
-          write(*,*) old% iso(i)% age
-       enddo
-       
-       ierr=-1
-    endif
 
   end subroutine read_interp_age_input
 

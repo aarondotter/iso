@@ -77,6 +77,13 @@ program make_isochrone
   !above checks pass => these are safe assignments
   set% iso(:)% has_phase = t(1)% has_phase
   set% MESA_revision_number = t(1)% MESA_revision_number
+  set% version_string = t(1)% version_string
+  set% Fe_div_H = t(1)% Fe_div_H
+  set% initial_Y = t(1)% initial_Y
+  set% initial_Z = t(1)% initial_Z
+  set% iso(:)% initial_Y = set% initial_Y
+  set% iso(:)% initial_Z = set% initial_Z
+  set% iso(:)% Fe_div_H  = set% Fe_div_H
 
   !create isochrones 
   do i=1,set% number_of_isochrones

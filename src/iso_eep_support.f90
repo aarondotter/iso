@@ -97,7 +97,7 @@ module iso_eep_support
      character(len=20), allocatable :: labels(:) !for mags
      logical :: has_phase = .false.
      integer, allocatable :: eep(:)
-     real(dp) :: age ! log(age in yrs)
+     real(dp) :: age, Fe_div_H, initial_Y, initial_Z ! log(age in yrs)
      real(dp), allocatable :: phase(:) !neep
      real(dp), allocatable :: data(:,:) !(ncol,neep)
      real(sp), allocatable :: mags(:,:) !(num filters, neep)
@@ -249,9 +249,9 @@ contains
     io=alloc_iounit(ierr)
     write(*,*) '    ', trim(x% filename)
     open(io,file=trim(x% filename),action='write',status='unknown')
-    write(io,'(a8, 2a20,a10,6a8,2x,a10)') ' version', 'initial_mass', 'initial_Z', &
+    write(io,'(a8,a20,2a12,a8,6a8,2x,a10)') ' version', 'initial_mass', 'initial_Z', &
          'initial_Y', ' [Fe/H]', 'N_pts', 'N_EEP', 'N_col', 'MESA', 'phase', 'type'
-    write(io,'(a8,1p2e20.10,0pf10.6,0pf8.3,4i8,a8,2x,a10)') x% version_string, x% initial_mass, &
+    write(io,'(a8,1p1e20.10,0p2f12.8,f8.3,4i8,a8,2x,a10)') x% version_string, x% initial_mass, &
          x% initial_Z, x% initial_Y, x% Fe_div_H, x% ntrack, x% neep, &
          x% ncol, x% MESA_revision_number, 'NO', star_label(x% star_type)
     write(io,'(a10,20i8)') '   EEPs:  ', x% eep
@@ -270,9 +270,9 @@ contains
     io=alloc_iounit(ierr)
     write(*,*) '    ', trim(x% filename)
     open(io,file=trim(x% filename),action='write',status='unknown')
-    write(io,'(a8, 2a20,a10,6a8,2x,a10)') ' version', 'initial_mass', 'initial_Z', &
+    write(io,'(a8,a20,2a12,a8,6a8,2x,a10)') ' version', 'initial_mass', 'initial_Z', &
          'initial_Y', ' [Fe/H]', 'N_pts', 'N_EEP', 'N_col', 'MESA', 'phase', 'type'
-    write(io,'(a8,1p2e20.10,0pf10.6,0pf8.3,4i8,a8,2x,a10)') x% version_string, x% initial_mass, &
+    write(io,'(a8,1p1e20.10,0p2f12.8,f8.3,4i8,a8,2x,a10)') x% version_string, x% initial_mass, &
          x% initial_Z, x% initial_Y, x% Fe_div_H, x% ntrack, x% neep, &
          x% ncol, x% MESA_revision_number, 'NO', star_label(x% star_type)
     write(io,'(a10,20i8)') '   EEPs:  ', x% eep
@@ -294,7 +294,9 @@ contains
     write(0,*) ' isochrone output file = ', trim(set% filename)
     open(io,file=trim(set% filename),action='write',status='unknown',iostat=ierr)
     write(io,'(a25,i5)') '# number of isochrones = ', n
-    write(io,'(a25,i5)') '# MESA version number  = ', set% MESA_revision_number
+    write(io,'(a25,i5)') '# MESA revision number = ', set% MESA_revision_number
+    write(io,'(a25,a8)') '# isochrone version    = ', set% version_string
+    write(io,'(a25,2f12.8,f8.3)') '# initial Y, Z, [Fe/H] = ', set% initial_Y, set% initial_Z, set% Fe_div_H 
     do i=1,n
        call write_isochrone_to_file(io,set% iso(i))
        if(i<n) write(io,*)
@@ -371,7 +373,7 @@ contains
     endif
 
     read(io,*)
-    read(io,'(a8,1p2e20.10,f10.6,f8.3,4i8,a8,2x,a10)') x% version_string, &
+    read(io,'(a8,1p1e20.10,2f12.8,f8.3,4i8,a8,2x,a10)') x% version_string, &
          x% initial_mass, x% initial_Z, x% initial_Y, x% Fe_div_H, x% ntrack, &
          x% neep, x% ncol, x% MESA_revision_number, phase_info, type_label
 
@@ -565,12 +567,17 @@ contains
     open(io,file=trim(s% filename), action='read', status='old')
     read(io,'(25x,i5)') s% number_of_isochrones
     read(io,'(25x,i5)') s% MESA_revision_number
+    read(io,'(25x,a8)') s% version_string
+    read(io,'(25x,2f12.8,f8.3)') s% initial_Y, s% initial_Z, s% Fe_div_H
     !make room
     n=s% number_of_isochrones
     allocate(s% iso(n))
     !read the data
     do i=1,n
        call read_one_isochrone_from_file(io,s% iso(i))
+       s% iso(i)% Fe_div_H = s% Fe_div_H
+       s% iso(i)% initial_Y = s% initial_Y
+       s% iso(i)% initial_Z = s% initial_Z
        if(i<n) read(io,*)
        if(i<n) read(io,*)
     enddo    
