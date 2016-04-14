@@ -285,10 +285,15 @@ contains
     n=set% number_of_isochrones
     write(0,*) ' isochrone output file = ', trim(set% filename)
     open(io,file=trim(set% filename),action='write',status='unknown',iostat=ierr)
+    write(io,'(a25,a8)') '# MIST version number  = ', set% version_string
+    write(io,'(a25,i8)') '# MESA revision number = ', set% MESA_revision_number
+    write(io,'(a88)') '# --------------------------------------------------------------------------------------'
+    write(io,'(a88)') '#  Yinit        Zinit   [Fe/H]   [a/Fe]  v/vcrit                                        '
+    write(io,'(a2,f6.4,1p1e13.5,0p3f9.2)') '# ', set% initial_Y, set% initial_Z, set% Fe_div_H, set% alpha_div_Fe, &
+         set% v_div_vcrit
+    write(io,'(a88)') '# --------------------------------------------------------------------------------------'
     write(io,'(a25,i5)') '# number of isochrones = ', n
-    write(io,'(a25,i5)') '# MESA revision number = ', set% MESA_revision_number
-    write(io,'(a25,a8)') '# isochrone version    = ', set% version_string
-    write(io,'(a25,2f12.8,f8.3)') '# initial Y, Z, [Fe/H] = ', set% initial_Y, set% initial_Z, set% Fe_div_H 
+    write(io,'(a88)') '# --------------------------------------------------------------------------------------'
     do i=1,n
        call write_isochrone_to_file(io,set% iso(i))
        if(i<n) write(io,*)
@@ -363,18 +368,6 @@ contains
        call free_iounit(io)
        return
     endif
-
-!    write(io,'(a25,a8)') '# MIST version number  = ', x% version_string
-!    write(io,'(a25,i8)') '# MESA revision number = ', x% MESA_revision_number
-!    write(io,'(a88)') '# --------------------------------------------------------------------------------------'
-!    write(io,'(a88)') '#  Yinit        Zinit   [Fe/H]   [a/Fe]  v/vcrit                                        '
-!    write(io,'(a2,f6.4,1p1e13.5,0p3f9.2)') '# ', x% initial_Y, x% initial_Z, x% Fe_div_H, x% alpha_div_Fe, x% v_div_vcrit
-!    write(io,'(a88)') '# --------------------------------------------------------------------------------------'
-!    write(io,'(a1,1x,a16,4a8,2x,a10)') '#','initial_mass', 'N_pts', 'N_EEP', 'N_col', 'phase', 'type'
-!    write(io,'(a1,1x,1p1e16.10,3i8,a8,2x,a10)') '#', x% initial_mass, x% ntrack, x% neep, x% ncol, have_phase, &
-!         star_label(x% star_type)
-!    write(io,'(a8,20i8)') '# EEPs: ', x% eep
-!    write(io,'(a88)') '# --------------------------------------------------------------------------------------'
 
     read(io,'(25x,a8)') x% version_string
     read(io,'(25x,i8)') x% MESA_revision_number
@@ -574,10 +567,24 @@ contains
     ierr=0
     io=alloc_iounit(ierr)
     open(io,file=trim(s% filename), action='read', status='old')
-    read(io,'(25x,i5)') s% number_of_isochrones
-    read(io,'(25x,i5)') s% MESA_revision_number
+!    write(io,'(a25,a8)') '# MIST version number  = ', set% version_string
+!    write(io,'(a25,i8)') '# MESA revision number = ', set% MESA_revision_number
+!    write(io,'(a88)') '# --------------------------------------------------------------------------------------'
+!    write(io,'(a88)') '#  Yinit        Zinit   [Fe/H]   [a/Fe]  v/vcrit                                        '
+!    write(io,'(a2,f6.4,1p1e13.5,0p3f9.2)') '# ', set% initial_Y, set% initial_Z, set% Fe_div_H, set% alpha_div_Fe, &
+!         set% v_div_vcrit
+!    write(io,'(a88)') '# --------------------------------------------------------------------------------------'
+!    write(io,'(a25,i5)') '# number of isochrones = ', n
+!    write(io,'(a88)') '# --------------------------------------------------------------------------------------'
     read(io,'(25x,a8)') s% version_string
-    read(io,'(25x,2f12.8,f8.3)') s% initial_Y, s% initial_Z, s% Fe_div_H
+    read(io,'(25x,i8)') s% MESA_revision_number
+    read(io,*) !comment line
+    read(io,*) !comment line
+    read(io,'(2x,f6.4,1p1e13.5,0p3f9.2)') s% initial_Y, s% initial_Z, s% Fe_div_H, s% alpha_div_Fe, s% v_div_vcrit
+    read(io,*) !comment line
+    read(io,'(25x,i5)') s% number_of_isochrones
+    read(io,*) !comment line
+
     !make room
     n=s% number_of_isochrones
     allocate(s% iso(n))
