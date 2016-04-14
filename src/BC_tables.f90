@@ -12,6 +12,7 @@ module BC_tables
   end type BC
 
   type BC_table
+     character(len=64) :: photometric_system = ''
      logical :: is_loaded = .false.
      character(len=256) :: filename
      character(len=20), allocatable :: labels(:)

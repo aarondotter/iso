@@ -286,9 +286,19 @@ contains
     if(ierr/=0) return
     open(io,file=trim(output),action='write',status='unknown',iostat=ierr)
     if(ierr/=0) return
-    write(io,'(a25,i5)')    '# number of isochrones = ', n
-    write(io,'(a25,i5)')    '# MESA revision number  = ', set% MESA_revision_number
-    write(io,'(a25,2f6.3)') '# CCM89 extinction: Av = ', set% Av
+
+    write(io,'(a25,a8)')  '# MIST version number  = ', set% version_string
+    write(io,'(a25,i8)')  '# MESA revision number = ', set% MESA_revision_number
+    write(io,'(a25, a)') '# photometric system   = ', b(1)% photometric_system
+    write(io,'(a88)') '# --------------------------------------------------------------------------------------'
+    write(io,'(a88)') '#  Yinit        Zinit   [Fe/H]   [a/Fe]  v/vcrit                                        '
+    write(io,'(a2,f6.4,1p1e13.5,0p3f9.2)') '# ', set% initial_Y, set% initial_Z, set% Fe_div_H, set% alpha_div_Fe, &
+         set% v_div_vcrit
+    write(io,'(a88)') '# --------------------------------------------------------------------------------------'
+    write(io,'(a25,i5)')   '# number of isochrones = ', n
+    write(io,'(a25,f6.3)') '# CCM89 extinction: Av = ', set% Av
+    write(io,'(a88)') '# --------------------------------------------------------------------------------------'
+ 
     do i=1,n
        set% iso(i)% Av = set% Av
        call write_cmd_to_file(io, set% iso(i))

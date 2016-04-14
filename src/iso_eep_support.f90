@@ -567,15 +567,6 @@ contains
     ierr=0
     io=alloc_iounit(ierr)
     open(io,file=trim(s% filename), action='read', status='old')
-!    write(io,'(a25,a8)') '# MIST version number  = ', set% version_string
-!    write(io,'(a25,i8)') '# MESA revision number = ', set% MESA_revision_number
-!    write(io,'(a88)') '# --------------------------------------------------------------------------------------'
-!    write(io,'(a88)') '#  Yinit        Zinit   [Fe/H]   [a/Fe]  v/vcrit                                        '
-!    write(io,'(a2,f6.4,1p1e13.5,0p3f9.2)') '# ', set% initial_Y, set% initial_Z, set% Fe_div_H, set% alpha_div_Fe, &
-!         set% v_div_vcrit
-!    write(io,'(a88)') '# --------------------------------------------------------------------------------------'
-!    write(io,'(a25,i5)') '# number of isochrones = ', n
-!    write(io,'(a88)') '# --------------------------------------------------------------------------------------'
     read(io,'(25x,a8)') s% version_string
     read(io,'(25x,i8)') s% MESA_revision_number
     read(io,*) !comment line
