@@ -81,7 +81,7 @@ module iso_eep_support
      integer :: ncol, ntrack, neep, MESA_revision_number
      integer :: star_type = unknown
      integer, allocatable :: eep(:)
-     real(dp) :: initial_mass, initial_Y, Fe_div_H, initial_Z
+     real(dp) :: initial_mass, initial_Y, Fe_div_H, initial_Z, v_div_vcrit
      real(dp), allocatable :: tr(:,:), dist(:), phase(:)
      !these are used internally as an intermediate step
      real(dp), allocatable :: eep_tr(:,:), eep_dist(:) !(ncol,neep), (neep)
@@ -97,7 +97,7 @@ module iso_eep_support
      character(len=20), allocatable :: labels(:) !for mags
      logical :: has_phase = .false.
      integer, allocatable :: eep(:)
-     real(dp) :: age, Fe_div_H, initial_Y, initial_Z ! log(age in yrs)
+     real(dp) :: age, Fe_div_H, initial_Y, initial_Z, v_div_vcrit ! log(age in yrs)
      real(dp), allocatable :: phase(:) !neep
      real(dp), allocatable :: data(:,:) !(ncol,neep)
      real(sp), allocatable :: mags(:,:) !(num filters, neep)
@@ -110,7 +110,7 @@ module iso_eep_support
      integer, allocatable :: num_valid_eeps(:)
      type(isochrone), allocatable :: iso(:)
      real(sp) :: Av, Rv
-     real(dp) :: initial_Y, initial_Z, Fe_div_H
+     real(dp) :: initial_Y, initial_Z, Fe_div_H, v_div_vcrit
      character(len=file_path) :: cmd_suffix, filename
      character(len=8) :: version_string
   end type isochrone_set
@@ -249,10 +249,10 @@ contains
     io=alloc_iounit(ierr)
     write(*,*) '    ', trim(x% filename)
     open(io,file=trim(x% filename),action='write',status='unknown')
-    write(io,'(a8,a20,2a12,a8,6a8,2x,a10)') ' version', 'initial_mass', 'initial_Z', &
-         'initial_Y', ' [Fe/H]', 'N_pts', 'N_EEP', 'N_col', 'MESA', 'phase', 'type'
-    write(io,'(a8,1p1e20.10,0p2f12.8,f8.3,4i8,a8,2x,a10)') x% version_string, x% initial_mass, &
-         x% initial_Z, x% initial_Y, x% Fe_div_H, x% ntrack, x% neep, &
+    write(io,'(a8,a20,2a12,8a8,2x,a10)') ' version', 'initial_mass', 'initial_Z', &
+         'initial_Y', ' [Fe/H]', 'v/vcrit', 'N_pts', 'N_EEP', 'N_col', 'MESA', 'phase', 'type'
+    write(io,'(a8,1p1e20.10,0p2f12.8,f8.3,f8.2,4i8,a8,2x,a10)') x% version_string, x% initial_mass, &
+         x% initial_Z, x% initial_Y, x% Fe_div_H, x% v_div_vcrit, x% ntrack, x% neep, &
          x% ncol, x% MESA_revision_number, 'NO', star_label(x% star_type)
     write(io,'(a10,20i8)') '   EEPs:  ', x% eep
     write(io,'(299(27x,i5))') (j,j=1,x% ncol)
@@ -270,10 +270,10 @@ contains
     io=alloc_iounit(ierr)
     write(*,*) '    ', trim(x% filename)
     open(io,file=trim(x% filename),action='write',status='unknown')
-    write(io,'(a8,a20,2a12,a8,6a8,2x,a10)') ' version', 'initial_mass', 'initial_Z', &
-         'initial_Y', ' [Fe/H]', 'N_pts', 'N_EEP', 'N_col', 'MESA', 'phase', 'type'
-    write(io,'(a8,1p1e20.10,0p2f12.8,f8.3,4i8,a8,2x,a10)') x% version_string, x% initial_mass, &
-         x% initial_Z, x% initial_Y, x% Fe_div_H, x% ntrack, x% neep, &
+    write(io,'(a8,a20,2a12,8a8,2x,a10)') ' version', 'initial_mass', 'initial_Z', &
+         'initial_Y', ' [Fe/H]', 'v/vcrit','N_pts', 'N_EEP', 'N_col', 'MESA', 'phase', 'type'
+    write(io,'(a8,1p1e20.10,0p2f12.8,f8.3,f8.2,4i8,a8,2x,a10)') x% version_string, x% initial_mass, &
+         x% initial_Z, x% initial_Y, x% Fe_div_H, x% v_div_vcrit, x% ntrack, x% neep, &
          x% ncol, x% MESA_revision_number, 'YES', star_label(x% star_type)
     write(io,'(a10,20i8)') '   EEPs:  ', x% eep
     write(io,'(299(27x,i5))') (j,j=1,x% ncol+1)
@@ -373,9 +373,9 @@ contains
     endif
 
     read(io,*)
-    read(io,'(a8,1p1e20.10,2f12.8,f8.3,4i8,a8,2x,a10)') x% version_string, &
-         x% initial_mass, x% initial_Z, x% initial_Y, x% Fe_div_H, x% ntrack, &
-         x% neep, x% ncol, x% MESA_revision_number, phase_info, type_label
+    read(io,'(a8,1p1e20.10,2f12.8,f8.3,f8.2,4i8,a8,2x,a10)') x% version_string, &
+         x% initial_mass, x% initial_Z, x% initial_Y, x% Fe_div_H, x% v_div_vcrit, &
+         x% ntrack, x% neep, x% ncol, x% MESA_revision_number, phase_info, type_label
 
     call set_star_type_from_label(type_label,x)
 

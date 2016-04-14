@@ -8,18 +8,18 @@ program make_eeps
   implicit none
 
   integer :: i, ierr, io, num
-  character(len=8) :: version_string
+  character(len=8) :: version_string='unknown'
   character(len=file_path) :: input_file, history_columns_list
   character(len=file_path), allocatable :: history_files(:)
   type(track), pointer :: t=>NULL(), s=>NULL()
   logical :: do_phases = .true.
-  real(dp) :: initial_Y, initial_Z, Fe_div_H
+  real(dp) :: initial_Y, initial_Z, Fe_div_H, v_div_vcrit
 
   namelist /eep_controls/ do_phases, center_gamma_limit, &
        center_carbon_limit, log_center_T_limit, &
        high_mass_limit, very_low_mass_limit, weight_center_rho_T_by_Xc, &
        Teff_scale, logL_scale, age_scale, Tc_scale, Rhoc_scale, &
-       make_bin_tracks, initial_Y, initial_Z, Fe_div_H, version_string
+       make_bin_tracks
 
   ierr=0
 
@@ -89,13 +89,17 @@ contains
        write(0,*) ' make_eeps: problem reading ', trim(input_file)
        return
     endif
-    read(io,*) !skip first line
+    read(io,*) !skip comment
+    read(io,'(a8)') version_string
+    read(io,*) !skip comment
+    read(io,*) initial_Y, initial_Z, Fe_div_H, v_div_vcrit
+    read(io,*) !skip comment
     read(io,'(a)') history_dir
     read(io,'(a)') eep_dir
     read(io,'(a)') iso_dir
-    read(io,*) !skip comment line
+    read(io,*) !skip comment
     read(io,'(a)') history_columns_list
-    read(io,*) !skip comment line
+    read(io,*) !skip comment
     read(io,*) num
     allocate(history_files(num))
     do i=1,num
