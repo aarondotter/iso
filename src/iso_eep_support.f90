@@ -274,7 +274,7 @@ contains
          'initial_Y', ' [Fe/H]', 'N_pts', 'N_EEP', 'N_col', 'MESA', 'phase', 'type'
     write(io,'(a8,1p1e20.10,0p2f12.8,f8.3,4i8,a8,2x,a10)') x% version_string, x% initial_mass, &
          x% initial_Z, x% initial_Y, x% Fe_div_H, x% ntrack, x% neep, &
-         x% ncol, x% MESA_revision_number, 'NO', star_label(x% star_type)
+         x% ncol, x% MESA_revision_number, 'YES', star_label(x% star_type)
     write(io,'(a10,20i8)') '   EEPs:  ', x% eep
     write(io,'(299(27x,i5))') (j,j=1,x% ncol+1)
     write(io,'(299a32)') adjustr(x% cols(:)% name), 'phase'
