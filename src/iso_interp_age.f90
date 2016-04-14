@@ -96,9 +96,13 @@ contains
     new% iso(:)% has_phase = old% iso(1)% has_phase
     new% version_string = old% version_string
     new% Fe_div_H = old% Fe_div_H
+    new% alpha_div_Fe = old% alpha_div_Fe
+    new% v_div_vcrit = old% v_div_vcrit
     new% initial_Y = old% initial_Y
     new% initial_Z = old% initial_Z
     new% iso(:)% Fe_div_H = new% Fe_div_H
+    new% iso(:)% alpha_div_Fe = new% alpha_div_Fe
+    new% iso(:)% v_div_vcrit = new% v_div_vcrit
     new% iso(:)% initial_Y = new% initial_Y
     new% iso(:)% initial_Z = new% initial_Z
 
