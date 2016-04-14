@@ -10,10 +10,12 @@ program make_isochrone
 
   implicit none
 
+  character(len=8) :: version_string
   character(len=file_path) :: input_file, history_columns_list
   integer :: i, ierr, io, j, ntrk, ngood, first, prev, i_Minit
   type(track), allocatable :: s(:), t(:)
   type(isochrone_set) :: set
+  real(dp) :: Fe_div_H, alpha_div_Fe, initial_Y, initial_Z, v_div_vcrit
 
   logical :: use_double_eep
   integer, parameter :: piecewise_monotonic = 4
@@ -77,13 +79,17 @@ program make_isochrone
   !above checks pass => these are safe assignments
   set% iso(:)% has_phase = t(1)% has_phase
   set% MESA_revision_number = t(1)% MESA_revision_number
-  set% version_string = t(1)% version_string
-  set% Fe_div_H = t(1)% Fe_div_H
-  set% initial_Y = t(1)% initial_Y
-  set% initial_Z = t(1)% initial_Z
+  set% version_string = version_string
+  set% Fe_div_H = Fe_div_H
+  set% alpha_div_Fe = alpha_div_Fe
+  set% initial_Y = initial_Y
+  set% initial_Z = initial_Z
+  set% v_div_vcrit = v_div_vcrit
   set% iso(:)% initial_Y = set% initial_Y
   set% iso(:)% initial_Z = set% initial_Z
   set% iso(:)% Fe_div_H  = set% Fe_div_H
+  set% iso(:)% alpha_div_Fe = set% alpha_div_Fe
+  set% iso(:)% v_div_vcrit = set% v_div_vcrit
 
   !create isochrones 
   do i=1,set% number_of_isochrones
@@ -687,13 +693,17 @@ contains
        write(0,*) ' make_iso: problem reading ', trim(input_file)
        return
     endif
-    read(io,*) !skip comment line
+    read(io,*) !skip comment
+    read(io,'(a8)') version_string
+    read(io,*) !skip comment
+    read(io,*) initial_Y, initial_Z, Fe_div_H, alpha_div_Fe, v_div_vcrit
+    read(io,*) !skip comment 
     read(io,'(a)') history_dir
     read(io,'(a)') eep_dir
     read(io,'(a)') iso_dir
-    read(io,*) !skip comment line
+    read(io,*) !skip comment 
     read(io,'(a)') history_columns_list
-    read(io,*) !skip comment line
+    read(io,*) !skip comment 
     read(io,*) ntrk
     allocate(s(ntrk))
     do i=1,ntrk

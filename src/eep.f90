@@ -24,6 +24,8 @@ contains
     s% initial_Y = t% initial_Y
     s% initial_Z = t% initial_Z
     s% Fe_div_H  = t% Fe_div_H
+    s% alpha_div_Fe = t% alpha_div_Fe
+    s% v_div_vcrit = t% v_div_vcrit
     s% ncol = t% ncol
     s% star_type = t% star_type
     !determine total number of EEPs in this track

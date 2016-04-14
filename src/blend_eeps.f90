@@ -90,9 +90,11 @@ contains
 
     s% initial_mass = s_old(1)% initial_mass
     s% Fe_div_H = s_old(1)% Fe_div_H
+    s% alpha_div_Fe = s_old(1)% alpha_div_Fe
     s% version_string = s_old(1)% version_string
     s% initial_Z = s_old(1)% initial_Z
     s% initial_Y = s_old(1)% initial_Y
+    s% v_div_vcrit = s_old(1)% v_div_vcrit
     s% has_phase = s_old(1)% has_phase
     s% ncol = s_old(1)% ncol
     allocate(s% cols(s% ncol))

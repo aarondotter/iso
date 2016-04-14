@@ -13,7 +13,7 @@ program make_eeps
   character(len=file_path), allocatable :: history_files(:)
   type(track), pointer :: t=>NULL(), s=>NULL()
   logical :: do_phases = .true.
-  real(dp) :: initial_Y, initial_Z, Fe_div_H, v_div_vcrit
+  real(dp) :: initial_Y, initial_Z, Fe_div_H, v_div_vcrit, alpha_div_Fe
 
   namelist /eep_controls/ do_phases, center_gamma_limit, &
        center_carbon_limit, log_center_T_limit, &
@@ -42,6 +42,8 @@ program make_eeps
      t% initial_Y = initial_Y
      t% initial_Z = initial_Z
      t% Fe_div_H  = Fe_div_H
+     t% alpha_div_Fe = alpha_div_Fe
+     t% v_div_vcrit = v_div_vcrit
      t% version_string = version_string
      if(ierr/=0) then
         write(0,*) 'make_eep: problem reading!'
@@ -92,7 +94,7 @@ contains
     read(io,*) !skip comment
     read(io,'(a8)') version_string
     read(io,*) !skip comment
-    read(io,*) initial_Y, initial_Z, Fe_div_H, v_div_vcrit
+    read(io,*) initial_Y, initial_Z, Fe_div_H, alpha_div_Fe, v_div_vcrit
     read(io,*) !skip comment
     read(io,'(a)') history_dir
     read(io,'(a)') eep_dir

@@ -45,12 +45,6 @@ output_to_eep_dir = .false.
 
 &eep_controls
 
-   version_string = '1.0'     ! 8 characters max
-   !                |--------|
-   initial_Y = 0.25d0
-   initial_Z = 0.014d0
-   Fe_div_H = 0d0
-
    !if making isochrones repeatedly from the same set of tracks, set to true
    !this creates a binary track file that is read in much faster than text
    make_bin_tracks = .true.

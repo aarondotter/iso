@@ -81,7 +81,7 @@ module iso_eep_support
      integer :: ncol, ntrack, neep, MESA_revision_number
      integer :: star_type = unknown
      integer, allocatable :: eep(:)
-     real(dp) :: initial_mass, initial_Y, Fe_div_H, initial_Z, v_div_vcrit
+     real(dp) :: initial_mass, initial_Y, Fe_div_H, initial_Z, v_div_vcrit, alpha_div_Fe
      real(dp), allocatable :: tr(:,:), dist(:), phase(:)
      !these are used internally as an intermediate step
      real(dp), allocatable :: eep_tr(:,:), eep_dist(:) !(ncol,neep), (neep)
@@ -97,7 +97,7 @@ module iso_eep_support
      character(len=20), allocatable :: labels(:) !for mags
      logical :: has_phase = .false.
      integer, allocatable :: eep(:)
-     real(dp) :: age, Fe_div_H, initial_Y, initial_Z, v_div_vcrit ! log(age in yrs)
+     real(dp) :: age, Fe_div_H, initial_Y, initial_Z, v_div_vcrit, alpha_div_Fe ! log(age in yrs)
      real(dp), allocatable :: phase(:) !neep
      real(dp), allocatable :: data(:,:) !(ncol,neep)
      real(sp), allocatable :: mags(:,:) !(num filters, neep)
@@ -110,7 +110,7 @@ module iso_eep_support
      integer, allocatable :: num_valid_eeps(:)
      type(isochrone), allocatable :: iso(:)
      real(sp) :: Av, Rv
-     real(dp) :: initial_Y, initial_Z, Fe_div_H, v_div_vcrit
+     real(dp) :: initial_Y, initial_Z, Fe_div_H, v_div_vcrit, alpha_div_Fe
      character(len=file_path) :: cmd_suffix, filename
      character(len=8) :: version_string
   end type isochrone_set
@@ -236,54 +236,46 @@ contains
 
   subroutine write_track(x)
     type(track), intent(in) :: x
+    integer :: io, ierr, j
+    character(len=8) :: have_phase
+    io=alloc_iounit(ierr)
+    write(*,*) '    ', trim(x% filename)
+    open(io,file=trim(x% filename),action='write',status='unknown')
     if(x% has_phase)then
-       call write_track_phase(x)
+       have_phase = 'YES'
     else
-       call write_track_orig(x)
+       have_phase = 'NO'
     endif
+    have_phase = adjustr(have_phase)
+    write(io,'(a25,a8)') '# MIST version number  = ', x% version_string
+    write(io,'(a25,i8)') '# MESA revision number = ', x% MESA_revision_number
+!                      123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
+    write(io,'(a88)') '# --------------------------------------------------------------------------------------'
+    write(io,'(a88)') '#  Yinit        Zinit   [Fe/H]   [a/Fe]  v/vcrit                                        '
+    write(io,'(a2,f6.4,1p1e13.5,0p3f9.2)') '# ', x% initial_Y, x% initial_Z, x% Fe_div_H, x% alpha_div_Fe, x% v_div_vcrit
+    write(io,'(a88)') '# --------------------------------------------------------------------------------------'
+    write(io,'(a1,1x,a16,4a8,2x,a10)') '#','initial_mass', 'N_pts', 'N_EEP', 'N_col', 'phase', 'type'
+    write(io,'(a1,1x,1p1e16.10,3i8,a8,2x,a10)') '#', x% initial_mass, x% ntrack, x% neep, x% ncol, have_phase, &
+         star_label(x% star_type)
+    write(io,'(a8,20i8)') '# EEPs: ', x% eep
+    write(io,'(a88)') '# --------------------------------------------------------------------------------------'
+
+    if(x% has_phase)then
+       write(io,'(299(27x,i5))') (j,j=1,x% ncol+1)
+       write(io,'(299a32)') adjustr(x% cols(:)% name), 'phase'
+       do j=x% eep(1),x% ntrack
+          write(io,'(299(1pes32.16e3))') x% tr(:,j), x% phase(j)
+       enddo
+    else
+       write(io,'(299(27x,i5))') (j,j=1,x% ncol)
+       write(io,'(299a32)') adjustr(x% cols(:)% name)
+       do j=x% eep(1),x% ntrack
+          write(io,'(299(1pes32.16e3))') x% tr(:,j)
+       enddo
+    endif
+    close(io)
+    call free_iounit(io)
   end subroutine write_track
-
-  subroutine write_track_orig(x)
-    type(track), intent(in) :: x
-    integer :: io,ierr,j
-    io=alloc_iounit(ierr)
-    write(*,*) '    ', trim(x% filename)
-    open(io,file=trim(x% filename),action='write',status='unknown')
-    write(io,'(a8,a20,2a12,8a8,2x,a10)') ' version', 'initial_mass', 'initial_Z', &
-         'initial_Y', ' [Fe/H]', 'v/vcrit', 'N_pts', 'N_EEP', 'N_col', 'MESA', 'phase', 'type'
-    write(io,'(a8,1p1e20.10,0p2f12.8,f8.3,f8.2,4i8,a8,2x,a10)') x% version_string, x% initial_mass, &
-         x% initial_Z, x% initial_Y, x% Fe_div_H, x% v_div_vcrit, x% ntrack, x% neep, &
-         x% ncol, x% MESA_revision_number, 'NO', star_label(x% star_type)
-    write(io,'(a10,20i8)') '   EEPs:  ', x% eep
-    write(io,'(299(27x,i5))') (j,j=1,x% ncol)
-    write(io,'(299a32)') adjustr(x% cols(:)% name)
-    do j=x% eep(1),x% ntrack
-       write(io,'(299(1pes32.16e3))') x% tr(:,j)
-    enddo
-    close(io)
-    call free_iounit(io)
-  end subroutine write_track_orig
-
-  subroutine write_track_phase(x)
-    type(track), intent(in) :: x
-    integer :: io,ierr,j
-    io=alloc_iounit(ierr)
-    write(*,*) '    ', trim(x% filename)
-    open(io,file=trim(x% filename),action='write',status='unknown')
-    write(io,'(a8,a20,2a12,8a8,2x,a10)') ' version', 'initial_mass', 'initial_Z', &
-         'initial_Y', ' [Fe/H]', 'v/vcrit','N_pts', 'N_EEP', 'N_col', 'MESA', 'phase', 'type'
-    write(io,'(a8,1p1e20.10,0p2f12.8,f8.3,f8.2,4i8,a8,2x,a10)') x% version_string, x% initial_mass, &
-         x% initial_Z, x% initial_Y, x% Fe_div_H, x% v_div_vcrit, x% ntrack, x% neep, &
-         x% ncol, x% MESA_revision_number, 'YES', star_label(x% star_type)
-    write(io,'(a10,20i8)') '   EEPs:  ', x% eep
-    write(io,'(299(27x,i5))') (j,j=1,x% ncol+1)
-    write(io,'(299a32)') adjustr(x% cols(:)% name), 'phase'
-    do j=x% eep(1),x% ntrack
-       write(io,'(299(1pes32.16e3))') x% tr(:,j), x% phase(j)
-    enddo
-    close(io)
-    call free_iounit(io)
-  end subroutine write_track_phase
 
   !writes a series of n isochrones to filename
   subroutine write_isochrones_to_file(set)
@@ -372,10 +364,26 @@ contains
        return
     endif
 
-    read(io,*)
-    read(io,'(a8,1p1e20.10,2f12.8,f8.3,f8.2,4i8,a8,2x,a10)') x% version_string, &
-         x% initial_mass, x% initial_Z, x% initial_Y, x% Fe_div_H, x% v_div_vcrit, &
-         x% ntrack, x% neep, x% ncol, x% MESA_revision_number, phase_info, type_label
+!    write(io,'(a25,a8)') '# MIST version number  = ', x% version_string
+!    write(io,'(a25,i8)') '# MESA revision number = ', x% MESA_revision_number
+!    write(io,'(a88)') '# --------------------------------------------------------------------------------------'
+!    write(io,'(a88)') '#  Yinit        Zinit   [Fe/H]   [a/Fe]  v/vcrit                                        '
+!    write(io,'(a2,f6.4,1p1e13.5,0p3f9.2)') '# ', x% initial_Y, x% initial_Z, x% Fe_div_H, x% alpha_div_Fe, x% v_div_vcrit
+!    write(io,'(a88)') '# --------------------------------------------------------------------------------------'
+!    write(io,'(a1,1x,a16,4a8,2x,a10)') '#','initial_mass', 'N_pts', 'N_EEP', 'N_col', 'phase', 'type'
+!    write(io,'(a1,1x,1p1e16.10,3i8,a8,2x,a10)') '#', x% initial_mass, x% ntrack, x% neep, x% ncol, have_phase, &
+!         star_label(x% star_type)
+!    write(io,'(a8,20i8)') '# EEPs: ', x% eep
+!    write(io,'(a88)') '# --------------------------------------------------------------------------------------'
+
+    read(io,'(25x,a8)') x% version_string
+    read(io,'(25x,i8)') x% MESA_revision_number
+    read(io,*) !comment line
+    read(io,*) !comment line
+    read(io,'(2x,f6.4,1p1e13.5,0p3f9.2)') x% initial_Y, x% initial_Z, x% Fe_div_H, x% alpha_div_Fe, x% v_div_vcrit
+    read(io,*) !comment line
+    read(io,*) !comment line
+    read(io,'(2x,1p1e16.10,3i8,a8,2x,a10)') x% initial_mass, x% ntrack, x% neep, x% ncol, phase_info, type_label
 
     call set_star_type_from_label(type_label,x)
 
@@ -386,7 +394,8 @@ contains
     else
        x% has_phase = .false.
     endif
-    read(io,'(10x,299i8)') x% eep
+    read(io,'(8x,299i8)') x% eep
+    read(io,*) ! comment line
     read(io,*) ! column numbers
     if(x% has_phase) then
        read(io,'(299a32)') x% cols(:)% name ! column names

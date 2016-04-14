@@ -109,6 +109,10 @@ contains
              FeH = log10(Z) - log_Z_sol
           endif
        endif
+
+       !this sets a hard upper limit to combat 3DUP
+       FeH = min(FeH,real(iso% Fe_div_H,kind=sp) + 0.1)
+
        if(iCdivO>0)then
           C_div_O  =log10(iso% data(iCdivO,i))
        else
