@@ -12,7 +12,7 @@ module BC_tables
   end type BC
 
   type BC_table
-     character(len=64) :: photometric_system = ''
+     character(len=64) :: photometric_system_string = ''
      logical :: is_loaded = .false.
      character(len=256) :: filename
      character(len=20), allocatable :: labels(:)
@@ -95,7 +95,8 @@ contains
     binfile = trim(t% filename) // '.bin'
     io=alloc_iounit(ierr)
     open(io,file=trim(binfile),status='old',form='unformatted',iostat=ierr)
-    read(io)  t% num_g, t% num_T, t% num_Av, t% num_filter
+    read(io) t% photometric_system_string
+    read(io) t% num_g, t% num_T, t% num_Av, t% num_filter
     allocate(t% Av(t% num_Av))
     allocate(t% bcs(t% num_filter,t% num_Av))
     allocate(t% labels(t% num_filter))
@@ -125,7 +126,8 @@ contains
     binfile = trim(t% filename) // '.bin'
     io=alloc_iounit(ierr)
     open(io,file=trim(binfile),action='write',form='unformatted',iostat=ierr)
-    write(io)  t% num_g, t% num_T, t% num_Av, t% num_filter
+    write(io) t% photometric_system_string
+    write(io) t% num_g, t% num_T, t% num_Av, t% num_filter
     write(io) t% labels
     write(io) t% FeH, t% alphaFe, t% Rv
     write(io) t% Av
@@ -155,6 +157,7 @@ contains
        write(*,*) ' problem opening ascii file, ierr = ', ierr
        return
     endif
+    read(io,'(2x,a64)') t% photometric_system_string
     read(io,*) !skip the header
     read(io,'(2x,3i8)') t% num_filter, num_lines, t% num_Av
     read(io,*)

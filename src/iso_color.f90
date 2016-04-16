@@ -38,8 +38,9 @@ contains
     if(ierr/=0) write(0,*) 'BC tables initialized!'
   end subroutine iso_color_init
 
-  subroutine get_mags(iso,ierr)
+  subroutine get_mags(iso,log_Z_div_Zsol,ierr)
     type(isochrone), intent(inout) :: iso
+    real(sp), allocatable, intent(out) :: log_Z_div_Zsol(:)
     integer, intent(out) :: ierr
     integer :: i, nb, nc, j, n, jZ
     real(sp), allocatable :: res(:)
@@ -47,10 +48,10 @@ contains
     real(sp) :: c_min_logT, c_max_logT, c_min_logg, c_max_logg
     real(dp) :: C_div_O
     logical :: Cstar_ok
-    integer :: iT, ig, iL, iH, iHe, iC, iO, isurfZ, iCdivO
+    integer :: iT, ig, iL, iH, iHe3, iHe4, iC, iO, isurfZ, iCdivO
     !a few initializations
     c_min_logT=0; c_max_logT=0; c_min_logg=0; c_max_logg=0
-    iT=0; ig=0; iL=0; iH=0; iHe=0; iC=0; iO=0; jZ=0; isurfZ=0; iCdivO=0
+    iT=0; ig=0; iL=0; iH=0; iHe3=0; iHe4=0; iC=0; iO=0; jZ=0; isurfZ=0; iCdivO=0
 
     !locate columns
     do i = 1, iso% ncol
@@ -62,8 +63,10 @@ contains
           iL=i
        else if(trim(adjustl(iso% cols(i)% name))=='surface_h1')then
           iH=i
+       else if(trim(adjustl(iso% cols(i)% name))=='surface_he3')then
+          iHe3=i   
        else if(trim(adjustl(iso% cols(i)% name))=='surface_he4')then
-          iHe=i   
+          iHe4=i   
        else if(trim(adjustl(iso% cols(i)% name))=='surface_c12')then
           iC=i
        else if(trim(adjustl(iso% cols(i)% name))=='surface_o16')then
@@ -93,6 +96,8 @@ contains
        nc=0
     endif
 
+    allocate(log_Z_div_Zsol(iso% neep))
+
     do i=1,iso% neep
        logT = real(iso% data(iT,i),kind=sp)
        logg = real(iso% data(ig,i),kind=sp)
@@ -104,7 +109,7 @@ contains
              FeH = real(iso% data(isurfZ,i),kind=sp) - log_Z_sol
           else
              X    = real(iso% data(iH,i),kind=sp)
-             Y    = real(iso% data(iHe,i),kind=sp)
+             Y    = real(iso% data(iHe3,i)+iso% data(iHe4,i),kind=sp)
              Z    = 1.0 - X - Y 
              FeH = log10(Z) - log_Z_sol
           endif
@@ -112,6 +117,8 @@ contains
 
        !this sets a hard upper limit to combat 3DUP
        FeH = min(FeH,real(iso% Fe_div_H,kind=sp) + 0.1)
+
+       log_Z_div_Zsol(i) = FeH
 
        if(iCdivO>0)then
           C_div_O  =log10(iso% data(iCdivO,i))
@@ -289,7 +296,7 @@ contains
 
     write(io,'(a25,a8)')  '# MIST version number  = ', set% version_string
     write(io,'(a25,i8)')  '# MESA revision number = ', set% MESA_revision_number
-    write(io,'(a25, a)') '# photometric system   = ', b(1)% photometric_system
+    write(io,'(a25, a)') '# photometric system   = ', b(1)% photometric_system_string
     write(io,'(a88)') '# --------------------------------------------------------------------------------------'
     write(io,'(a88)') '#  Yinit        Zinit   [Fe/H]   [a/Fe]  v/vcrit                                        '
     write(io,'(a2,f6.4,1p1e13.5,0p3f9.2)') '# ', set% initial_Y, set% initial_Z, set% Fe_div_H, set% alpha_div_Fe, &
@@ -314,6 +321,7 @@ contains
     integer, intent(in) :: io
     type(isochrone), intent(inout) :: iso
     integer :: i, iT, ig, iL, ierr, iM
+    real(sp), allocatable :: log_Z_div_Zsol(:)
     ierr=0; iT=0; ig=0; iL=0; iM=0
 
     do i=1, iso% ncol
@@ -328,7 +336,7 @@ contains
        endif
     enddo
 
-    call get_mags(iso,ierr)
+    call get_mags(iso,log_Z_div_Zsol,ierr)
     if(ierr/=0) write(0,*) ' problem in get_mags '
 
     write(io,'(a25,2i5)') '# number of EEPs, cols = ', iso% neep, iso% nfil + 6
@@ -336,15 +344,15 @@ contains
 
     if(iso% age_scale==age_scale_linear)then
        write(io,'(a5,5a32,299a20)') '# EEP', 'isochrone_age_yr', 'initial_mass', 'log_Teff', &
-            'log_g', 'log_L', adjustr(iso% labels)
+            'log_g', 'log_L', 'log_Z_div_Zsol', adjustr(iso% labels)
     elseif(iso% age_scale==age_scale_log10)then
        write(io,'(a5,5a32,299a20)') '# EEP', 'log10_isochrone_age_yr', 'initial_mass', 'log_Teff', &
-            'log_g', 'log_L', adjustr(iso% labels)
+            'log_g', 'log_L', 'log_Z_div_Zsol', adjustr(iso% labels)
     endif
 
     do i = 1,iso% neep
        write(io,'(i5,5(1pes32.16e3),299(0pf20.6))') iso% eep(i), iso% age, iso% data(iM,i), &
-            iso% data(iT,i), iso% data(ig,i), iso% data(iL,i), iso% mags(:,i)
+            iso% data(iT,i), iso% data(ig,i), iso% data(iL,i), log_Z_div_Zsol(i), iso% mags(:,i)
     enddo
   end subroutine write_cmd_to_file
 
