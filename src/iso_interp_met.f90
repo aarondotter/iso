@@ -123,13 +123,21 @@ contains
 
     order = hi - lo + 1  ! either 4, 3, or 2
 
+    t% Fe_div_H = new_Z_div_H
     t% number_of_isochrones =s(lo)% number_of_isochrones
     t% MESA_revision_number = s(lo)% MESA_revision_number
+    t% version_string = s(lo)% version_string
+    !initial_Y, initial_Z, 
+    t% v_div_vcrit = s(lo)% v_div_vcrit
+    t% alpha_div_Fe = s(lo)% alpha_div_Fe
     allocate(t% iso(t% number_of_isochrones))
     t% iso(:)% age_scale = s(lo)% iso(:)% age_scale
     t% iso(:)% has_phase = s(lo)% iso(:)% has_phase
     t% iso(:)% age       = s(lo)% iso(:)% age
     t% iso(:)% ncol      = s(lo)% iso(:)% ncol
+    t% iso(:)% alpha_div_Fe = t% alpha_div_Fe
+    t% iso(:)% v_div_vcrit = t% v_div_vcrit
+    t% iso(:)% Fe_div_H = t% Fe_div_H
     do i = 1, t% number_of_isochrones
        allocate(t% iso(i)% cols(t% iso(i)% ncol))
        t% iso(i)% cols(:)% name = s(lo)% iso(i)% cols(:)% name
@@ -157,6 +165,38 @@ contains
     logical :: eep_good(n)
     logical, pointer :: good(:)=>NULL()
     integer, pointer :: eep_index(:)=>NULL()
+    real(dp) :: Yinit(1),Zinit(1),vv(1),ww(1),xx(1),yy(1)
+
+    Zinit = 0d0
+    Yinit = 0d0
+
+    if(n==2)then
+       xx(1) = s(1)% initial_Z
+       yy(1) = s(2)% initial_Z
+       Zinit = linear(1,Z,newZ,xx,yy)
+
+       xx(1) = s(1)% initial_Y
+       yy(1) = s(2)% initial_Y
+       Yinit = linear(1,Z,newZ,xx,yy)       
+    elseif(n==4)then      
+       vv(1) = s(1)% initial_Z
+       ww(1) = s(2)% initial_Z
+       xx(1) = s(3)% initial_Z
+       yy(1) = s(4)% initial_Z
+       Zinit = cubic_pm(1,Z,newZ,vv,ww,xx,yy)
+
+       vv(1) = s(1)% initial_Y
+       ww(1) = s(2)% initial_Y
+       xx(1) = s(3)% initial_Y
+       yy(1) = s(4)% initial_Y
+       Yinit = cubic_pm(1,Z,newZ,vv,ww,xx,yy)
+    endif
+
+    t% initial_Z = Zinit(1)
+    t% initial_Y = Yinit(1)
+    
+    t% iso(:)% initial_Z = t% initial_Z
+    t% iso(:)% initial_Y = t% initial_Y
 
     do i=1,n
        write(*,*) trim(s(i)% filename), Z(i)
