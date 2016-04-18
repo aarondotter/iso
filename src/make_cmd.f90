@@ -63,7 +63,7 @@ contains
        s% iso(i)% Av = s% Av
        s% iso(i)% Rv = s% Rv
     enddo
-    s% cmd_suffix  = cmd_suffix
+    s% cmd_suffix  = phot_string
 
     call iso_color_init(phot_string,BC_table_list,do_Cstars,Cstar_table_list, &
          set_fixed_Fe_div_H,Fe_div_H,ierr)
