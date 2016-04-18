@@ -339,8 +339,8 @@ contains
     call get_mags(iso,log_Z_div_Zsol,ierr)
     if(ierr/=0) write(0,*) ' problem in get_mags '
 
-    write(io,'(a25,2i5)') '# number of EEPs, cols = ', iso% neep, iso% nfil + 6
-    write(io,'(a1,i4,5i32,299(17x,i3))') '#    ', (i,i=1,iso% nfil+6)
+    write(io,'(a25,2i5)') '# number of EEPs, cols = ', iso% neep, iso% nfil + 7
+    write(io,'(a1,i4,5i32,299(17x,i3))') '#    ', (i,i=1,iso% nfil+7)
 
     if(iso% age_scale==age_scale_linear)then
        write(io,'(a5,5a32,299a20)') '# EEP', 'isochrone_age_yr', 'initial_mass', 'log_Teff', &
