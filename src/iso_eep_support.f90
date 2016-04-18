@@ -350,14 +350,28 @@ contains
   end subroutine write_isochrone_to_file_phase
 
 
-  subroutine read_eep(x)
+  subroutine read_eep(x,full_path)
     type(track), intent(inout) :: x
+    logical, optional :: full_path
+    logical :: use_full_path
     integer :: ierr, io, j
     character(len=8) :: phase_info
     character(len=file_path) :: eepfile
     character(len=10) :: type_label
     io=alloc_iounit(ierr)
-    eepfile = trim(eep_dir) // '/' // trim(x% filename) // '.eep'
+
+    if(present(full_path))then
+       use_full_path = full_path
+    else
+       use_full_path = .false.
+    endif
+
+    if(use_full_path)then
+       eepfile = trim(x% filename)
+    else
+       eepfile = trim(eep_dir) // '/' // trim(x% filename) // '.eep'
+    endif
+
     open(io,file=trim(eepfile),status='old',action='read',iostat=ierr)
 
     !check if the file was opened successfully; if not, then fail

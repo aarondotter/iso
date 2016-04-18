@@ -21,8 +21,9 @@ TRK=make_track
 BLEND=blend_eeps
 INTMET=iso_interp_met
 INTAGE=iso_interp_age
+CHA=charlies_angel
 
-all: $(EEP) $(ISO) $(BLEND) $(TRK) $(INTMET) $(INTAGE) $(CMD)
+all: $(EEP) $(ISO) $(BLEND) $(TRK) $(INTMET) $(INTAGE) $(CMD) $(CHA)
 
 $(CMD): make_cmd.o iso_color.o iso_eep_support.o BC_tables.o
 	$(FC) $(OMP) -o $(ROOT_DIR)/$(CMD) $^ $(LOAD_MESA)
@@ -44,6 +45,11 @@ $(BLEND): blend_eeps.o iso_eep_support.o
 
 $(TRK): make_track.o iso_eep_support.o
 	$(FC) $(OMP) -o $(ROOT_DIR)/$(TRK) $^ $(LOAD_MESA)
+
+$(CHA): charlies_angel.o iso_eep_support.o
+	$(FC) $(OMP) -o $(ROOT_DIR)/$(CHA) $^ $(LOAD_MESA)
+
+charlies_angel.o: $(SRC_DIR)/charlies_angel.f90 iso_eep_support.o
 
 iso_interp_support.o: $(SRC_DIR)/iso_interp_support.f90 iso_eep_support.o
 
