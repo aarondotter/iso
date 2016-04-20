@@ -82,6 +82,12 @@ contains
     b% neep = a(k)% neep
     b% ntrack = a(k)% ntrack
     b% star_type = a(m)% star_type
+    b% version_string = a(m)% version_string
+    b% initial_Z = a(m)% initial_Z
+    b% initial_Y = a(m)% initial_Y
+    b% Fe_div_H = a(m)% Fe_div_H
+    b% alpha_div_Fe = a(m)% alpha_div_Fe
+    b% v_div_vcrit = a(m)% v_div_vcrit
     b% ncol = a(m)% ncol
     b% has_phase = a(m)% has_phase
     allocate(b% cols(b% ncol))
@@ -148,14 +154,19 @@ contains
        write(0,*) ' make_track: problem reading ', trim(eep_file)
        return
     endif
-    read(io,*) !skip first line
+    read(io,*) !skip
+    read(io,*) !skip
+    read(io,*) !skip
+    read(io,*) !skip
+    read(io,*) !skip
     read(io,*) !skip
     read(io,'(a)') eep_dir
     read(io,*) !skip
-    read(io,*) !skip comment line
     read(io,*) !skip
-    read(io,*) !skip comment line
+    read(io,*) !skip
+    read(io,*) !skip
     read(io,*) num_tracks_s
+
     allocate(s(num_tracks_s))
     do i=1,num_tracks_s
        read(io,'(a)',iostat=ierr) s(i)% filename
