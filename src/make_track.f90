@@ -118,8 +118,8 @@ contains
   end subroutine interpolate_track
 
   subroutine read_input
-    integer :: io
-    character(len=file_path) :: eep_file
+    integer :: io, i, j, k
+    character(len=file_path) :: eep_file, data_line
 
     io=alloc_iounit(ierr)
 
@@ -145,7 +145,13 @@ contains
 
     read(io,*) !skip comment
     do i=1,num_tracks_t
-       read(io,*) t(i)% initial_mass, t(i)% filename
+       !read(io,'(a)') t(i)% initial_mass, t(i)% filename
+       read(io,'(a)') data_line
+       j=index(data_line, ' ')
+       k=len_trim(data_line)
+       read(data_line(1:j-1),*) t(i)% initial_mass
+       read(data_line(j+1:k),'(a)') t(i)% filename
+       !write(*,*) t(i)% initial_mass, trim(t(i)% filename)
     enddo
     close(io)
 
