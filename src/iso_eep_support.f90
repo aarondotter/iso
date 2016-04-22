@@ -74,17 +74,21 @@ module iso_eep_support
 
   !holds an evolutionary track, use an array of these for multiple tracks
   type track
-     character(len=file_path) :: filename
+     character(len=file_path) :: filename, cmd_suffix
      character(len=8) :: version_string
      type(column), allocatable :: cols(:)
      logical :: has_phase = .false., ignore=.false.
      integer :: ncol, ntrack, neep, MESA_revision_number
      integer :: star_type = unknown
+     integer :: nfil !number of filters
+     character(len=20), allocatable :: labels(:) !(nfil) for mags
+     real(sp), allocatable :: mags(:,:) !(nfil,neep)
      integer, allocatable :: eep(:)
      real(dp) :: initial_mass, initial_Y, Fe_div_H, initial_Z, v_div_vcrit, alpha_div_Fe
      real(dp), allocatable :: tr(:,:), dist(:), phase(:)
      !these are used internally as an intermediate step
      real(dp), allocatable :: eep_tr(:,:), eep_dist(:) !(ncol,neep), (neep)
+     real(sp) :: Av=0.0, Rv=3.1
   end type track
 
   !holds one isochrone

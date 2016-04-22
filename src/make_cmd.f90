@@ -5,7 +5,7 @@ program make_cmd
 
   !local modules
   use iso_eep_support
-  use iso_color
+  use iso_eep_color
 
   implicit none
  
@@ -65,7 +65,7 @@ contains
     enddo
     s% cmd_suffix  = cmd_suffix
 
-    call iso_color_init(phot_string,BC_table_list,do_Cstars,Cstar_table_list, &
+    call color_init(phot_string,BC_table_list,do_Cstars,Cstar_table_list, &
          set_fixed_Fe_div_H,Fe_div_H,ierr)
 
   end subroutine cmd_init
