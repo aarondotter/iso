@@ -17,6 +17,9 @@ module iso_eep_support
   logical, parameter ::check_initial_mass = .true.
   real(dp) :: mass_eps = 1d-6
 
+  real(dp), parameter :: ln10=log(1.0d1)
+  real(sp), parameter :: ln10_sp = log(10.0)
+
   character(len=file_path) :: history_dir, eep_dir, iso_dir  
 
   !stellar types for handling primary eeps
@@ -29,6 +32,7 @@ module iso_eep_support
 
   !eep_controls quantities
   logical :: make_bin_tracks=.true. !faster for repeated isochrone construction
+  logical :: make_bin_isos  =.true. 
 
   ! central limits for high- / intermediate-mass stars, set these from input eep_controls nml
   real(dp) :: center_gamma_limit=1d2 
@@ -123,10 +127,15 @@ contains
 
   include 'num_binary_search.inc'
 
+  elemental function pow10_sg(x) result(y)
+    real(sp), intent(in) :: x
+    real(sp) :: y
+    y = exp(ln10_sp*x)
+  end function pow10_sg
+
   elemental function pow10(x) result(y)
     real(dp), intent(in) :: x
     real(dp) :: y
-    real(dp), parameter :: ln10=2.3025850929940459d0
     y = exp(ln10*x)
   end function pow10
 
@@ -615,7 +624,6 @@ contains
     integer, intent(in) :: io
     type(isochrone), intent(out) :: iso
     integer :: i, my_ncol
-    real(dp) :: phase
     type(column), allocatable :: cols(:)
     read(io,'(25x,2i5)') iso% neep, my_ncol
     read(io,*) !skip column numbers
@@ -644,8 +652,7 @@ contains
     allocate(iso% eep(iso% neep), iso% data(iso% ncol, iso% neep))
     do i=1,iso% neep
        if(iso% has_phase)then
-          read(io,'(i5,299(1pes32.16e3))') iso% eep(i), iso% age, iso% data(:,i), phase
-          iso% phase(i) = int(phase)
+          read(io,'(i5,299(1pes32.16e3))') iso% eep(i), iso% age, iso% data(:,i), iso% phase(i)
        else
           read(io,'(i5,299(1pes32.16e3))') iso% eep(i), iso% age, iso% data(:,i)
        endif
