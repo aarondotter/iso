@@ -11,13 +11,15 @@ program iso_interp_met
 
   type(isochrone_set), allocatable :: s(:)
   type(isochrone_set) :: t
-  real(dp), allocatable :: Z_div_H(:)
   real(dp) :: new_Z_div_H
   integer :: ierr, n, i, i_Minit
   logical, parameter :: force_linear = .true.
   logical, parameter :: debug = .false.
   logical, parameter :: do_PAV = .true.
   
+  !this helps speed up the i/o
+  make_bin_isos  =.true. 
+
   call read_interp_input(ierr)
   if(ierr/=0) stop ' iso_interp_met: failed reading input list'
 
@@ -33,7 +35,7 @@ program iso_interp_met
   if(ierr/=0) stop ' iso_interp_met: failed consistency check(s)'
 
   !if all checks pass, then proceed with interpolation
-  call interpolate_Z(n,Z_div_H,new_Z_div_H,s,t,ierr)
+  call interpolate_Z(n,new_Z_div_H,s,t,ierr)
 
   !write the new isochrone to file
   if(ierr==0) then
@@ -76,18 +78,18 @@ contains
     io=alloc_iounit(ierr)
     open(io,file=trim(iso_list),action='read',status='old')
     read(io,*) n
-    allocate(s(n),Z_div_H(n))
+    allocate(s(n))
     do i=1,n
-       read(io,'(f5.2,1x,a)') Z_div_H(i), s(i)% filename
+       read(io,'(a)') s(i)% filename
     enddo
     close(io)
     call free_iounit(io)
   end subroutine read_interp_input
 
 
-  subroutine interpolate_Z(n,Z,newZ,s,t,ierr)
+  subroutine interpolate_Z(n,newZ,s,t,ierr)
     integer, intent(in) :: n
-    real(dp), intent(in) :: Z(n), newZ
+    real(dp), intent(in) ::newZ
     type(isochrone_set), intent(in) :: s(n)
     type(isochrone_set), intent(inout) :: t
     integer, intent(out) :: ierr
@@ -97,7 +99,7 @@ contains
     ierr = 0
 
     do i=1,n-1
-       if(newZ >= Z(i) .and. newZ < Z(i+1)) then
+       if(newZ >= s(i)% Fe_div_H .and. newZ < s(i+1)% Fe_div_H) then
           loc=i
           exit
        endif
@@ -145,7 +147,7 @@ contains
        t% iso(i)% cols(:)% loc = s(lo)% iso(i)% cols(:)% loc
     enddo
 
-    call do_interp_all(order,Z(lo:hi),newZ,s(lo:hi),t)
+    call do_interp_all(order,s(lo:hi)% Fe_div_H,newZ,s(lo:hi),t)
 
     !PAV?
     if(do_PAV)then

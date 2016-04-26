@@ -30,9 +30,9 @@ module iso_eep_support
 
   character(len=10) :: star_label(4)=['   unknown', 'substellar', '  low-mass', ' high-mass']
 
-  !eep_controls quantities
+  !binary file io controls
   logical :: make_bin_tracks=.true. !faster for repeated isochrone construction
-  logical :: make_bin_isos  =.true. 
+  logical :: make_bin_isos  =.false.
 
   ! central limits for high- / intermediate-mass stars, set these from input eep_controls nml
   real(dp) :: center_gamma_limit=1d2 
@@ -115,7 +115,6 @@ module iso_eep_support
   !holds a set of isochrones
   type isochrone_set
      integer :: MESA_revision_number, number_of_isochrones
-     integer, allocatable :: num_valid_eeps(:)
      type(isochrone), allocatable :: iso(:)
      real(sp) :: Av, Rv
      real(dp) :: initial_Y, initial_Z, Fe_div_H, v_div_vcrit, alpha_div_Fe
@@ -569,6 +568,47 @@ contains
 
   end subroutine read_history_bin
 
+  subroutine read_isochrone_bin(s)
+    type(isochrone_set), intent(inout) :: s
+    integer :: i, ierr, io
+    character(len=file_path) :: binfile
+    io=alloc_iounit(ierr)
+    binfile=trim(s% filename) // '.bin'
+    open(io,file=trim(binfile),form='unformatted',action='read',status='old')
+    read(io) s% cmd_suffix
+    read(io) s% MESA_revision_number, s% number_of_isochrones
+    read(io) s% version_string
+    read(io) s% Av, s% Rv
+    read(io) s% initial_Y, s% initial_Z, s% Fe_div_H, s% v_div_vcrit, s% alpha_div_Fe
+    allocate(s% iso(s% number_of_isochrones))
+    do i=1,s% number_of_isochrones
+       read(io) s% iso(i)% neep, s% iso(i)% ncol, s% iso(i)% age_scale
+       read(io) s% iso(i)% age
+       read(io) s% iso(i)% Fe_div_H
+       read(io) s% iso(i)% initial_Y
+       read(io) s% iso(i)% initial_Z
+       read(io) s% iso(i)% v_div_vcrit
+       read(io) s% iso(i)% alpha_div_Fe
+       read(io) s% iso(i)% Av
+       read(io) s% iso(i)% Rv
+       read(io) s% iso(i)% has_phase
+       allocate(s% iso(i)% cols(s% iso(i)% ncol))
+       read(io) s% iso(i)% cols(:)% name
+       read(io) s% iso(i)% cols(:)% type
+       read(io) s% iso(i)% cols(:)% loc
+       allocate(s% iso(i)% eep(s% iso(i)% neep))
+       read(io) s% iso(i)% eep
+       if(s% iso(i)% has_phase)then
+          allocate(s% iso(i)% phase(s% iso(i)% Neep))
+          read(io) s% iso(i)% phase
+       endif
+       allocate(s% iso(i)% data(s% iso(i)% ncol, s% iso(i)% neep))
+       read(io) s% iso(i)% data
+    enddo
+    close(io)
+    call free_iounit(io)
+  end subroutine read_isochrone_bin
+
   subroutine write_history_bin(t)
     type(track), intent(in) :: t
     integer :: io, ierr
@@ -586,13 +626,57 @@ contains
     call free_iounit(io)
   end subroutine write_history_bin
 
+  subroutine write_isochrone_bin(s)
+    type(isochrone_set), intent(in) :: s
+    integer :: i, ierr, io
+    character(len=file_path) :: binfile
+    io=alloc_iounit(ierr)
+    binfile=trim(s% filename) // '.bin'
+    open(io,file=trim(binfile),form='unformatted',action='write',status='unknown')
+    write(io) s% cmd_suffix
+    write(io) s% MESA_revision_number, s% number_of_isochrones
+    write(io) s% version_string
+    write(io) s% Av, s% Rv
+    write(io) s% initial_Y, s% initial_Z, s% Fe_div_H, s% v_div_vcrit, s% alpha_div_Fe
+    do i=1,s% number_of_isochrones
+       write(io) s% iso(i)% neep, s% iso(i)% ncol, s% iso(i)% age_scale
+       write(io) s% iso(i)% age
+       write(io) s% iso(i)% Fe_div_H
+       write(io) s% iso(i)% initial_Y
+       write(io) s% iso(i)% initial_Z
+       write(io) s% iso(i)% v_div_vcrit
+       write(io) s% iso(i)% alpha_div_Fe
+       write(io) s% iso(i)% Av
+       write(io) s% iso(i)% Rv
+       write(io) s% iso(i)% has_phase
+       write(io) s% iso(i)% cols(:)% name
+       write(io) s% iso(i)% cols(:)% type
+       write(io) s% iso(i)% cols(:)% loc
+       write(io) s% iso(i)% eep
+       if(s% iso(i)% has_phase) write(io) s% iso(i)% phase
+       write(io) s% iso(i)% data
+    enddo
+    close(io)
+    call free_iounit(io)
+    write(0,*) 'wrote isochrone bin file: ', trim(binfile)
+  end subroutine write_isochrone_bin
 
   subroutine read_isochrone_file(s,ierr)
     type(isochrone_set), intent(inout) :: s
     integer, intent(out) :: ierr
     integer :: io, i, n
+    character(len=file_path) :: binfile
+    logical :: binfile_exists
     ierr=0
     io=alloc_iounit(ierr)
+
+    binfile=trim(s% filename) // '.bin'
+    inquire(file=binfile,exist=binfile_exists)
+    if(binfile_exists)then
+       call read_isochrone_bin(s)
+       return
+    endif
+
     open(io,file=trim(s% filename), action='read', status='old')
     read(io,'(25x,a8)') s% version_string
     read(io,'(25x,i8)') s% MESA_revision_number
@@ -617,6 +701,7 @@ contains
     enddo    
     close(io)
     call free_iounit(io)
+    if(make_bin_isos) call write_isochrone_bin(s)
   end subroutine read_isochrone_file
 
   

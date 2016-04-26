@@ -450,7 +450,7 @@ contains
     type(track), intent(inout) :: t
     character(len=file_path) :: filename
     integer :: io, ierr, iT, ig, iL, iA, i
-    real(sp), allocatable :: log_Z_div_Zsol(:)
+    real(sp), allocatable :: log_Z_div_Zsol(:), Zsurf(:)
     ierr=0; iT=0; ig=0; iL=0; iA=0
     if(t% cmd_suffix/='') filename = trim(t% filename) // '.' // trim(t% cmd_suffix)
     write(*,*) trim(filename)
@@ -484,13 +484,16 @@ contains
     call get_eep_mags(t,log_Z_div_Zsol,ierr)
     if(ierr/=0) write(0,*) ' problem in get_eep_mags '
 
+    allocate(Zsurf(size(log_Z_div_Zsol)))
+    Zsurf = pow10_sg(log_Z_div_Zsol + log_Z_sol)
+
     write(io,'(a25,2i5)') '# number of EEPs, cols = ', t% ntrack, t% nfil + 7
     write(io,'(a1,i31,4i32,299(17x,i3))') '#    ', (i,i=1,t% nfil+5)
     write(io,'(a1,a31,4a32,299a20)') '#', 'star_age', 'log_Teff', &
-         'log_g', 'log_L', 'log_Z_div_Zsol', adjustr(t% labels)
+         'log_g', 'log_L', 'Z_surf', adjustr(t% labels)
     do i=1,t% ntrack
        write(io,'(5(1pes32.16e3),299(0pf20.6))') t% tr(iA,i), t% tr(iT,i), &
-            t% tr(ig,i), t% tr(iL,i), log_Z_div_Zsol(i), t% mags(:,i)
+            t% tr(ig,i), t% tr(iL,i), Zsurf(i), t% mags(:,i)
     enddo
     close(io)
     call free_iounit(io)
@@ -536,7 +539,7 @@ contains
     integer, intent(in) :: io
     type(isochrone), intent(inout) :: iso
     integer :: i, iT, ig, iL, ierr, iM
-    real(sp), allocatable :: log_Z_div_Zsol(:)
+    real(sp), allocatable :: log_Z_div_Zsol(:), Zsurf(:)
     ierr=0; iT=0; ig=0; iL=0; iM=0
 
     do i=1, iso% ncol
@@ -554,20 +557,23 @@ contains
     call get_iso_mags(iso,log_Z_div_Zsol,ierr)
     if(ierr/=0) write(0,*) ' problem in get_iso_mags '
 
+    allocate(Zsurf(size(log_Z_div_Zsol)))
+    Zsurf = pow10_sg(log_Z_div_Zsol + log_Z_sol)
+
     write(io,'(a25,2i5)') '# number of EEPs, cols = ', iso% neep, iso% nfil + 7
     write(io,'(a1,i4,5i32,299(17x,i3))') '#    ', (i,i=1,iso% nfil+7)
 
     if(iso% age_scale==age_scale_linear)then
        write(io,'(a5,5a32,299a20)') '# EEP', 'isochrone_age_yr', 'initial_mass', 'log_Teff', &
-            'log_g', 'log_L', 'log_Z_div_Zsol', adjustr(iso% labels)
+            'log_g', 'log_L', 'Z_surf', adjustr(iso% labels)
     elseif(iso% age_scale==age_scale_log10)then
        write(io,'(a5,5a32,299a20)') '# EEP', 'log10_isochrone_age_yr', 'initial_mass', 'log_Teff', &
-            'log_g', 'log_L', 'log_Z_div_Zsol', adjustr(iso% labels)
+            'log_g', 'log_L', 'Z_surf', adjustr(iso% labels)
     endif
 
     do i = 1,iso% neep
        write(io,'(i5,5(1pes32.16e3),299(0pf20.6))') iso% eep(i), iso% age, iso% data(iM,i), &
-            iso% data(iT,i), iso% data(ig,i), iso% data(iL,i), log_Z_div_Zsol(i), iso% mags(:,i)
+            iso% data(iT,i), iso% data(ig,i), iso% data(iL,i), Zsurf(i), iso% mags(:,i)
     enddo
   end subroutine write_cmd_to_file
 
