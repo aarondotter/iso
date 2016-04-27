@@ -129,7 +129,7 @@ contains
     t% number_of_isochrones =s(lo)% number_of_isochrones
     t% MESA_revision_number = s(lo)% MESA_revision_number
     t% version_string = s(lo)% version_string
-    !initial_Y, initial_Z, 
+    call set_initial_Y_and_Z(t)
     t% v_div_vcrit = s(lo)% v_div_vcrit
     t% alpha_div_Fe = s(lo)% alpha_div_Fe
     allocate(t% iso(t% number_of_isochrones))
@@ -137,6 +137,8 @@ contains
     t% iso(:)% has_phase = s(lo)% iso(:)% has_phase
     t% iso(:)% age       = s(lo)% iso(:)% age
     t% iso(:)% ncol      = s(lo)% iso(:)% ncol
+    t% iso(:)% initial_Y = t% initial_Y
+    t% iso(:)% initial_Z = t% initial_Z
     t% iso(:)% alpha_div_Fe = t% alpha_div_Fe
     t% iso(:)% v_div_vcrit = t% v_div_vcrit
     t% iso(:)% Fe_div_H = t% Fe_div_H
@@ -157,6 +159,25 @@ contains
     endif
   end subroutine interpolate_Z
 
+  subroutine set_initial_Y_and_Z(t)
+    type(isochrone_set), intent(inout) :: t
+    real(dp), parameter :: Z_proto=1.42d-2
+    real(dp), parameter :: Y_proto=2.703d-1
+    real(dp), parameter :: X_proto=7.155d-1
+    real(dp), parameter :: Y_BBN=2.49d-1
+    real(dp), parameter :: Z_div_X_proto=log10(Z_proto/X_proto)
+    real(dp), parameter :: dY_dZ = (Y_proto-Y_BBN)/Z_proto
+    real(dp) :: Z_div_X, top, bottom, Y, Z, X
+    Z_div_X = pow10(t% Fe_div_H + Z_div_X_proto)
+    top = 1d0 - Y_BBN
+    bottom = 1d0 + Z_div_X*(1d0+dY_dZ)
+    X = top/bottom
+    Z = Z_div_X * X
+    Y = 1d0 - X - Z
+    t% initial_Y = Y
+    t% initial_Z = Z
+  end subroutine set_initial_Y_and_Z
+
   subroutine do_interp_all(n,Z,newZ,s,t)
     integer, intent(in) :: n
     real(dp), intent(in) :: Z(n), newZ
@@ -167,38 +188,6 @@ contains
     logical :: eep_good(n)
     logical, pointer :: good(:)=>NULL()
     integer, pointer :: eep_index(:)=>NULL()
-    real(dp) :: Yinit(1),Zinit(1),vv(1),ww(1),xx(1),yy(1)
-
-    Zinit = 0d0
-    Yinit = 0d0
-
-    if(n==2)then
-       xx(1) = s(1)% initial_Z
-       yy(1) = s(2)% initial_Z
-       Zinit = linear(1,Z,newZ,xx,yy)
-
-       xx(1) = s(1)% initial_Y
-       yy(1) = s(2)% initial_Y
-       Yinit = linear(1,Z,newZ,xx,yy)       
-    elseif(n==4)then      
-       vv(1) = s(1)% initial_Z
-       ww(1) = s(2)% initial_Z
-       xx(1) = s(3)% initial_Z
-       yy(1) = s(4)% initial_Z
-       Zinit = cubic_pm(1,Z,newZ,vv,ww,xx,yy)
-
-       vv(1) = s(1)% initial_Y
-       ww(1) = s(2)% initial_Y
-       xx(1) = s(3)% initial_Y
-       yy(1) = s(4)% initial_Y
-       Yinit = cubic_pm(1,Z,newZ,vv,ww,xx,yy)
-    endif
-
-    t% initial_Z = Zinit(1)
-    t% initial_Y = Yinit(1)
-    
-    t% iso(:)% initial_Z = t% initial_Z
-    t% iso(:)% initial_Y = t% initial_Y
 
     do i=1,n
        write(*,*) trim(s(i)% filename), Z(i)
