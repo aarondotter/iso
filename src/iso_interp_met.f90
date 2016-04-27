@@ -31,6 +31,10 @@ program iso_interp_met
   !need this for PAV
   i_Minit=locate_Minit(s(1)% iso(1))
 
+  !enforce limits
+  new_Z_div_H = min(new_Z_div_H, s(n)% Fe_div_H)
+
+
   call consistency_check(s,ierr)
   if(ierr/=0) stop ' iso_interp_met: failed consistency check(s)'
 
@@ -94,6 +98,7 @@ contains
     type(isochrone_set), intent(inout) :: t
     integer, intent(out) :: ierr
     integer :: i, loc, lo, hi, order
+    real(dp) :: tiny=1d-12
     loc=0; order=0; lo=0; hi=0
 
     ierr = 0
@@ -104,6 +109,9 @@ contains
           exit
        endif
     enddo
+
+    if(abs(newZ-s(1)% Fe_div_H)<tiny) loc=1
+    if(abs(newZ-s(n)% Fe_div_H)<tiny) loc=n-1
 
     if(loc==0)then
        ierr=-1
