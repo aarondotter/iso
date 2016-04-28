@@ -37,6 +37,7 @@ contains
     integer :: i, ierr
     type(isochrone_set) :: q
     real(dp), allocatable :: res(:)
+    real(dp) :: phase
 
     q% filename = output
 
@@ -67,7 +68,7 @@ contains
        allocate(q% iso(i)% cols(q% iso(i)% ncol))
        q% iso(i)% cols = s% iso(i)% cols
        q% iso(i)% age = s% iso(i)% age
-       call interpolate_age(t,pow10(q% iso(i)% age),res,ierr)
+       call interpolate_age(t,pow10(q% iso(i)% age),res,phase,ierr)
        if(ierr/=0) stop 99 
        
        q% iso(i)% neep = s% iso(i)% neep + 1
@@ -79,6 +80,15 @@ contains
        q% iso(i)% eep(1) = s% iso(i)% eep(1) -1 
        q% iso(i)% eep(2:q% iso(i)% neep) = s% iso(i)% eep
 
+       q% iso(i)% phase(1) = 0
+       q% iso(i)% phase(2:q% iso(i)% neep) = s% iso(i)% phase
+
+       if(phase < 1d1)then
+          q% iso(i)% phase(1) = phase
+       else
+          q% iso(i)% phase(1) = s% iso(i)% phase(1)
+       endif
+
        q% iso(i)% data(:,1) = res
        q% iso(i)% data(:,2:q% iso(i)% neep) = s% iso(i)% data
 
@@ -89,14 +99,14 @@ contains
   end subroutine interpolate_eep_onto_iso
 
     
-  subroutine interpolate_age(t,age,res,ierr) 
+  subroutine interpolate_age(t,age,res,phase,ierr) 
     type(track), intent(in) :: t
     real(dp), intent(in) :: age
-    real(dp), intent(out) :: res(:)
+    real(dp), intent(out) :: res(:), phase
     integer, intent(out) :: ierr
     integer :: i, i_age, lo, hi
     real(dp) :: alfa, beta
-
+    real(dp), parameter :: tiny=1d-10
     res = 0d0; lo=0; hi=0; ierr=0
 
     if(size(res) /= t% ncol) then
@@ -134,6 +144,13 @@ contains
     !interpolate
     beta = (age - t% tr(i_age,lo))/(t% tr(i_age,hi)-t% tr(i_age,lo))
     alfa = 1d0 - beta
+
+    if( abs(t% phase(lo)- t% phase(hi)) < tiny) then
+       phase = t% phase(lo)
+    else
+       phase = 1d6
+    endif
+
     !switch age to mass for isochrone
     res = alfa*t% tr(:,lo) + beta*t% tr(:,hi)
     res(i_age) = t% initial_mass
