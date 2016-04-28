@@ -274,15 +274,15 @@ contains
 
     if(x% has_phase)then
        write(io,'(a1,299(27x,i5))') '#', (j,j=1,x% ncol+1)
-       write(io,'(a1,299a32)') '#', adjustr(x% cols(:)% name), 'phase'
+       write(io,'(a1,a32,299a32)') '#', adjustr(x% cols(:)% name), 'phase'
        do j=x% eep(1),x% ntrack
-          write(io,'(299(1pes32.16e3))') x% tr(:,j), x% phase(j)
+          write(io,'(1x,299(1pes32.16e3))') x% tr(:,j), x% phase(j)
        enddo
     else
        write(io,'(a1, 299(27x,i5))') '#', (j,j=1,x% ncol)
        write(io,'(a1, 299a32)') '#', adjustr(x% cols(:)% name)
        do j=x% eep(1),x% ntrack
-          write(io,'(299(1pes32.16e3))') x% tr(:,j)
+          write(io,'(1x,299(1pes32.16e3))') x% tr(:,j)
        enddo
     endif
     close(io)

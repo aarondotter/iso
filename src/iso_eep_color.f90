@@ -120,14 +120,20 @@ contains
 
        log_Z_div_Zsol(i) = FeH
 
-       if(iCdivO>0)then
-          C_div_O  =log10(iso% data(iCdivO,i))
-       else
-          C_div_O = log10((16d0/12d0) * iso% data(iC,i) / iso% data(iO,i))
-       endif
+       if(BC_do_Cstars)then
 
-       Cstar_OK = BC_do_Cstars .and. (C_div_O > 0d0) .and. (logT > c_min_logT) .and. &
-            (logT < c_max_logT) .and. (logg > c_min_logg) .and. (logg < c_max_logg)
+          if(iCdivO>0)then
+             C_div_O  =log10(iso% data(iCdivO,i))
+          else
+             C_div_O = log10((16d0/12d0) * iso% data(iC,i) / iso% data(iO,i))
+          endif
+
+          Cstar_OK = (C_div_O > 0d0) .and. (logT > c_min_logT) .and. &
+               (logT < c_max_logT) .and. (logg > c_min_logg) .and. &
+               (logg < c_max_logg)
+       else
+          Cstar_OK = .false.
+       endif
 
        if( Cstar_OK )then !use Cstar grid
           n=nc
@@ -451,6 +457,7 @@ contains
     character(len=file_path) :: filename
     integer :: io, ierr, iT, ig, iL, iA, i
     real(sp), allocatable :: log_Z_div_Zsol(:), Zsurf(:)
+    character(len=8) :: have_phase
     ierr=0; iT=0; ig=0; iL=0; iA=0
     if(t% cmd_suffix/='') filename = trim(t% filename) // '.' // trim(t% cmd_suffix)
     write(*,*) trim(filename)
@@ -458,12 +465,22 @@ contains
     if(ierr/=0) return
     open(io,file=trim(filename),action='write',status='unknown',iostat=ierr)
     if(ierr/=0) return
+    if(t% has_phase)then
+       have_phase = 'YES'
+    else
+       have_phase = 'NO'
+    endif
+    have_phase = adjustr(have_phase)
     write(io,'(a25,a8)') '# MIST version number  = ', t% version_string
     write(io,'(a25,i8)') '# MESA revision number = ', t% MESA_revision_number
     write(io,'(a25,a)') '# photometric system   = ', b(1)% photometric_system_string
     write(io,'(a88)') '# --------------------------------------------------------------------------------------'
     write(io,'(a88)') '#  Yinit        Zinit   [Fe/H]   [a/Fe]  v/vcrit                                        '
     write(io,'(a2,f6.4,1p1e13.5,0p3f9.2)') '# ', t% initial_Y, t% initial_Z, t% Fe_div_H, t% alpha_div_Fe, t% v_div_vcrit
+    write(io,'(a88)') '# --------------------------------------------------------------------------------------'
+    write(io,'(a1,1x,a16,4a8,2x,a10)') '#','initial_mass', 'N_pts', 'N_EEP', 'N_col', 'phase', 'type'
+    write(io,'(a1,1x,1p1e16.10,3i8,a8,2x,a10)') '#', t% initial_mass, t% ntrack, t% neep, t% ncol, have_phase, &
+         star_label(t% star_type)
     write(io,'(a8,20i8)') '# EEPs: ', t% eep
     write(io,'(a88)') '# --------------------------------------------------------------------------------------'
     write(io,'(a25,f6.3)') '# CCM89 extinction: Av = ', t% Av
@@ -486,14 +503,28 @@ contains
 
     allocate(Zsurf(size(log_Z_div_Zsol)))
     Zsurf = pow10_sg(log_Z_div_Zsol + log_Z_sol)
-
-    write(io,'(a25,2i5)') '# number of EEPs, cols = ', t% ntrack, t% nfil + 7
-    write(io,'(a1,i31,4i32,299(17x,i3))') '#    ', (i,i=1,t% nfil+5)
-    write(io,'(a1,a31,4a32,299a20)') '#', 'star_age', 'log_Teff', &
-         'log_g', 'log_L', 'Z_surf', adjustr(t% labels)
+    if(t% has_phase)then
+       write(io,'(a25,2i5)') '# number of EEPs, cols = ', t% ntrack, t% nfil + 6
+       write(io,'(a1,i31,4i32,299(17x,i3))') '#    ', (i,i=1,t% nfil+6)
+    else
+       write(io,'(a25,2i5)') '# number of EEPs, cols = ', t% ntrack, t% nfil + 5
+       write(io,'(a1,i31,4i32,299(17x,i3))') '#    ', (i,i=1,t% nfil+5)
+    endif
+    if(t% has_phase)then
+       write(io,'(a1,a31,4a32,299a20)') '#', 'star_age', 'log_Teff', &
+            'log_g', 'log_L', 'Z_surf', adjustr(t% labels), 'phase'
+    else
+       write(io,'(a1,a31,4a32,299a20)') '#', 'star_age', 'log_Teff', &
+            'log_g', 'log_L', 'Z_surf', adjustr(t% labels)
+    endif
     do i=1,t% ntrack
-       write(io,'(5(1pes32.16e3),299(0pf20.6))') t% tr(iA,i), t% tr(iT,i), &
-            t% tr(ig,i), t% tr(iL,i), Zsurf(i), t% mags(:,i)
+       if(t% has_phase) then
+          write(io,'(5(1pes32.16e3),299(0pf20.6))') t% tr(iA,i), t% tr(iT,i), &
+               t% tr(ig,i), t% tr(iL,i), Zsurf(i), t% mags(:,i), real(t% phase(i),kind=sp)
+       else
+          write(io,'(5(1pes32.16e3),299(0pf20.6))') t% tr(iA,i), t% tr(iT,i), &
+               t% tr(ig,i), t% tr(iL,i), Zsurf(i), t% mags(:,i)
+       endif
     enddo
     close(io)
     call free_iounit(io)
