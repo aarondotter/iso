@@ -11,20 +11,41 @@ program make_cmd
  
   integer :: ierr
   type(isochrone_set) :: s
+  logical, parameter :: do_timing = .false.
   logical :: do_Cstars = .false.
   character(len=file_path) :: BC_table_list = '', cmd_suffix = 'cmd'
   character(len=file_path) :: Cstar_table_list = ''
   logical :: set_fixed_Fe_div_H = .false.
   real(sp) :: extinction_Av=0.0, extinction_Rv=0.0, Fe_div_H = 0.0
+  integer :: count_rate, time(4)
 
   namelist /cmd_controls/ BC_table_list, extinction_Av, extinction_Rv, &
   Cstar_table_list, do_Cstars, cmd_suffix, Fe_div_H, set_fixed_Fe_div_H
 
+  if(do_timing) call system_clock(time(1),count_rate)
   call cmd_init(ierr)
+
+  if(do_timing) call system_clock(time(2),count_rate)
   if(ierr==0) call read_isochrone_file(s,ierr)
+
+  s% cmd_suffix = cmd_suffix !override value in bin, if present
+
+  if(do_timing) call system_clock(time(3),count_rate)
   if(ierr==0) call write_cmds_to_file(s)
 
+  if(do_timing) call system_clock(time(4),count_rate)
+
+  if(do_timing) call report_timing
 contains
+  subroutine report_timing
+    real(dp) :: t(4),c
+    t=real(time,kind=dp)
+    c=real(count_rate,kind=dp)
+    write(0,*) ' Total execution time: ', (t(4)-t(1))/c
+    write(0,*) ' Time to initialize  : ', (t(2)-t(1))/c
+    write(0,*) ' Time to read isos   : ', (t(3)-t(2))/c
+    write(0,*) ' Time to write isos  : ', (t(4)-t(2))/c
+  end subroutine report_timing
 
   subroutine cmd_init(ierr)
     integer, intent(out) :: ierr
@@ -63,7 +84,6 @@ contains
        s% iso(i)% Av = s% Av
        s% iso(i)% Rv = s% Rv
     enddo
-    s% cmd_suffix  = cmd_suffix
 
     call color_init(phot_string,BC_table_list,do_Cstars,Cstar_table_list, &
          set_fixed_Fe_div_H,Fe_div_H,ierr)

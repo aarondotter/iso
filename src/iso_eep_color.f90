@@ -533,8 +533,9 @@ contains
 
   subroutine write_cmds_to_file(set)
     type(isochrone_set), intent(inout) :: set
-    character(len=256) :: output
+    character(len=file_path) :: output
     integer :: i, io, n, ierr
+
     if(set% cmd_suffix/='') output = trim(set% filename) // '.' // trim(set% cmd_suffix)
     n=size(set% iso)
     write(0,*) ' cmd output file = ', trim(output)
@@ -569,7 +570,8 @@ contains
   subroutine write_cmd_to_file(io,iso)
     integer, intent(in) :: io
     type(isochrone), intent(inout) :: iso
-    integer :: i, iT, ig, iL, ierr, iM
+    character(len=32) :: age_column_header
+    integer :: i, iT, ig, iL, ierr, iM, num_cols
     real(sp), allocatable :: log_Z_div_Zsol(:), Zsurf(:)
     ierr=0; iT=0; ig=0; iL=0; iM=0
 
@@ -591,20 +593,35 @@ contains
     allocate(Zsurf(size(log_Z_div_Zsol)))
     Zsurf = pow10_sg(log_Z_div_Zsol + log_Z_sol)
 
-    write(io,'(a25,2i5)') '# number of EEPs, cols = ', iso% neep, iso% nfil + 7
-    write(io,'(a1,i4,5i32,299(17x,i3))') '#    ', (i,i=1,iso% nfil+7)
+    if(iso% has_phase) then
+       num_cols = iso% nfil + 8
+    else
+       num_cols = iso% nfil + 7
+    endif
+    write(io,'(a25,2i5)') '# number of EEPs, cols = ', iso% neep, num_cols
+    write(io,'(a1,i4,5i32,299(17x,i3))') '#    ', (i,i=1,num_cols)
 
     if(iso% age_scale==age_scale_linear)then
-       write(io,'(a5,5a32,299a20)') '# EEP', 'isochrone_age_yr', 'initial_mass', 'log_Teff', &
-            'log_g', 'log_L', 'Z_surf', adjustr(iso% labels)
-    elseif(iso% age_scale==age_scale_log10)then
-       write(io,'(a5,5a32,299a20)') '# EEP', 'log10_isochrone_age_yr', 'initial_mass', 'log_Teff', &
-            'log_g', 'log_L', 'Z_surf', adjustr(iso% labels)
+       age_column_header='isocrhone_age_yr'
+    else
+       age_column_header='log10_isochrone_age_yr'
     endif
 
+    if(iso% has_phase)then
+       write(io,'(a5,5a32,299a20)') '# EEP', adjustr(age_column_header), 'initial_mass', 'log_Teff', &
+            'log_g', 'log_L', 'Z_surf', adjustr(iso% labels), 'phase'
+    else
+       write(io,'(a5,5a32,299a20)') '# EEP', adjustr(age_column_header), 'initial_mass', 'log_Teff', &
+            'log_g', 'log_L', 'Z_surf', adjustr(iso% labels)
+    endif
     do i = 1,iso% neep
-       write(io,'(i5,5(1pes32.16e3),299(0pf20.6))') iso% eep(i), iso% age, iso% data(iM,i), &
-            iso% data(iT,i), iso% data(ig,i), iso% data(iL,i), Zsurf(i), iso% mags(:,i)
+       if(iso% has_phase)then
+          write(io,'(i5,5(1pes32.16e3),299(0pf20.6))') iso% eep(i), iso% age, iso% data(iM,i), &
+               iso% data(iT,i), iso% data(ig,i), iso% data(iL,i), Zsurf(i), iso% mags(:,i), real(iso% phase(i), kind=sp)
+       else
+          write(io,'(i5,5(1pes32.16e3),299(0pf20.6))') iso% eep(i), iso% age, iso% data(iM,i), &
+               iso% data(iT,i), iso% data(ig,i), iso% data(iL,i), Zsurf(i), iso% mags(:,i)
+       endif
     enddo
   end subroutine write_cmd_to_file
 
