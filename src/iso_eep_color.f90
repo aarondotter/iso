@@ -455,7 +455,7 @@ contains
   subroutine write_track_cmd_to_file(t)
     type(track), intent(inout) :: t
     character(len=file_path) :: filename
-    integer :: io, ierr, iT, ig, iL, iA, i
+    integer :: io, ierr, iT, ig, iL, iA, i, ncol
     real(sp), allocatable :: log_Z_div_Zsol(:), Zsurf(:)
     character(len=8) :: have_phase
     ierr=0; iT=0; ig=0; iL=0; iA=0
@@ -487,6 +487,12 @@ contains
     call get_eep_mags(t,log_Z_div_Zsol,ierr)
     if(ierr/=0) write(0,*) ' problem in get_eep_mags '
 
+    if(t% has_phase)then
+       ncol = t% nfil + 6
+    else
+       ncol = t% nfil + 5
+    endif
+
     allocate(Zsurf(size(log_Z_div_Zsol)))
     Zsurf = pow10_sg(log_Z_div_Zsol + log_Z_sol)
 
@@ -498,7 +504,7 @@ contains
     write(io,'(a2,f6.4,1p1e13.5,0p3f9.2)') '# ', t% initial_Y, t% initial_Z, t% Fe_div_H, t% alpha_div_Fe, t% v_div_vcrit
     write(io,'(a88)') '# --------------------------------------------------------------------------------------'
     write(io,'(a1,1x,a16,4a8,2x,a10)') '#','initial_mass', 'N_pts', 'N_EEP', 'N_col', 'phase', 'type'
-    write(io,'(a1,1x,1p1e16.10,3i8,a8,2x,a10)') '#', t% initial_mass, t% ntrack, t% neep, t% nfil+5, have_phase, &
+    write(io,'(a1,1x,1p1e16.10,3i8,a8,2x,a10)') '#', t% initial_mass, t% ntrack, t% neep, ncol, have_phase, &
          star_label(t% star_type)
     write(io,'(a8,20i8)') '# EEPs: ', t% eep
     write(io,'(a88)') '# --------------------------------------------------------------------------------------'
@@ -506,11 +512,7 @@ contains
     write(io,'(a88)') '# --------------------------------------------------------------------------------------'
 
 
-    if(t% has_phase)then
-       write(io,'(a1,i31,4i32,299(17x,i3))') '#    ', (i,i=1,t% nfil+6)
-    else
-       write(io,'(a1,i31,4i32,299(17x,i3))') '#    ', (i,i=1,t% nfil+5)
-    endif
+    write(io,'(a1,i31,4i32,299(17x,i3))') '#    ', (i,i=1,ncol)
 
     if(t% has_phase)then
        write(io,'(a1,a31,4a32,299a20)') '#', 'star_age', 'log_Teff', &
