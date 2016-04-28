@@ -471,20 +471,6 @@ contains
        have_phase = 'NO'
     endif
     have_phase = adjustr(have_phase)
-    write(io,'(a25,a8)') '# MIST version number  = ', t% version_string
-    write(io,'(a25,i8)') '# MESA revision number = ', t% MESA_revision_number
-    write(io,'(a25,a)') '# photometric system   = ', b(1)% photometric_system_string
-    write(io,'(a88)') '# --------------------------------------------------------------------------------------'
-    write(io,'(a88)') '#  Yinit        Zinit   [Fe/H]   [a/Fe]  v/vcrit                                        '
-    write(io,'(a2,f6.4,1p1e13.5,0p3f9.2)') '# ', t% initial_Y, t% initial_Z, t% Fe_div_H, t% alpha_div_Fe, t% v_div_vcrit
-    write(io,'(a88)') '# --------------------------------------------------------------------------------------'
-    write(io,'(a1,1x,a16,4a8,2x,a10)') '#','initial_mass', 'N_pts', 'N_EEP', 'N_col', 'phase', 'type'
-    write(io,'(a1,1x,1p1e16.10,3i8,a8,2x,a10)') '#', t% initial_mass, t% ntrack, t% neep, t% ncol, have_phase, &
-         star_label(t% star_type)
-    write(io,'(a8,20i8)') '# EEPs: ', t% eep
-    write(io,'(a88)') '# --------------------------------------------------------------------------------------'
-    write(io,'(a25,f6.3)') '# CCM89 extinction: Av = ', t% Av
-    write(io,'(a88)') '# --------------------------------------------------------------------------------------'
     
     do i=1, t% ncol
        if(trim(adjustl(t% cols(i)% name)) == 'log_Teff') then
@@ -503,13 +489,29 @@ contains
 
     allocate(Zsurf(size(log_Z_div_Zsol)))
     Zsurf = pow10_sg(log_Z_div_Zsol + log_Z_sol)
+
+    write(io,'(a25,a8)') '# MIST version number  = ', t% version_string
+    write(io,'(a25,i8)') '# MESA revision number = ', t% MESA_revision_number
+    write(io,'(a25,a)') '# photometric system   = ', b(1)% photometric_system_string
+    write(io,'(a88)') '# --------------------------------------------------------------------------------------'
+    write(io,'(a88)') '#  Yinit        Zinit   [Fe/H]   [a/Fe]  v/vcrit                                        '
+    write(io,'(a2,f6.4,1p1e13.5,0p3f9.2)') '# ', t% initial_Y, t% initial_Z, t% Fe_div_H, t% alpha_div_Fe, t% v_div_vcrit
+    write(io,'(a88)') '# --------------------------------------------------------------------------------------'
+    write(io,'(a1,1x,a16,4a8,2x,a10)') '#','initial_mass', 'N_pts', 'N_EEP', 'N_col', 'phase', 'type'
+    write(io,'(a1,1x,1p1e16.10,3i8,a8,2x,a10)') '#', t% initial_mass, t% ntrack, t% neep, t% nfil+5, have_phase, &
+         star_label(t% star_type)
+    write(io,'(a8,20i8)') '# EEPs: ', t% eep
+    write(io,'(a88)') '# --------------------------------------------------------------------------------------'
+    write(io,'(a25,f6.3)') '# CCM89 extinction: Av = ', t% Av
+    write(io,'(a88)') '# --------------------------------------------------------------------------------------'
+
+
     if(t% has_phase)then
-       write(io,'(a25,2i5)') '# number of EEPs, cols = ', t% ntrack, t% nfil + 6
        write(io,'(a1,i31,4i32,299(17x,i3))') '#    ', (i,i=1,t% nfil+6)
     else
-       write(io,'(a25,2i5)') '# number of EEPs, cols = ', t% ntrack, t% nfil + 5
        write(io,'(a1,i31,4i32,299(17x,i3))') '#    ', (i,i=1,t% nfil+5)
     endif
+
     if(t% has_phase)then
        write(io,'(a1,a31,4a32,299a20)') '#', 'star_age', 'log_Teff', &
             'log_g', 'log_L', 'Z_surf', adjustr(t% labels), 'phase'
