@@ -248,15 +248,17 @@ contains
 
   subroutine write_track(x)
     type(track), intent(in) :: x
-    integer :: io, ierr, j
+    integer :: io, ierr, j, ncol
     character(len=8) :: have_phase
     io=alloc_iounit(ierr)
     write(*,*) '    ', trim(x% filename)
     open(io,file=trim(x% filename),action='write',status='unknown')
     if(x% has_phase)then
        have_phase = 'YES'
+       ncol = x% ncol + 1
     else
        have_phase = 'NO'
+       ncol = x% ncol
     endif
     have_phase = adjustr(have_phase)
     write(io,'(a25,a8)') '# MIST version number  = ', x% version_string
@@ -267,20 +269,20 @@ contains
     write(io,'(a2,f6.4,1p1e13.5,0p3f9.2)') '# ', x% initial_Y, x% initial_Z, x% Fe_div_H, x% alpha_div_Fe, x% v_div_vcrit
     write(io,'(a88)') '# --------------------------------------------------------------------------------------'
     write(io,'(a1,1x,a16,4a8,2x,a10)') '#','initial_mass', 'N_pts', 'N_EEP', 'N_col', 'phase', 'type'
-    write(io,'(a1,1x,1p1e16.10,3i8,a8,2x,a10)') '#', x% initial_mass, x% ntrack, x% neep, x% ncol, have_phase, &
+    write(io,'(a1,1x,1p1e16.10,3i8,a8,2x,a10)') '#', x% initial_mass, x% ntrack, x% neep, ncol, have_phase, &
          star_label(x% star_type)
     write(io,'(a8,20i8)') '# EEPs: ', x% eep
     write(io,'(a88)') '# --------------------------------------------------------------------------------------'
 
     if(x% has_phase)then
-       write(io,'(a1,299(27x,i5))') '#', (j,j=1,x% ncol+1)
-       write(io,'(a1,a32,299a32)') '#', adjustr(x% cols(:)% name), 'phase'
+       write(io,'(a1,299(27x,i5))') '#', (j,j=1,ncol)
+       write(io,'(a1,299a32)') '#', adjustr(x% cols(:)% name), 'phase'
        do j=x% eep(1),x% ntrack
           write(io,'(1x,299(1pes32.16e3))') x% tr(:,j), x% phase(j)
        enddo
     else
-       write(io,'(a1, 299(27x,i5))') '#', (j,j=1,x% ncol)
-       write(io,'(a1, 299a32)') '#', adjustr(x% cols(:)% name)
+       write(io,'(a1, 299(27x,i5))') '#', (j,j=1,ncol)
+       write(io,'(a1, a32, 299a32)') '#', adjustr(x% cols(:)% name)
        do j=x% eep(1),x% ntrack
           write(io,'(1x,299(1pes32.16e3))') x% tr(:,j)
        enddo
@@ -417,14 +419,14 @@ contains
     read(io,*) ! comment line
     read(io,*) ! column numbers
     if(x% has_phase) then
-       read(io,'(299a32)') x% cols(:)% name ! column names
+       read(io,'(1x,299a32)') x% cols(:)% name ! column names
        do j=x% eep(1), x% ntrack
-          read(io,'(299(1pes32.16e3))')  x% tr(:,j), x% phase(j)
+          read(io,'(1x,299(1pes32.16e3))')  x% tr(:,j), x% phase(j)
        enddo
     else
-       read(io,'(299a32)') x% cols
+       read(io,'(1x,299a32)') x% cols
        do j=x% eep(1), x% ntrack
-          read(io,'(299(1pes32.16e3))') x% tr(:,j)
+          read(io,'(1x,299(1pes32.16e3))') x% tr(:,j)
        enddo
     endif
     close(io)
