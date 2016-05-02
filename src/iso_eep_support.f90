@@ -332,16 +332,19 @@ contains
     integer, intent(in) :: io
     type(isochrone), intent(in) :: iso
     integer :: i, my_ncol
+    real(dp) :: isochrone_age
     my_ncol = iso% ncol + 2 !add two for eep and age
     write(io,'(a25,2i5)') '# number of EEPs, cols = ', iso% neep, my_ncol
     write(io,'(a1,i4,299i32)') '#    ', (i,i=1,my_ncol)
     if(iso% age_scale==age_scale_log10)then
        write(io,'(a5,299a32)') '# EEP', 'log10_isochrone_age_yr', adjustr(iso% cols(:)% name)
+       isochrone_age = iso% age
     elseif(iso% age_scale==age_scale_linear)then
        write(io,'(a5,299a32)') '# EEP', 'isochrone_age_yr', adjustr(iso% cols(:)% name)
+       isochrone_age = pow10(iso% age)
     endif
     do i=1,iso% neep
-       write(io,'(i5,299(1pes32.16e3))') iso% eep(i), iso% age, iso% data(:,i)
+       write(io,'(i5,299(1pes32.16e3))') iso% eep(i), isochrone_age, iso% data(:,i)
     enddo
   end subroutine write_isochrone_to_file_orig
 
@@ -349,17 +352,19 @@ contains
     integer, intent(in) :: io
     type(isochrone), intent(in) :: iso
     integer :: i, my_ncol
+    real(dp) :: isochrone_age
     my_ncol = iso% ncol + 3 !add three for eep, phase, and age
     write(io,'(a25,2i5)') '# number of EEPs, cols = ', iso% neep, my_ncol
     write(io,'(a1,i4,299i32)') '#    ', (i,i=1,my_ncol)
     if(iso% age_scale==age_scale_log10)then
        write(io,'(a5,299a32)') '# EEP', 'log10_isochrone_age_yr', adjustr(iso% cols(:)% name), 'phase'
+       isochrone_age = iso% age
     elseif(iso% age_scale==age_scale_linear)then
        write(io,'(a5,299a32)') '# EEP', 'isochrone_age_yr', adjustr(iso% cols(:)% name), 'phase'
+       isochrone_age = pow10(iso% age)
     endif
     do i=1,iso% neep
-       write(io,'(i5,299(1pes32.16e3))') iso% eep(i), iso% age, &
-            iso% data(:,i), real(iso% phase(i),kind=dp)
+       write(io,'(i5,299(1pes32.16e3))') iso% eep(i), isochrone_age, iso% data(:,i), iso% phase(i)
     enddo
   end subroutine write_isochrone_to_file_phase
 
