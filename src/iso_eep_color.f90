@@ -575,6 +575,7 @@ contains
     integer, intent(in) :: io
     type(isochrone), intent(inout) :: iso
     character(len=32) :: age_column_header
+    real(dp) :: isochrone_age
     integer :: i, iT, ig, iL, ierr, iM, num_cols
     real(sp), allocatable :: log_Z_div_Zsol(:), Zsurf(:)
     ierr=0; iT=0; ig=0; iL=0; iM=0
@@ -607,8 +608,10 @@ contains
 
     if(iso% age_scale==age_scale_linear)then
        age_column_header='isocrhone_age_yr'
+       isochrone_age = pow10(iso% age)
     else
        age_column_header='log10_isochrone_age_yr'
+       isochrone_age = iso% age
     endif
 
     if(iso% has_phase)then
@@ -620,10 +623,10 @@ contains
     endif
     do i = 1,iso% neep
        if(iso% has_phase)then
-          write(io,'(i5,5(1pes32.16e3),299(0pf20.6))') iso% eep(i), iso% age, iso% data(iM,i), &
+          write(io,'(i5,5(1pes32.16e3),299(0pf20.6))') iso% eep(i), isochrone_age, iso% data(iM,i), &
                iso% data(iT,i), iso% data(ig,i), iso% data(iL,i), Zsurf(i), iso% mags(:,i), real(iso% phase(i), kind=sp)
        else
-          write(io,'(i5,5(1pes32.16e3),299(0pf20.6))') iso% eep(i), iso% age, iso% data(iM,i), &
+          write(io,'(i5,5(1pes32.16e3),299(0pf20.6))') iso% eep(i), isochrone_age, iso% data(iM,i), &
                iso% data(iT,i), iso% data(ig,i), iso% data(iL,i), Zsurf(i), iso% mags(:,i)
        endif
     enddo
