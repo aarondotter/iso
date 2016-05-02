@@ -754,6 +754,8 @@ contains
        endif
     enddo
     
+    if(iso% age_scale == age_scale_linear) iso% age = log10(iso% age)
+    
   end subroutine read_one_isochrone_from_file
 
   subroutine distance_along_track(t)
