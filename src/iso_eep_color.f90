@@ -607,7 +607,7 @@ contains
     write(io,'(a1,i4,5i32,299(17x,i3))') '#    ', (i,i=1,num_cols)
 
     if(iso% age_scale==age_scale_linear)then
-       age_column_header='isocrhone_age_yr'
+       age_column_header='isochrone_age_yr'
        isochrone_age = pow10(iso% age)
     else
        age_column_header='log10_isochrone_age_yr'
