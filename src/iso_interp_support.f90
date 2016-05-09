@@ -9,7 +9,41 @@ module iso_interp_support
 
   implicit none
 
+  real(dp), parameter :: Z_proto=1.42d-2
+  real(dp), parameter :: Y_proto=2.703d-1
+  real(dp), parameter :: X_proto=7.155d-1
+  real(dp), parameter :: Y_BBN=2.49d-1
+  real(dp), parameter :: Z_div_X_proto=log10(Z_proto/X_proto)
+  real(dp), parameter :: dY_dZ = (Y_proto-Y_BBN)/Z_proto
+
 contains
+
+  function get_initial_Y_and_Z(Fe_div_H) result(Xi)
+    real(dp), intent(in) :: Fe_div_H
+    real(dp) :: Z_div_X, top, bottom, Xi(3)
+    Z_div_X = pow10(Fe_div_H + Z_div_X_proto)
+    top = 1d0 - Y_BBN 
+    bottom = 1d0 + Z_div_X*(1d0+dY_dZ)
+    Xi(1) = top/bottom           !X
+    Xi(3) = Z_div_X*Xi(1)        !Z
+    Xi(2) = 1d0 - Xi(1) - Xi(3)  !Y
+  end function get_initial_Y_and_Z
+
+  subroutine set_initial_Y_and_Z_for_eep(t)
+    type(track), intent(inout) :: t
+    real(dp) :: Xi(3)
+    Xi = get_initial_Y_and_Z(t% Fe_div_H)
+    t% initial_Y = Xi(2)
+    t% initial_Z = Xi(3)
+  end subroutine set_initial_Y_and_Z_for_eep
+
+  subroutine set_initial_Y_and_Z_for_iso(t)
+    type(isochrone_set), intent(inout) :: t
+    real(dp) :: Xi(3)
+    Xi = get_initial_Y_and_Z(t% Fe_div_H)
+    t% initial_Y = Xi(2)
+    t% initial_Z = Xi(3)
+  end subroutine set_initial_Y_and_Z_for_iso
 
   subroutine consistency_check(s,ierr)
     type(isochrone_set), intent(in) :: s(:)

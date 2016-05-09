@@ -21,17 +21,22 @@ TRK=make_track
 BLEND=blend_eeps
 INTMET=iso_interp_met
 INTAGE=iso_interp_age
+INTEEP=eep_interp_met
 CHA=charlies_angel
 
-all: $(EEP) $(ISO) $(BLEND) $(TRK) $(INTMET) $(INTAGE) $(CMD) $(CHA)
+basic: $(EEP) $(ISO) 
+all: $(EEP) $(ISO) $(BLEND) $(TRK) $(INTMET) $(INTAGE) $(CMD) $(CHA) $(INTEEP)
 
 $(CMD): make_cmd.o iso_eep_color.o iso_eep_support.o BC_tables.o
 	$(FC) $(OMP) -o $(ROOT_DIR)/$(CMD) $^ $(LOAD_MESA)
 
+$(INTEEP): eep_interp_met.o iso_eep_support.o iso_eep_color.o BC_tables.o iso_interp_support.o
+	$(FC) $(OMP) -o $(ROOT_DIR)/$(INTEEP) $^ $(LOAD_MESA)
+
 $(INTMET): iso_interp_met.o iso_eep_support.o iso_interp_support.o
 	$(FC) $(OMP) -o $(ROOT_DIR)/$(INTMET) $^ $(LOAD_MESA)
 
-$(INTAGE): iso_interp_age.o iso_eep_support.o iso_interp_support.o iso_eep_color.o BC_tables.o
+$(INTAGE): iso_interp_age.o iso_eep_support.o iso_interp_support.o
 	$(FC) $(OMP) -o $(ROOT_DIR)/$(INTAGE) $^ $(LOAD_MESA)
 
 $(ISO): make_iso.o iso_eep_support.o 
@@ -48,6 +53,8 @@ $(TRK): make_track.o iso_eep_support.o iso_eep_color.o BC_tables.o
 
 $(CHA): charlies_angel.o iso_eep_support.o
 	$(FC) $(OMP) -o $(ROOT_DIR)/$(CHA) $^ $(LOAD_MESA)
+
+eep_interp_met.o: $(SRC_DIR)/eep_interp_met.f90 iso_eep_support.o iso_interp_support.o iso_eep_color.o BC_tables.o
 
 charlies_angel.o: $(SRC_DIR)/charlies_angel.f90 iso_eep_support.o
 

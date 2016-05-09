@@ -1,1 +1,2 @@
-clear; cd make; make $1
+TARGET=all
+clear; cd make; make $TARGET

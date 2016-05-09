@@ -137,7 +137,7 @@ contains
     t% number_of_isochrones =s(lo)% number_of_isochrones
     t% MESA_revision_number = s(lo)% MESA_revision_number
     t% version_string = s(lo)% version_string
-    call set_initial_Y_and_Z(t)
+    call set_initial_Y_and_Z_for_iso(t)
     t% v_div_vcrit = s(lo)% v_div_vcrit
     t% alpha_div_Fe = s(lo)% alpha_div_Fe
     allocate(t% iso(t% number_of_isochrones))
@@ -166,25 +166,6 @@ contains
        enddo
     endif
   end subroutine interpolate_Z
-
-  subroutine set_initial_Y_and_Z(t)
-    type(isochrone_set), intent(inout) :: t
-    real(dp), parameter :: Z_proto=1.42d-2
-    real(dp), parameter :: Y_proto=2.703d-1
-    real(dp), parameter :: X_proto=7.155d-1
-    real(dp), parameter :: Y_BBN=2.49d-1
-    real(dp), parameter :: Z_div_X_proto=log10(Z_proto/X_proto)
-    real(dp), parameter :: dY_dZ = (Y_proto-Y_BBN)/Z_proto
-    real(dp) :: Z_div_X, top, bottom, Y, Z, X
-    Z_div_X = pow10(t% Fe_div_H + Z_div_X_proto)
-    top = 1d0 - Y_BBN
-    bottom = 1d0 + Z_div_X*(1d0+dY_dZ)
-    X = top/bottom
-    Z = Z_div_X * X
-    Y = 1d0 - X - Z
-    t% initial_Y = Y
-    t% initial_Z = Z
-  end subroutine set_initial_Y_and_Z
 
   subroutine do_interp_all(n,Z,newZ,s,t)
     integer, intent(in) :: n

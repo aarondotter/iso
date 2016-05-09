@@ -1,8 +1,8 @@
-#input file containing list of EEPs
-input.v029p00
+#new [Fe/H]
+0.01
 #number of new tracks to interpolate
 3
 #masses and output filenames 
-1.001 test1001.eep
-3.003 test3003.eep
-5.005 test5005.eep
+1.001 /data/junk/test_a_1001.eep
+3.003 /data/junk/test_a_3003.eep
+5.005 /data/junk/test_a_5005.eep

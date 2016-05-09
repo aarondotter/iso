@@ -33,6 +33,7 @@ module iso_eep_support
   !binary file io controls
   logical :: make_bin_tracks=.true. !faster for repeated isochrone construction
   logical :: make_bin_isos  =.false.
+  logical :: make_bin_eeps  =.false.
 
   ! central limits for high- / intermediate-mass stars, set these from input eep_controls nml
   real(dp) :: center_gamma_limit=1d2 
@@ -251,7 +252,6 @@ contains
     integer :: io, ierr, j, ncol
     character(len=8) :: have_phase
     io=alloc_iounit(ierr)
-    write(*,*) '    ', trim(x% filename)
     open(io,file=trim(x% filename),action='write',status='unknown')
     if(x% has_phase)then
        have_phase = 'YES'
@@ -290,6 +290,52 @@ contains
     close(io)
     call free_iounit(io)
   end subroutine write_track
+
+  subroutine write_eep_bin(x)
+    type(track), intent(in) :: x
+    character(len=file_path) :: binfile
+    integer :: io, ierr
+    io=alloc_iounit(ierr)
+    binfile=trim(x% filename) // '.bin'
+    open(io,file=trim(binfile),action='write',form='unformatted',status='unknown')
+    write(io) x% version_string, x% cmd_suffix
+    write(io) x% MESA_revision_number, x% ncol, x% ntrack, x% neep, x% star_type
+    write(io) x% initial_mass, x% initial_Y, x% initial_Z, x% Fe_div_H, x% alpha_div_Fe, x% v_div_vcrit
+    write(io) x% has_phase
+    write(io) x% cols
+    write(io) x% eep
+    write(io) x% tr
+    if(x% has_phase) write(io) x% phase
+    close(io)
+    call free_iounit(io)
+  end subroutine write_eep_bin
+
+  subroutine read_eep_bin(eepfile,x)
+    character(len=file_path) :: eepfile
+    type(track), intent(inout) :: x
+    integer :: io, ierr
+    character(len=file_path) :: binfile
+    io=alloc_iounit(ierr)
+    x% filename = trim(eepfile)
+    binfile=trim(x% filename) // '.bin'
+    open(io,file=trim(binfile),action='read',form='unformatted',status='old')
+    read(io) x% version_string, x% cmd_suffix
+    read(io) x% MESA_revision_number, x% ncol, x% ntrack, x% neep, x% star_type
+    read(io) x% initial_mass, x% initial_Y, x% initial_Z, x% Fe_div_H, x% alpha_div_Fe, x% v_div_vcrit
+    read(io) x% has_phase
+    allocate(x% cols(x% ncol))
+    read(io) x% cols
+    allocate(x% eep(x% neep))
+    read(io) x% eep
+    allocate(x% tr(x% ncol, x% ntrack))
+    read(io) x% tr
+    if(x% has_phase) then
+       allocate(x% phase(x% ntrack))
+       read(io) x% phase
+    endif
+    close(io)
+    call free_iounit(io)
+  end subroutine read_eep_bin
 
   !writes a series of n isochrones to filename
   subroutine write_isochrones_to_file(set)
@@ -372,12 +418,11 @@ contains
   subroutine read_eep(x,full_path)
     type(track), intent(inout) :: x
     logical, optional :: full_path
-    logical :: use_full_path
+    logical :: use_full_path, binfile_exists
     integer :: ierr, io, j, ncol
     character(len=8) :: phase_info
-    character(len=file_path) :: eepfile
+    character(len=file_path) :: eepfile, binfile
     character(len=10) :: type_label
-    io=alloc_iounit(ierr)
 
     if(present(full_path))then
        use_full_path = full_path
@@ -386,12 +431,22 @@ contains
     endif
 
     if(use_full_path)then
-       eepfile = trim(x% filename)
+       eepfile = trim(x% filename) // '.eep'
     else
        eepfile = trim(eep_dir) // '/' // trim(x% filename) // '.eep'
     endif
 
+    binfile=trim(eepfile) // '.bin'
+    inquire(file=trim(binfile),exist=binfile_exists)
+    if(binfile_exists)then
+       call read_eep_bin(eepfile,x)
+       return
+    endif
+
+    io=alloc_iounit(ierr)
     open(io,file=trim(eepfile),status='old',action='read',iostat=ierr)
+
+    write(*,*) 'opened ', trim(eepfile)
 
     !check if the file was opened successfully; if not, then fail
     if(ierr/=0) then
@@ -440,6 +495,11 @@ contains
     endif
     close(io)
     call free_iounit(io)
+    
+    if(make_bin_eeps)then
+       x% filename = trim(eepfile)
+       call write_eep_bin(x)
+    endif
   end subroutine read_eep
 
   subroutine read_history_file(t,ierr)
