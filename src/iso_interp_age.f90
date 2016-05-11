@@ -2,7 +2,7 @@ program iso_interp_age
 
   !local modules
   use iso_eep_support
-  use iso_interp_support
+  use interp_support
 
   implicit none
 
@@ -10,7 +10,8 @@ program iso_interp_age
   integer, parameter :: single=0, range=1, list=2
   integer :: ierr
   logical, parameter :: debug = .false.
-  logical, parameter :: force_linear=.true.
+
+  force_linear=.true.
   
   call read_interp_age_input(ierr)
   if(ierr/=0) stop ' iso_interp_age: failed reading input list'

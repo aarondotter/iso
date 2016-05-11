@@ -5,20 +5,21 @@ program iso_interp_met
 
   !local modules
   use iso_eep_support
-  use iso_interp_support
+  use interp_support
 
   implicit none
 
   type(isochrone_set), allocatable :: s(:)
   type(isochrone_set) :: t
   real(dp) :: new_Z_div_H
-  integer :: ierr, n, i, i_Minit
-  logical, parameter :: force_linear = .true.
+  integer :: ierr, n, i, i_Minit 
   logical, parameter :: debug = .false.
   logical, parameter :: do_PAV = .true.
   
   !this helps speed up the i/o
-  make_bin_isos  =.true. 
+  make_bin_isos  =.true.
+
+  force_linear = .true.
 
   call read_interp_input(ierr)
   if(ierr/=0) stop ' iso_interp_met: failed reading input list'

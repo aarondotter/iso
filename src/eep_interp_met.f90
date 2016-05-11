@@ -7,7 +7,7 @@ program eep_interp_feh
   !local modules
   use iso_eep_support
   use iso_eep_color
-  use iso_interp_support
+  use interp_support
 
   implicit none
 
@@ -17,7 +17,7 @@ program eep_interp_feh
   real(dp), allocatable :: Fe_div_H(:)
   real(dp) :: new_Fe_div_H
   integer :: i, ierr, num_grids, num_tracks_s1, num_tracks_s2, num_tracks_t, lo, hi
-  logical, parameter :: debug=.true.
+  logical, parameter :: debug=.false.
   logical :: output_to_eep_dir = .false., do_Cstars = .false., do_Z_interp
   logical :: set_fixed_Fe_div_H = .false., do_CMDs = .false.
   character(len=file_path) :: BC_table_list = '', cmd_suffix = 'cmd'
@@ -31,6 +31,9 @@ program eep_interp_feh
 
   !set this for increased speed
   make_bin_eeps=.true.
+
+  !set this to use linear interpolation in mass
+  force_linear=.true.
   
   call process_command_args
 
@@ -64,129 +67,6 @@ program eep_interp_feh
   enddo
 
 contains
-
-  subroutine interpolate_mass_Z(a1,a2,b,ierr)
-    type(track), intent(in) :: a1(:), a2(:)
-    type(track), intent(inout) :: b
-    integer, intent(out) :: ierr
-    type(track) :: t1, t2
-    integer :: i
-    real(dp) :: alfa, beta
-    ierr=0
-
-    t1% initial_mass = b% initial_mass
-    t2% initial_mass = b% initial_mass
-
-    call interpolate_mass(a1,t1,ierr)
-    if(ierr/=0) return
-    call interpolate_mass(a2,t2,ierr)
-    if(ierr/=0) return
-
-    alfa = (t2% Fe_div_H - b% Fe_div_H)/(t2% Fe_div_H - t1% Fe_div_H)
-    beta = 1d0 - alfa
-    write(*,*) ' alfa, beta = ', alfa, beta
-
-    b% star_type = t1% star_type
-    b% alpha_div_Fe = t1% alpha_div_Fe
-    b% v_div_vcrit = t1% v_div_vcrit
-    b% version_string = t1% version_string
-    b% MESA_revision_number = t1% MESA_revision_number
-    b% initial_mass = t1% initial_mass
-    b% has_phase = t1% has_phase
-    b% ncol = t1% ncol
-    allocate(b% cols(b% ncol))
-    b% cols = t1% cols
-    call set_initial_Y_and_Z_for_eep(b)
-
-    b% neep = min(t1% neep, t2% neep)
-    allocate(b% eep(b% neep))
-    b% eep = t1% eep(1:b% neep)
-    b% ntrack = min(t1% ntrack, t2% ntrack)
-    allocate(b% tr(b% ncol, b% ntrack))
-
-    write(*,*) ' t1% ncol = ', t1% ncol
-    write(*,*) ' t2% ncol = ', t2% ncol
-    write(*,*) ' b% ncol = ', b% ncol
-
-    do i=1,b% ntrack
-       b% tr(:,i) = alfa*t1% tr(:,i) + beta*t2% tr(:,i)      
-    enddo
-    if(b% has_phase)then
-       allocate(b% phase(b% ntrack))
-       b% phase = t1% phase(1:b% ntrack)
-    endif
-  end subroutine interpolate_mass_Z
-
-  !takes a set of EEP-defined tracks and interpolates a new
-  !track for the desired initial mass
-  subroutine interpolate_mass(a,b,ierr)
-    type(track), intent(in) :: a(:)
-    type(track), intent(inout) :: b
-    integer, intent(out) :: ierr
-    real(dp) :: f(3), dx, x(4), y(4)
-    real(dp), pointer :: initial_mass(:)=>NULL() !(n)
-    integer :: i, j, k, m, mlo, mhi, n
-
-    n = size(a)
-
-    nullify(initial_mass)
-    allocate(initial_mass(n))
-    initial_mass = a(:)% initial_mass
-    m = binary_search(n, initial_mass, 1, b% initial_mass)
-    if(debug)then
-       write(*,*) b% initial_mass
-       write(*,*) initial_mass(m:m+1)
-    endif
-
-    mlo = min(max(1,m-1),n-3)
-    mhi = max(min(m+2,n),4)
-
-    if(debug)then
-       write(*,*) '   mlo, m, mhi = ', mlo, m, mhi
-       write(*,*) initial_mass(mlo:mhi)
-       write(*,*) a(mlo:mhi)% neep
-    endif
-
-    k = minloc(a(mlo:mhi)% neep,dim=1) + mlo - 1
-
-    b% neep = a(k)% neep
-    b% ntrack = a(k)% ntrack
-    b% star_type = a(m)% star_type
-    b% version_string = a(m)% version_string
-    b% initial_Z = a(m)% initial_Z
-    b% initial_Y = a(m)% initial_Y
-    b% Fe_div_H = a(m)% Fe_div_H
-    b% alpha_div_Fe = a(m)% alpha_div_Fe
-    b% v_div_vcrit = a(m)% v_div_vcrit
-    b% ncol = a(m)% ncol
-    b% has_phase = a(m)% has_phase
-    allocate(b% cols(b% ncol))
-    b% cols = a(m)% cols
-    b% MESA_revision_number = a(m)% MESA_revision_number
-    allocate(b% eep(b% neep))
-    allocate(b% tr(b% ncol, b% ntrack))
-    if(b% has_phase) allocate(b% phase(b% ntrack))
-    b% eep = a(m)% eep(1:b% neep)
-    if(a(m)% has_phase) b% phase = a(m)% phase
-    b% tr = 0d0
-
-    x = initial_mass(mlo:mhi)
-    dx = b% initial_mass - x(2)
-
-    do i=1,b% ntrack
-       do j=1,b% ncol
-          do k=1,4
-             y(k) = a(mlo-1+k)% tr(j,i)
-          enddo
-          call interp_4pt_pm(x, y, f)
-          b% tr(j,i) = y(2) + dx*(f(1) + dx*(f(2) + dx*f(3)))
-       enddo
-    enddo
-
-    deallocate(initial_mass)
-    if(debug) write(*,*) ' ierr = ', ierr
-  end subroutine interpolate_mass
-
 
   subroutine read_input
     integer :: io, i, j, k
