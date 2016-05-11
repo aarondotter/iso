@@ -14,7 +14,7 @@ program make_track
   character(len=32) :: phot_string, arg
   type(track), allocatable :: s(:), t(:) !existing set
   integer :: i, ierr=0, num_tracks_t=0, num_tracks_s=0
-  logical, parameter :: debug=.false.
+  logical, parameter :: debug=.false., force_linear=.true.
   logical :: output_to_eep_dir = .false., do_Cstars = .false.
   logical :: set_fixed_Fe_div_H = .false., do_CMDs = .false.
   character(len=file_path) :: BC_table_list = '', cmd_suffix = 'cmd'
@@ -86,10 +86,11 @@ contains
     type(track), intent(in) :: a(:)
     type(track), intent(inout) :: b
     integer, intent(out) :: ierr
-    real(dp) :: f(3), dx, x(4), y(4)
+    real(dp) :: f(3), dx, x(4), y(4), alfa, beta
     real(dp), pointer :: initial_mass(:)=>NULL() !(n)
-    integer :: i, j, k, m, mlo, mhi, n
+    integer :: i, j, k, m, mlo, mhi, n, iage, imass
 
+    alfa=0d0; beta=0d0; x=0d0; y=0d0; iage=0; imass=0
     n = size(a)
 
     allocate(initial_mass(n))
@@ -100,16 +101,26 @@ contains
        write(*,*) initial_mass(m:m+1)
     endif
 
-    mlo = min(max(1,m-1),n-3)
-    mhi = max(min(m+2,n),4)
+    if(force_linear)then
+       mlo=max(m,1)
+       mhi=min(mlo+1,n)
+       if(mhi==mlo) mlo=mhi-1
+       if(a(mlo)% neep < a(mhi)% neep)then
+          k=mlo
+       else
+          k=mhi
+       endif
+    else
+       mlo = min(max(1,m-1),n-3)
+       mhi = max(min(m+2,n),4)
+       k = minloc(a(mlo:mhi)% neep,dim=1) + mlo - 1
+    endif
 
     if(debug)then
        write(*,*) '   mlo, m, mhi = ', mlo, m, mhi
        write(*,*) initial_mass(mlo:mhi)
        write(*,*) a(mlo:mhi)% neep
     endif
-
-    k = minloc(a(mlo:mhi)% neep,dim=1) + mlo - 1
 
     b% neep = a(k)% neep
     b% ntrack = a(k)% ntrack
@@ -132,17 +143,39 @@ contains
     if(a(m)% has_phase) b% phase = a(m)% phase
     b% tr = 0d0
 
-    x = initial_mass(mlo:mhi)
-    dx = b% initial_mass - x(2)
+    if(force_linear)then
+       alfa = (b% initial_mass - a(mlo)% initial_mass)/(a(mhi)% initial_mass - a(mlo)% initial_mass)
+       beta = 1d0 - alfa
+    else
+       x = initial_mass(mlo:mhi)
+       dx = b% initial_mass - x(2)
+    endif
 
     do i=1,b% ntrack
        do j=1,b% ncol
-          do k=1,4
-             y(k) = a(mlo-1+k)% tr(j,i)
-          enddo
-          call interp_4pt_pm(x, y, f)
-          b% tr(j,i) = y(2) + dx*(f(1) + dx*(f(2) + dx*f(3)))
+          if(force_linear)then
+             b% tr(j,i) = alfa*a(mhi)% tr(j,i) + beta*a(mlo)% tr(j,i)
+          else
+             do k=1,4
+                y(k) = a(mlo-1+k)% tr(j,i)
+             enddo
+             call interp_4pt_pm(x, y, f)
+             b% tr(j,i) = y(2) + dx*(f(1) + dx*(f(2) + dx*f(3)))
+          endif
        enddo
+    enddo
+
+    do i=1,b% ncol
+       if(adjustl(adjustr(b% cols(i)% name)) == 'star_age') iage=i
+       if(adjustl(adjustr(b% cols(i)% name)) == 'star_mass') imass=i
+    enddo
+    
+    write(*,*) iage
+    write(*,*) imass
+
+    call PAV(b% tr(iage,:))
+    do i=2,b% ntrack
+       b% tr(imass,i) = min(b% tr(imass,i), b% tr(imass,i-1))
     enddo
 
     deallocate(initial_mass)
