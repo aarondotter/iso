@@ -35,7 +35,7 @@ contains
        do_fixed_Z = .true.
     endif
     if(BC_do_Cstars) call BC_table_init(phot_string,cstar_table_list,c,ierr)
-    if(ierr/=0) write(0,*) 'BC tables initialized!'
+    if(ierr/=0) write(0,*) 'color_init: failed to initialize BC tables'
   end subroutine color_init
 
   subroutine get_iso_mags(iso,log_Z_div_Zsol,ierr)

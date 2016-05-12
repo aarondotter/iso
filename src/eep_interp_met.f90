@@ -43,6 +43,17 @@ program eep_interp_feh
   call read_input
   if(ierr/=0) stop 'make_track: failed in read_input'
 
+
+  if(do_CMDs) then
+     call color_init(phot_string, BC_table_list, &
+          do_Cstars, Cstar_table_list, &
+          set_fixed_Fe_div_H, fixed_Fe_div_H, ierr)
+     if(ierr/=0) then
+        write(0,*) 'failed to initialize BC tables'
+        do_CMDs = .false.
+     endif
+  endif
+
   t(:)% Fe_div_H = new_Fe_div_H
 
   do i=1,num_tracks_t
@@ -229,10 +240,7 @@ contains
        call get_command_argument(1,input_file)
        if(command_argument_count()>1)then
           call get_command_argument(2,phot_string)
-          call color_init(phot_string, BC_table_list, &
-               do_Cstars, Cstar_table_list, &
-               set_fixed_Fe_div_H, fixed_Fe_div_H, ierr)
-          do_CMDs = ierr==0
+          do_CMDs = .true.
        endif
     endif
 
