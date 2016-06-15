@@ -21,12 +21,15 @@ program make_isochrone
   integer, parameter :: piecewise_monotonic = 4
 
   !default some namelist parameters
+  logical :: set_max_eep_number = .false.
+  integer :: new_max_eep_number = -1
   logical :: iso_debug = .false.
   logical :: do_smooth = .true.
   logical :: do_PAV = .true.
   logical :: do_linear_interpolation = .false.
   real(dp) :: log_age_delta = 1d0
-  namelist /iso_controls/ iso_debug, do_smooth, do_PAV, do_linear_interpolation, log_age_delta, very_low_mass_limit
+  namelist /iso_controls/ iso_debug, do_smooth, do_PAV, do_linear_interpolation, &
+       log_age_delta, very_low_mass_limit, set_max_eep_number, new_max_eep_number
 
   !begin
   ierr=0
@@ -123,6 +126,12 @@ contains
     !initialize some quantities
     n = size(s) ! is the number of tracks
     max_eep = maxval(s(:)% ntrack) !is the largest number of EEPs in any track
+
+    !allow more control over how many EEPs appear in an isochrone
+    if(set_max_eep_number .and. new_max_eep_number > 0 .and. new_max_eep_number <= max_eep) then
+       max_eep = new_max_eep_number
+    endif
+
     allocate(skip(n,max_eep),count(max_eep))
 
     !set method and options for interpolation
@@ -155,11 +164,42 @@ contains
     max_neep_high = 0
     do k=1,n
        if(s(k)% star_type < star_high_mass)then
-          max_neep_low = max(max_neep_low, s(k)% neep)
+          if(set_max_eep_number)then
+             if(s(k)% eep(s(k)% neep) > new_max_eep_number) then
+                do j=1,s(k)% neep
+                   if(s(k)% eep(j) == new_max_eep_number) then
+                      max_neep_low = j
+                      exit
+                   endif
+                enddo
+             else
+                max_neep_low = max(max_neep_low, s(k)% neep)
+             endif
+          else
+             max_neep_low = max(max_neep_low, s(k)% neep)
+          endif
        else ! high-mass star
-          max_neep_high = max(max_neep_high, s(k)% neep)
+          if(set_max_eep_number)then
+             if(s(k)% eep(s(k)% neep) > new_max_eep_number)then
+                do j=1,s(k)% neep
+                   if(s(k)% eep(j) == new_max_eep_number) then
+                      max_neep_high = j
+                      exit
+                   endif
+                enddo
+             else
+                max_neep_high = max(max_neep_high, s(k)% neep)
+             endif
+          else
+             max_neep_high = max(max_neep_high, s(k)% neep)
+          endif
        endif
     enddo
+    
+    !allow more control over how many EEPs will appear in an isochrone, and 
+    !which tracks will be excluded because they have fewer EEPs
+    !if(set_max_eep .and. new_max_eep > 0) max_neep_low = min(max_neep_low,new_max_eep)
+    !if(set_max_eep .and. new_max_eep > 0) max_neep_high = min(max_neep_high,new_max_eep)
 
     !now check each track to make sure it is complete for its type
     do k=1,n
