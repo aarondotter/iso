@@ -14,7 +14,7 @@
          use const_def, only: dp
          integer, intent(in) :: n, hint
          real(dp), intent(in) :: val
-         real(dp), intent(in), pointer :: vec(:) ! (n)
+         real(dp), intent(in) :: vec(:) ! (n)
          real(dp), parameter :: tiny = 1.0d-13
          integer :: first, last, mid
          

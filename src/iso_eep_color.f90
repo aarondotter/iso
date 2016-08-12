@@ -197,17 +197,6 @@ contains
 
        endif
 
-       if(has_bad_real(iso% nfil, res))then
-          write(0,*) ' logT =', logT
-          write(0,*) ' logg =', logg
-          write(0,*) ' logL =', logL
-          write(0,*) '  FeH =', FeH
-          write(0,*) '    X =', X
-          write(0,*) '    Y =', Y
-          write(0,*) '    Z =', Z
-          stop 'get_mags: bad value!'
-       endif
-
        iso% mags(:,i) = SolBol - 2.5*logL - res
     enddo
 
@@ -362,17 +351,6 @@ contains
                 call cubic(b(jZ-1),b(jZ),b(jZ+1),b(jZ+2), logg, logT, t% Av, FeH, res, ierr)
              endif
           endif
-       endif
-
-       if(has_bad_real(t% nfil, res))then
-          write(0,*) ' logT =', logT
-          write(0,*) ' logg =', logg
-          write(0,*) ' logL =', logL
-          write(0,*) '  FeH =', FeH
-          write(0,*) '    X =', X
-          write(0,*) '    Y =', Y
-          write(0,*) '    Z =', Z
-          stop 'get_mags: bad value!'
        endif
 
        t% mags(:,i) = SolBol - 2.5*logL - res
@@ -632,5 +610,7 @@ contains
     enddo
   end subroutine write_cmd_to_file
 
+  
 
+  
 end module iso_eep_color
