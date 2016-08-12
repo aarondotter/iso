@@ -94,6 +94,10 @@ check terminal output for error messages.
 
 If all goes well, then you'll have a fresh set of isochrones to explore.
 
+## Plotting
+
+Jieun Choi provides [python code](https://github.com/jieunchoi/MIST_codes) for manipulating and plotting EEPs, isochrones, and CMDs.
+
 ### NOTES 
 
 * Sometime around MESA revision 5000, the name of the "core mass" history columns changed from, e.g., `h1_boundary_mass` (old) to `he_core_mass` (new). This is dealt with in the code by the variable `old_core_mass_names`: to use the old names, set this to `.true.`; otherwise leave it `.false.`.
