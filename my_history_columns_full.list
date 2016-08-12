@@ -1,0 +1,109 @@
+   ! some general info about the model
+   
+      star_age ! elapsed simulated time in years since the start of the run
+      star_mass ! in Msun units
+      star_mdot ! d(star_mass)/dt (in msolar per year)
+     
+   ! information about abundance transitions
+   
+      he_core_mass ! h1 boundary is outermost location where h1 mass fraction is < 0.01
+      c_core_mass ! he4 boundary is outermost location where h1 mass fraction is < 0.01
+      o_core_mass ! c12 boundary is outermost location where h1 mass fraction is < 0.01
+         
+   ! conditions near surface
+
+      log_L ! log10 luminosity in Lsun units
+      log_L_div_Ledd ! log10 (luminosity/Eddington luminosity)
+      log_LH ! log10 power_h_burn
+      log_LHe ! log10 power_he_burn
+      log_LZ  !log10 total burning power excluding LH and LHe and photodisintegrations
+      log_Teff ! log10 effective temperature
+      log_abs_Lgrav !log10 abs(eps_grav_integral) (in Lsun units)
+      log_R ! log10 radius in Rsun units
+      log_g ! log10 gravity
+      log_surf_z ! surface mass fraction in metals
+      surf_avg_omega ! surf_v_rot/R
+      surf_avg_v_rot ! km/sec rotational velocity at equator
+      surf_num_c12_div_num_o16 ! ratio of number fractions, >1 for C star
+      v_wind_Km_per_s ! wind velocity
+
+   ! just for massive rotating stars
+
+      surf_avg_omega_crit ! critical angular rotational frequency at equator
+      surf_avg_omega_div_omega_crit ! ratio of angular rotational frequency to critical rotational frequency
+      surf_avg_v_crit ! critical rotational velocity at equator
+      surf_avg_v_div_v_crit ! ratio of rotational velocity to critical rotational velocity
+      surf_avg_Lrad_div_Ledd ! ratio of surface radiative luminosity to eddington luminosity
+      v_div_csound_surf ! velocity divided by sound speed at outermost grid point
+
+   ! mass fractions near surface (averaged over the outer 1e−6% of the total stellar mass)
+	       
+      surface h1
+      surface he3
+      surface he4
+      surface li7
+      surface be9
+      surface b11
+      surface c12
+      surface c13
+      surface n14
+      surface o16
+      surface f19
+      surface ne20
+      surface na23
+      surface mg24
+      surface si28
+      surface s32
+      surface ca40
+      surface ti48
+      surface fe56
+
+   ! conditions near center
+
+      log_center_T ! temperature
+      log_center_Rho ! density
+      center_degeneracy ! the electron chemical potential in units of k*T
+      center_omega ! angular frequency of rotation
+      center_gamma ! plasma interaction parameter
+      mass_conv_core ! mass of the convective core
+        
+   ! mass fractions near center (averaged over the inner 1e−6% of the total stellar mass)
+   
+      center h1
+      center he4
+      center c12
+      center n14
+      center o16
+      center ne20
+      center mg24
+      center si28
+ 
+   ! log10 total luminosity for reaction categories (Lsun units)
+      
+      pp
+      cno
+      tri_alfa
+      burn_c
+      burn_n
+      burn_o
+      c12_c12
+ 
+   !asteroseismic properties
+      
+      delta_nu ! large frequency separation for p-modes (microHz)
+         ! 1e6/(seconds for sound to cross diameter of star)
+      delta_Pg ! g-mode period spacing for l=1 (seconds)
+         ! sqrt(2) pi^2/(integral of brunt_N/r dr)
+      nu_max ! estimate from scaling relation (microHz)
+         ! nu_max = nu_max_sun * M/Msun / ((R/Rsun)^3 (Teff/Teff_sun)^0.5)
+         ! with nu_max_sun = 3100 microHz, Teff_sun = 5777
+      acoustic_cutoff ! 0.5*g*sqrt(gamma1*rho/P) at surface
+   
+   ! misc
+      
+      max_conv_vel_div_csound ! maximum value of the ratio of convective vel. to local sound speed
+      max_gradT_div_grada ! maximum value of superadiabaticity
+      gradT_excess_alpha ! between 0 and 1; 0 means no MLT++, 1 means MLT++ fully on
+      min_Pgas_div_P ! beta to check stability
+      max_L_rad_div_Ledd ! lambda to check stability
+      e_thermal ! sum over all zones of Cp*T*dm

@@ -2,7 +2,7 @@ module iso_eep_support
 
   !MESA modules
   use const_def, only: dp, sp
-  use utils_lib, only: alloc_iounit, free_iounit, has_bad_real
+  use utils_lib, only: alloc_iounit, free_iounit
 
   implicit none
 
@@ -310,191 +310,7 @@ contains
     call free_iounit(io)
   end subroutine write_eep_bin
 
-  subroutine read_eep_bin(eepfile,x)
-    character(len=file_path) :: eepfile
-    type(track), intent(inout) :: x
-    integer :: io, ierr
-    character(len=file_path) :: binfile
-    io=alloc_iounit(ierr)
-    x% filename = trim(eepfile)
-    binfile=trim(x% filename) // '.bin'
-    open(io,file=trim(binfile),action='read',form='unformatted',status='old')
-    read(io) x% version_string, x% cmd_suffix
-    read(io) x% MESA_revision_number, x% ncol, x% ntrack, x% neep, x% star_type
-    read(io) x% initial_mass, x% initial_Y, x% initial_Z, x% Fe_div_H, x% alpha_div_Fe, x% v_div_vcrit
-    read(io) x% has_phase
-    allocate(x% cols(x% ncol))
-    read(io) x% cols
-    allocate(x% eep(x% neep))
-    read(io) x% eep
-    allocate(x% tr(x% ncol, x% ntrack))
-    read(io) x% tr
-    if(x% has_phase) then
-       allocate(x% phase(x% ntrack))
-       read(io) x% phase
-    endif
-    close(io)
-    call free_iounit(io)
-  end subroutine read_eep_bin
 
-  !writes a series of n isochrones to filename
-  subroutine write_isochrones_to_file(set)
-    type(isochrone_set), intent(in) :: set
-    integer :: i, ierr, io, n
-    io=alloc_iounit(ierr)
-    n=set% number_of_isochrones
-    write(0,*) ' isochrone output file = ', trim(set% filename)
-    open(io,file=trim(set% filename),action='write',status='unknown',iostat=ierr)
-    write(io,'(a25,a8)') '# MIST version number  = ', set% version_string
-    write(io,'(a25,i8)') '# MESA revision number = ', set% MESA_revision_number
-    write(io,'(a88)') '# --------------------------------------------------------------------------------------'
-    write(io,'(a88)') '#  Yinit        Zinit   [Fe/H]   [a/Fe]  v/vcrit                                        '
-    write(io,'(a2,f6.4,1p1e13.5,0p3f9.2)') '# ', set% initial_Y, set% initial_Z, set% Fe_div_H, set% alpha_div_Fe, &
-         set% v_div_vcrit
-    write(io,'(a88)') '# --------------------------------------------------------------------------------------'
-    write(io,'(a25,i5)') '# number of isochrones = ', n
-    write(io,'(a88)') '# --------------------------------------------------------------------------------------'
-    do i=1,n
-       call write_isochrone_to_file(io,set% iso(i))
-       if(i<n) write(io,*)
-       if(i<n) write(io,*)
-    enddo
-    close(io)
-    call free_iounit(io)
-  end subroutine write_isochrones_to_file
-
-  !writes one age isochrone to the open io unit
-  subroutine write_isochrone_to_file(io,iso)
-    integer, intent(in) :: io
-    type(isochrone), intent(in) :: iso
-    if(iso% has_phase)then
-       call write_isochrone_to_file_phase(io,iso)
-    else
-       call write_isochrone_to_file_orig(io,iso)
-    endif
-  end subroutine write_isochrone_to_file
-
-  subroutine write_isochrone_to_file_orig(io,iso)
-    integer, intent(in) :: io
-    type(isochrone), intent(in) :: iso
-    integer :: i, my_ncol
-    my_ncol = iso% ncol + 2 !add two for eep and age
-    write(io,'(a25,2i5)') '# number of EEPs, cols = ', iso% neep, my_ncol
-    write(io,'(a1,i4,299i32)') '#    ', (i,i=1,my_ncol)
-    if(iso% age_scale==age_scale_log10)then
-       write(io,'(a5,299a32)') '# EEP', 'log10_isochrone_age_yr', adjustr(iso% cols(:)% name)
-    elseif(iso% age_scale==age_scale_linear)then
-       write(io,'(a5,299a32)') '# EEP', 'isochrone_age_yr', adjustr(iso% cols(:)% name)
-    endif
-    do i=1,iso% neep
-       write(io,'(i5,299(1pes32.16e3))') iso% eep(i), iso% age, iso% data(:,i)
-    enddo
-  end subroutine write_isochrone_to_file_orig
-
-  subroutine write_isochrone_to_file_phase(io,iso)
-    integer, intent(in) :: io
-    type(isochrone), intent(in) :: iso
-    integer :: i, my_ncol
-    my_ncol = iso% ncol + 3 !add three for eep, phase, and age
-    write(io,'(a25,2i5)') '# number of EEPs, cols = ', iso% neep, my_ncol
-    write(io,'(a1,i4,299i32)') '#    ', (i,i=1,my_ncol)
-    if(iso% age_scale==age_scale_log10)then
-       write(io,'(a5,299a32)') '# EEP', 'log10_isochrone_age_yr', adjustr(iso% cols(:)% name), 'phase'
-    elseif(iso% age_scale==age_scale_linear)then
-       write(io,'(a5,299a32)') '# EEP', 'isochrone_age_yr', adjustr(iso% cols(:)% name), 'phase'
-    endif
-    do i=1,iso% neep
-       write(io,'(i5,299(1pes32.16e3))') iso% eep(i), iso% age, iso% data(:,i), iso% phase(i)
-    enddo
-  end subroutine write_isochrone_to_file_phase
-
-
-  subroutine read_eep(x,full_path)
-    type(track), intent(inout) :: x
-    logical, optional :: full_path
-    logical :: use_full_path, binfile_exists
-    integer :: ierr, io, j, ncol
-    character(len=8) :: phase_info
-    character(len=file_path) :: eepfile, binfile
-    character(len=10) :: type_label
-
-    if(present(full_path))then
-       use_full_path = full_path
-    else
-       use_full_path = .false.
-    endif
-
-    if(use_full_path)then
-       eepfile = trim(x% filename) // '.eep'
-    else
-       eepfile = trim(eep_dir) // '/' // trim(x% filename) // '.eep'
-    endif
-
-    binfile=trim(eepfile) // '.bin'
-    inquire(file=trim(binfile),exist=binfile_exists)
-    if(binfile_exists)then
-       call read_eep_bin(eepfile,x)
-       return
-    endif
-
-    io=alloc_iounit(ierr)
-    open(io,file=trim(eepfile),status='old',action='read',iostat=ierr)
-
-    write(*,*) 'opened ', trim(eepfile)
-
-    !check if the file was opened successfully; if not, then fail
-    if(ierr/=0) then
-       x% ignore=.true.
-       write(*,*) '  PROBLEM OPENING EEP FILE: ', trim(eepfile)
-       close(io)
-       call free_iounit(io)
-       return
-    endif
-
-    read(io,'(25x,a8)') x% version_string
-    read(io,'(25x,i8)') x% MESA_revision_number
-    read(io,*) !comment line
-    read(io,*) !comment line
-    read(io,'(2x,f6.4,1p1e13.5,0p3f9.2)') x% initial_Y, x% initial_Z, x% Fe_div_H, x% alpha_div_Fe, x% v_div_vcrit
-    read(io,*) !comment line
-    read(io,*) !comment line
-    read(io,'(2x,1p1e16.10,3i8,a8,2x,a10)') x% initial_mass, x% ntrack, x% neep, ncol, phase_info, type_label
-
-    call set_star_type_from_label(type_label,x)
-
-    if(index(phase_info,'YES')/=0) then
-       x% has_phase = .true.
-       allocate(x% phase(x% ntrack))
-       x% ncol = ncol - 1
-    else
-       x% has_phase = .false.
-       x% ncol = ncol
-    endif
-
-    allocate(x% tr(x% ncol, x% ntrack), x% eep(x% neep), x% cols(x% ncol))
-
-    read(io,'(8x,299i8)') x% eep
-    read(io,*) ! comment line
-    read(io,*) ! column numbers
-    if(x% has_phase) then
-       read(io,'(1x,299a32)') x% cols(:)% name ! column names
-       do j=x% eep(1), x% ntrack
-          read(io,'(1x,299(1pes32.16e3))')  x% tr(:,j), x% phase(j)
-       enddo
-    else
-       read(io,'(1x,299a32)') x% cols
-       do j=x% eep(1), x% ntrack
-          read(io,'(1x,299(1pes32.16e3))') x% tr(:,j)
-       enddo
-    endif
-    close(io)
-    call free_iounit(io)
-    
-    if(make_bin_eeps)then
-       x% filename = trim(eepfile)
-       call write_eep_bin(x)
-    endif
-  end subroutine read_eep
 
   subroutine read_history_file(t,ierr)
     type(track), intent(inout) :: t
@@ -632,6 +448,192 @@ contains
     call free_iounit(io)
 
   end subroutine read_history_bin
+
+  
+  subroutine read_eep(x,full_path)
+    type(track), intent(inout) :: x
+    logical, optional :: full_path
+    logical :: use_full_path, binfile_exists
+    integer :: ierr, io, j, ncol
+    character(len=8) :: phase_info
+    character(len=file_path) :: eepfile, binfile
+    character(len=10) :: type_label
+
+    if(present(full_path))then
+       use_full_path = full_path
+    else
+       use_full_path = .false.
+    endif
+
+    if(use_full_path)then
+       eepfile = trim(x% filename) // '.eep'
+    else
+       eepfile = trim(eep_dir) // '/' // trim(x% filename) // '.eep'
+    endif
+
+    binfile=trim(eepfile) // '.bin'
+    inquire(file=trim(binfile),exist=binfile_exists)
+    if(binfile_exists)then
+       call read_eep_bin(eepfile,x)
+       return
+    endif
+
+    io=alloc_iounit(ierr)
+    open(io,file=trim(eepfile),status='old',action='read',iostat=ierr)
+
+    write(*,*) 'opened ', trim(eepfile)
+
+    !check if the file was opened successfully; if not, then fail
+    if(ierr/=0) then
+       x% ignore=.true.
+       write(*,*) '  PROBLEM OPENING EEP FILE: ', trim(eepfile)
+       close(io)
+       call free_iounit(io)
+       return
+    endif
+
+    read(io,'(25x,a8)') x% version_string
+    read(io,'(25x,i8)') x% MESA_revision_number
+    read(io,*) !comment line
+    read(io,*) !comment line
+    read(io,'(2x,f6.4,1p1e13.5,0p3f9.2)') x% initial_Y, x% initial_Z, x% Fe_div_H, x% alpha_div_Fe, x% v_div_vcrit
+    read(io,*) !comment line
+    read(io,*) !comment line
+    read(io,'(2x,1p1e16.10,3i8,a8,2x,a10)') x% initial_mass, x% ntrack, x% neep, ncol, phase_info, type_label
+
+    call set_star_type_from_label(type_label,x)
+
+    if(index(phase_info,'YES')/=0) then
+       x% has_phase = .true.
+       allocate(x% phase(x% ntrack))
+       x% ncol = ncol - 1
+    else
+       x% has_phase = .false.
+       x% ncol = ncol
+    endif
+
+    allocate(x% tr(x% ncol, x% ntrack), x% eep(x% neep), x% cols(x% ncol))
+
+    read(io,'(8x,299i8)') x% eep
+    read(io,*) ! comment line
+    read(io,*) ! column numbers
+    if(x% has_phase) then
+       read(io,'(1x,299a32)') x% cols(:)% name ! column names
+       do j=x% eep(1), x% ntrack
+          read(io,'(1x,299(1pes32.16e3))')  x% tr(:,j), x% phase(j)
+       enddo
+    else
+       read(io,'(1x,299a32)') x% cols
+       do j=x% eep(1), x% ntrack
+          read(io,'(1x,299(1pes32.16e3))') x% tr(:,j)
+       enddo
+    endif
+    close(io)
+    call free_iounit(io)
+    
+    if(make_bin_eeps)then
+       x% filename = trim(eepfile)
+       call write_eep_bin(x)
+    endif
+  end subroutine read_eep
+  
+  subroutine read_eep_bin(eepfile,x)
+    character(len=file_path) :: eepfile
+    type(track), intent(inout) :: x
+    integer :: io, ierr
+    character(len=file_path) :: binfile
+    io=alloc_iounit(ierr)
+    x% filename = trim(eepfile)
+    binfile=trim(x% filename) // '.bin'
+    open(io,file=trim(binfile),action='read',form='unformatted',status='old')
+    read(io) x% version_string, x% cmd_suffix
+    read(io) x% MESA_revision_number, x% ncol, x% ntrack, x% neep, x% star_type
+    read(io) x% initial_mass, x% initial_Y, x% initial_Z, x% Fe_div_H, x% alpha_div_Fe, x% v_div_vcrit
+    read(io) x% has_phase
+    allocate(x% cols(x% ncol))
+    read(io) x% cols
+    allocate(x% eep(x% neep))
+    read(io) x% eep
+    allocate(x% tr(x% ncol, x% ntrack))
+    read(io) x% tr
+    if(x% has_phase) then
+       allocate(x% phase(x% ntrack))
+       read(io) x% phase
+    endif
+    close(io)
+    call free_iounit(io)
+  end subroutine read_eep_bin
+
+  !writes a series of n isochrones to filename
+  subroutine write_isochrones_to_file(set)
+    type(isochrone_set), intent(in) :: set
+    integer :: i, ierr, io, n
+    io=alloc_iounit(ierr)
+    n=set% number_of_isochrones
+    write(0,*) ' isochrone output file = ', trim(set% filename)
+    open(io,file=trim(set% filename),action='write',status='unknown',iostat=ierr)
+    write(io,'(a25,a8)') '# MIST version number  = ', set% version_string
+    write(io,'(a25,i8)') '# MESA revision number = ', set% MESA_revision_number
+    write(io,'(a88)') '# --------------------------------------------------------------------------------------'
+    write(io,'(a88)') '#  Yinit        Zinit   [Fe/H]   [a/Fe]  v/vcrit                                        '
+    write(io,'(a2,f6.4,1p1e13.5,0p3f9.2)') '# ', set% initial_Y, set% initial_Z, set% Fe_div_H, set% alpha_div_Fe, &
+         set% v_div_vcrit
+    write(io,'(a88)') '# --------------------------------------------------------------------------------------'
+    write(io,'(a25,i5)') '# number of isochrones = ', n
+    write(io,'(a88)') '# --------------------------------------------------------------------------------------'
+    do i=1,n
+       call write_isochrone_to_file(io,set% iso(i))
+       if(i<n) write(io,*)
+       if(i<n) write(io,*)
+    enddo
+    close(io)
+    call free_iounit(io)
+  end subroutine write_isochrones_to_file
+
+  !writes one age isochrone to the open io unit
+  subroutine write_isochrone_to_file(io,iso)
+    integer, intent(in) :: io
+    type(isochrone), intent(in) :: iso
+    if(iso% has_phase)then
+       call write_isochrone_to_file_phase(io,iso)
+    else
+       call write_isochrone_to_file_orig(io,iso)
+    endif
+  end subroutine write_isochrone_to_file
+
+  subroutine write_isochrone_to_file_orig(io,iso)
+    integer, intent(in) :: io
+    type(isochrone), intent(in) :: iso
+    integer :: i, my_ncol
+    my_ncol = iso% ncol + 2 !add two for eep and age
+    write(io,'(a25,2i5)') '# number of EEPs, cols = ', iso% neep, my_ncol
+    write(io,'(a1,i4,299i32)') '#    ', (i,i=1,my_ncol)
+    if(iso% age_scale==age_scale_log10)then
+       write(io,'(a5,299a32)') '# EEP', 'log10_isochrone_age_yr', adjustr(iso% cols(:)% name)
+    elseif(iso% age_scale==age_scale_linear)then
+       write(io,'(a5,299a32)') '# EEP', 'isochrone_age_yr', adjustr(iso% cols(:)% name)
+    endif
+    do i=1,iso% neep
+       write(io,'(i5,299(1pes32.16e3))') iso% eep(i), iso% age, iso% data(:,i)
+    enddo
+  end subroutine write_isochrone_to_file_orig
+
+  subroutine write_isochrone_to_file_phase(io,iso)
+    integer, intent(in) :: io
+    type(isochrone), intent(in) :: iso
+    integer :: i, my_ncol
+    my_ncol = iso% ncol + 3 !add three for eep, phase, and age
+    write(io,'(a25,2i5)') '# number of EEPs, cols = ', iso% neep, my_ncol
+    write(io,'(a1,i4,299i32)') '#    ', (i,i=1,my_ncol)
+    if(iso% age_scale==age_scale_log10)then
+       write(io,'(a5,299a32)') '# EEP', 'log10_isochrone_age_yr', adjustr(iso% cols(:)% name), 'phase'
+    elseif(iso% age_scale==age_scale_linear)then
+       write(io,'(a5,299a32)') '# EEP', 'isochrone_age_yr', adjustr(iso% cols(:)% name), 'phase'
+    endif
+    do i=1,iso% neep
+       write(io,'(i5,299(1pes32.16e3))') iso% eep(i), iso% age, iso% data(:,i), iso% phase(i)
+    enddo
+  end subroutine write_isochrone_to_file_phase
 
   subroutine read_isochrone_bin(s)
     type(isochrone_set), intent(inout) :: s

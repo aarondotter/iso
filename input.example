@@ -1,9 +1,13 @@
+#version string, max 8 characters
+example
+#initial Y, initial Z, [Fe/H], [alpha/Fe], v/vcrit (space separated)
+   0.2703 1.42857e-02   0.00        0.00     0.4
 #data directories: 1) history files, 2) eeps, 3) isochrones
-/data/MIST_v0.0/tracks
-/data/MIST_v0.0/eeps
-/data/MIST_v0.0/isochrones
+data/tracks
+data/eeps
+data/isochrones
 #read history_columns
-/home/dotter/science/iso/testgrid_041214_v2_tracks/my_history_columns.list
+my_history_columns_basic.list
 #specify tracks
 4
 00008M.track

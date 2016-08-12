@@ -36,9 +36,9 @@ The theory is described in [this ApJS paper](http://adsabs.harvard.edu/abs/2016A
    + `he_core_mass`
    + `c_core_mass`
 
-6. The `history_columns.list` file that was used in generating the MESA history files. By default it resides in `$MESA_DIR/star/defaults/history_columns.list`.
+6. The `history_columns.list` file that was used in generating the MESA history files. By default it resides in `$MESA_DIR/star/defaults/history_columns.list`. Note that the "official" MIST my_history\_columns\_[basic|full].list are included in the repository.
 
-7. Synthetic color-magnitude diagrams require a set of bolometric correction tables. These will be made available coincident with the release of MIST Paper I.
+7. Synthetic color-magnitude diagrams require a set of bolometric correction tables. These are available on the [MIST project webpage](http://waps.cfa.harvard.edu/MIST/model_grids.html).
 
 ## Installation
 
@@ -58,11 +58,15 @@ cd iso
 
 The basic workflow is split into two parts:
 
-1. Convert the MESA history files into EEP-based tracks (.eep files) via the program `make_eep`.
+1. Convert the MESA history files into EEP-based tracks (.eep files) via the program `make_eep`. If you already have EEP files, from MIST, you can skip to 2.
 
 2. Use the EEP files to create new stellar evolution tracks with `make_track` and/or isochrones with `make_iso`.
 
-Both programs read the same input file. An input file is divided into two sections, a track/eep section and an ioschrone section.  The track/eep section comes first; it contains:
+3. If you have the MIST bolometric correction tables ([from here](http://waps.cfa.harvard.edu/MIST/model_grids.html)) you can also convert tracks and isochrones into CMDs with `make_cmd` and `make_track`. Run either of these programs without any command line arguments for more information.  You'll need to set up the file bc_table.list to point to your local BC tables.
+
+`make_eep` and `make_iso` read the same input file. This input file is divided into two sections, a track/eep section and an isochrone section.  The first four lines contain some header information, see input.example for details.
+
+The track/eep section comes first; it contains:
 + a list of data file directories to which the program will both read from and write to.  
 + the MESA history columns file "history_columns.list" that was used to create the MESA history files (tracks)
 + the number of tracks
@@ -77,7 +81,7 @@ The isochrone section follows the track/eep section; it contains:
 
 See the file `input.example` for the general layout.
 
-A variety of code options can be set via two namelists, both reside in the file `input.nml`. The number of secondary EEPs that are desired between each pair of primary EEPs is set in the file `input.eep`. If this file does not exist, the code will set a default (small) number of 50 secondary EEPs between each pair of primary EEPs.
+A variety of code options can be set via namelists, residing in the file `input.nml`. The number of secondary EEPs that are desired between each pair of primary EEPs is set in the file `input.eep`. If this file does not exist, the code will set a default (small) number of 50 secondary EEPs between each pair of primary EEPs.
 
 
 After these input files are configured correctly, run the codes using the following commands:

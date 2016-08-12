@@ -211,6 +211,9 @@ contains
        endif
     enddo
 
+    max_age=age + log_age_delta
+    min_age=age - log_age_delta
+    
     eep_loop1: do eep=1,max_eep
 
        !determine tracks for which the ith eep is defined
@@ -219,9 +222,6 @@ contains
        !count keeps track of how many tracks will be used. if
        !fewer than 2 tracks satisfy the condition, skip the EEP
        do k=1,n
-          max_age=age + log_age_delta
-          min_age=age - log_age_delta
-
           if(s(k)% eep(1) > eep .or. s(k)% eep(s(k)% neep) < eep ) then
              skip(k,eep) = .true.
           else if(.not.use_double_eep .and. log10(s(k)% tr(i_age,eep)) > max_age ) then
@@ -230,7 +230,7 @@ contains
              skip(k,eep) = .true.
           endif
        enddo
-
+       
        !this loop attempts to pick out non-monotonic points
 
 
