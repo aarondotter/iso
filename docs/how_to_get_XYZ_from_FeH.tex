@@ -1,0 +1,59 @@
+\documentclass{article}
+\usepackage{amsmath}
+
+\begin{document}
+
+Constraints:
+
+\begin{equation}
+X+Y+Z = 1
+\end{equation}
+
+\begin{equation}
+  Y = Y_{BBN} + \frac{\Delta Y}{\Delta Z} Z
+\end{equation}
+
+\begin{equation}
+\frac{Z}{X} = \left(\frac{Z}{X}\right)_{\odot} 10^{[Fe/H]}
+\end{equation}
+
+Where $Y_{BBN}$, $\left(\frac{Z}{X}\right)_{\odot}$, $\frac{\Delta Y}{\Delta Z}$, and [Fe/H] are given as input.
+
+
+Even though we don't know X or Z, we know (Z/X) from (3) and the input [Fe/H]. So we treat (Z/X) as a single variable below.
+
+Begin with (1) and isolate Y.
+
+\begin{equation}
+  X+Z=1-Y
+\end{equation}
+
+Replace Y with (2).
+
+\begin{equation}
+  X +Z = 1 - (Y_{BBN} + \frac{\Delta Y}{\Delta Z} Z)
+\end{equation}
+
+Replace Z with (Z/X)$\times$X.
+
+ \begin{equation}
+ X ( 1 + \frac{Z}{X}) = 1 - (Y_{BBN} + \frac{\Delta Y}{\Delta Z} \frac{Z}{X} X)
+\end{equation}
+
+Gather terms with X on the LHS.
+
+\begin{equation}
+ X ( 1 + \frac{Z}{X} ( 1 + \frac{\Delta Y}{\Delta Z})) = 1 - Y_{BBN}
+\end{equation}
+
+Finally make X all alone on the RHS.
+
+\begin{align}
+  X = \frac{1-Y_{BBN}}{ 1 + \frac{Z}{X} ( 1 + \frac{\Delta Y}{\Delta Z})} \\
+  Z= \frac{Z}{X} \times X\\
+  Y= 1 - X - Z
+\end{align}
+
+Done!
+
+\end{document}
