@@ -22,8 +22,6 @@ program eep_cmd
   
   call cmd_init(ierr)
 
-  if(ierr==0) call read_input(ierr)
-   
   if(ierr==0) call color_init(phot_string, BC_table_list, do_Cstars, Cstar_table_list, &
        set_fixed_Fe_div_H, Fe_div_H, ierr)
  
@@ -31,13 +29,16 @@ program eep_cmd
 
   t% Av = extinction_Av
   t% cmd_suffix = cmd_suffix
+
+  write(*,*) t% Av, extinction_Av
+  
   if(ierr==0) call write_track_cmd_to_file(t)
 
 contains
 
   subroutine cmd_init(ierr)
     integer, intent(out) :: ierr
-    integer :: c
+    integer :: c, io
     character(len=32) :: arg
     ierr = 0
     c = command_argument_count()
@@ -53,16 +54,6 @@ contains
     call get_command_argument(1,phot_string)
     call get_command_argument(2,t% filename)
 
-    if(c>2) then
-       call get_command_argument(3,arg)
-       read(arg,*) extinction_Av
-    endif
-  end subroutine cmd_init
-
-  subroutine read_input(ierr)
-    integer, intent(out) :: ierr
-    integer :: io
-    ierr=0
     io=alloc_iounit(ierr)
     open(unit=io,file='input.nml', action='read', status='old', iostat=ierr)
     if(ierr/=0) then
@@ -71,6 +62,11 @@ contains
     endif
     read(io, nml=cmd_controls, iostat=ierr)
     close(io)
-  end subroutine read_input
+    
+    if(c>2) then
+       call get_command_argument(3,arg)
+       read(arg,*) extinction_Av
+    endif
+  end subroutine cmd_init
   
 end program eep_cmd
