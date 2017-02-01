@@ -28,10 +28,8 @@ program eep_cmd
   if(ierr==0) call read_eep(t,full_path=.true.,append_eep=.false.)
 
   t% Av = extinction_Av
-  t% cmd_suffix = cmd_suffix
+  t% cmd_suffix = trim(phot_string)
 
-  write(*,*) t% Av, extinction_Av
-  
   if(ierr==0) call write_track_cmd_to_file(t)
 
 contains
