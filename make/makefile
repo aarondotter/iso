@@ -12,7 +12,7 @@ DEBUG=-g -fbacktrace -fcheck=all
 WARN=-Wall -Wextra -pedantic
 OMP=-fopenmp
 OPT=-O3
-FFLAGS= -ffree-form $(OPT) $(WARN) $(DEBUG)
+FFLAGS= -ffree-form -fimplicit-none $(OPT) $(WARN) $(DEBUG)
 
 CMD=make_cmd
 ISO=make_iso
@@ -23,9 +23,10 @@ INTMET=iso_interp_met
 INTAGE=iso_interp_age
 INTEEP=eep_interp_met
 CHA=charlies_angel
+EEP_CMD=eep_cmd
 
 basic: $(EEP) $(ISO) 
-all: $(EEP) $(ISO) $(BLEND) $(TRK) $(INTMET) $(INTAGE) $(CMD) $(CHA) $(INTEEP)
+all: $(EEP) $(ISO) $(BLEND) $(TRK) $(INTMET) $(INTAGE) $(CMD) $(CHA) $(INTEEP) $(EEP_CMD)
 
 $(CMD): make_cmd.o iso_eep_color.o iso_eep_support.o BC_tables.o
 	$(FC) $(OMP) -o $(ROOT_DIR)/$(CMD) $^ $(LOAD_MESA)
@@ -53,6 +54,11 @@ $(TRK): make_track.o iso_eep_support.o iso_eep_color.o BC_tables.o interp_suppor
 
 $(CHA): charlies_angel.o iso_eep_support.o
 	$(FC) $(OMP) -o $(ROOT_DIR)/$(CHA) $^ $(LOAD_MESA)
+
+$(EEP_CMD): eep_cmd.o iso_eep_support.o iso_eep_color.o BC_tables.o
+	$(FC) $(OMP) -o $(ROOT_DIR)/$(EEP_CMD) $^ $(LOAD_MESA)
+
+eep_cmd.o: $(SRC_DIR)/eep_cmd.f90 iso_eep_support.o iso_eep_color.o BC_tables.o
 
 eep_interp_met.o: $(SRC_DIR)/eep_interp_met.f90 iso_eep_support.o interp_support.o iso_eep_color.o BC_tables.o
 

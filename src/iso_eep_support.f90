@@ -450,10 +450,11 @@ contains
   end subroutine read_history_bin
 
   
-  subroutine read_eep(x,full_path)
+  subroutine read_eep(x,full_path,append_eep)
     type(track), intent(inout) :: x
     logical, optional :: full_path
-    logical :: use_full_path, binfile_exists
+    logical, optional :: append_eep
+    logical :: use_full_path, binfile_exists, do_append_eep
     integer :: ierr, io, j, ncol
     character(len=8) :: phase_info
     character(len=file_path) :: eepfile, binfile
@@ -465,12 +466,24 @@ contains
        use_full_path = .false.
     endif
 
-    if(use_full_path)then
-       eepfile = trim(x% filename) // '.eep'
+    if(present(append_eep))then
+       do_append_eep = append_eep
     else
-       eepfile = trim(eep_dir) // '/' // trim(x% filename) // '.eep'
+       do_append_eep = .true.
     endif
 
+    if(use_full_path)then
+       eepfile = trim(x% filename) 
+    else
+       eepfile = trim(eep_dir) // '/' // trim(x% filename)
+    endif
+
+    if(do_append_eep)then
+       eepfile = trim(eepfile)  // '.eep'
+    endif
+
+    write(*,*) ' reading ', trim(eepfile)
+    
     binfile=trim(eepfile) // '.bin'
     inquire(file=trim(binfile),exist=binfile_exists)
     if(binfile_exists)then
@@ -480,8 +493,6 @@ contains
 
     io=alloc_iounit(ierr)
     open(io,file=trim(eepfile),status='old',action='read',iostat=ierr)
-
-    write(*,*) 'opened ', trim(eepfile)
 
     !check if the file was opened successfully; if not, then fail
     if(ierr/=0) then
@@ -530,7 +541,7 @@ contains
     endif
     close(io)
     call free_iounit(io)
-    
+   
     if(make_bin_eeps)then
        x% filename = trim(eepfile)
        call write_eep_bin(x)
