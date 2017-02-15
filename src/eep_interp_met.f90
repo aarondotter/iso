@@ -13,7 +13,7 @@ program eep_interp_feh
 
   type(track), allocatable :: s1(:), s2(:), t(:)
   character(len=file_path), allocatable :: input_grid(:)
-  character(len=file_path) :: input_file, phot_string
+  character(len=file_path) :: input_file, phot_string, input_grids_file
   real(dp), allocatable :: Fe_div_H(:)
   real(dp) :: new_Fe_div_H
   integer :: i, ierr, num_grids, num_tracks_s1, num_tracks_s2, num_tracks_t, lo, hi
@@ -205,7 +205,7 @@ contains
     real(dp) :: junk
     ierr=0
     io=alloc_iounit(ierr)
-    open(io,file='input_grids.list',action='read',status='old',iostat=ierr)
+    open(io,file=trim(input_grids_file),action='read',status='old',iostat=ierr)
     read(io,*) num_grids
     allocate(input_grid(num_grids),Fe_div_H(num_grids))
     if(debug) write(0,*) ' number of grids = ', num_grids
@@ -234,18 +234,19 @@ contains
     character(len=32) :: arg
     if(command_argument_count() < 1) then
        write(0,*) ' eep_interp_feh '
-       write(0,*) ' usage: ./eep_interp_feh [input] [phot_string] [Av]'
+       write(0,*) ' usage: ./eep_interp_feh [grids_list] [input] [phot_string] [Av]'
        stop 'no command line argument'
     else
-       call get_command_argument(1,input_file)
-       if(command_argument_count()>1)then
-          call get_command_argument(2,phot_string)
+       call get_command_argument(1,input_grids_file)
+       call get_command_argument(2,input_file)
+       if(command_argument_count()>2)then
+          call get_command_argument(3,phot_string)
           do_CMDs = .true.
        endif
     endif
 
-    if(do_CMDs .and. command_argument_count()>2) then
-       call get_command_argument(3,arg)
+    if(do_CMDs .and. command_argument_count()>3) then
+       call get_command_argument(4,arg)
        read(arg,*) extinction_Av
     else
        extinction_Av = 0.0
