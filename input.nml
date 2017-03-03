@@ -10,7 +10,7 @@ output_to_eep_dir = .false.
 
    BC_table_list = 'bc_table.list'
 
-   do_Cstars = .false.
+   do_Cstars = .true.
    cstar_table_list = 'cstar_table.list'
 
    cmd_suffix = 'cmd'
@@ -20,7 +20,9 @@ output_to_eep_dir = .false.
    extinction_Rv = 3.1
 
    set_fixed_Fe_div_H = .false.
-   Fe_div_H = -1.975
+   Fe_div_H = 0
+
+   include_gravity_darkening = .false.
 
 /
 
@@ -31,9 +33,9 @@ output_to_eep_dir = .false.
    !will stop at this EEP number regardless of how many 
    !EEPs are in the .eep tracks
    set_max_eep_number = .false.
-   new_max_eep_number = 600
+   new_max_eep_number = 353 
 
-   do_smooth = .false.
+   do_smooth = .true.
 
    do_PAV = .true.
 
@@ -42,9 +44,9 @@ output_to_eep_dir = .false.
    !the age-delta variable allows you to select tracks within a given range of age
    !namely +/-log_age_delta for each EEP; only those within the limits will be
    !considered for age-mass and mass-etc. interpolation
-   log_age_delta = 0.75
+   log_age_delta = 0.5
 
-   very_low_mass_limit=0.70
+   very_low_mass_limit=1.0
 
 / !end of iso_controls namelist
 
