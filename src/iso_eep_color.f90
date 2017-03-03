@@ -15,6 +15,9 @@ module iso_eep_color
   real(sp), parameter :: Z_sol = 0.0134, Xsol = 0.7381
   real(sp), parameter :: Z_div_X_sol = 0.0181
   real(sp), parameter :: log_Z_sol = log10(Z_sol)
+  real(sp), parameter :: Rsun=6.957e10, Lsun=3.828e33 !cgs, IAU 2015 Resolution B3
+  real(sp), parameter :: const = 7.1256348e-4 !4 pi sigma (Stefan-Boltzmann constant, cgs)
+  real(sp), parameter :: pi = 3.1415926535
   real(sp) :: BC_Fe_div_H
   type(BC_table), allocatable :: b(:), c(:)
   logical :: BC_do_Cstars = .false., do_fixed_Z = .false.
@@ -45,15 +48,16 @@ contains
     integer, intent(out) :: ierr
     integer :: i, nb, nc, j, n, jZ
     real(sp), allocatable :: res(:)
-    real(sp) :: logT, logg, logL, X, Y, Z, FeH
+    real(sp) :: logT, logg, logL, X, Y, Z, FeH, radius, logR, omega, Teff
+    real(sp) :: new_Teff, new_luminosity, r_polar, r_equatorial, input(4)
     real(sp) :: c_min_logT, c_max_logT, c_min_logg, c_max_logg
     real(dp) :: C_div_O
     logical :: Cstar_ok
-    integer :: iT, ig, iL, iH, iHe3, iHe4, iC, iO, isurfZ, iCdivO
+    integer :: iT, ig, iL, iH, iHe3, iHe4, iC, iO, isurfZ, iCdivO, ilogR, ire, irp, iw
     !a few initializations
-    c_min_logT=0; c_max_logT=0; c_min_logg=0; c_max_logg=0
-    iT=0; ig=0; iL=0; iH=0; iHe3=0; iHe4=0; iC=0; iO=0; jZ=0; isurfZ=0; iCdivO=0
-
+    c_min_logT=0; c_max_logT=0; c_min_logg=0; c_max_logg=0; ilogR=0; ire=0; irp=0
+    iT=0; ig=0; iL=0; iH=0; iHe3=0; iHe4=0; iC=0; iO=0; jZ=0; isurfZ=0; iCdivO=0; iw=0
+    
     !locate columns
     do i = 1, iso% ncol
        if(trim(adjustl(iso% cols(i)% name)) == 'log_Teff') then
@@ -76,9 +80,17 @@ contains
           isurfZ=i
        else if(trim(adjustl(iso% cols(i)% name))=='surf_num_c12_div_num_o16')then
           iCdivO=i
+       else if(trim(adjustl(iso% cols(i)% name))=='r_equatorial_div_r')then
+          ire=i
+       else if(trim(adjustl(iso% cols(i)% name))=='r_polar_div_r')then
+          irp=i
+       else if(trim(adjustl(iso% cols(i)% name))=='log_R')then
+          ilogR=i
+       else if(trim(adjustl(iso% cols(i)% name))=='surf_avg_omega_div_omega_crit')then
+          iw=i
        endif
     enddo
-
+    
     if(BC_do_Cstars)then
        c_min_logT = minval(c(1)% logT); c_min_logg = minval(c(1)% logg)
        c_max_logT = maxval(c(1)% logT); c_max_logg = maxval(c(1)% logg)
@@ -103,6 +115,28 @@ contains
        logT = real(iso% data(iT,i),kind=sp)
        logg = real(iso% data(ig,i),kind=sp)
        logL = real(iso% data(iL,i),kind=sp)
+
+       !gravity darkening calculation
+       if(iso% include_gravity_darkening)then
+          logR = real(iso% data(ilogR,i),kind=sp)
+          radius = pow10_sg(logR)*Rsun
+          omega = real(iso% data(iw,i),kind=sp)
+          Teff = pow10_sg(logT)
+          if(ire>0.and.irp>0)then
+             r_equatorial = real(iso% data(ire,i),kind=sp) * radius
+             r_polar = real(iso% data(irp,i),kind=sp) * radius
+          else
+             r_equatorial = radius
+             r_polar = radius
+          endif
+          input=[Teff, r_polar, r_equatorial, omega]
+          !write(*,*) input
+          !stop
+          call gravity_darkening(input,new_Teff,new_luminosity)
+          logT = log10(new_Teff)
+          logL = log10(new_luminosity/Lsun)
+       endif
+
        if(do_fixed_Z)then
           FeH = BC_Fe_div_H
        else
@@ -583,15 +617,16 @@ contains
 
     allocate(Fe_div_H(size(log_Z_div_Zsol)))
     Fe_div_H = log_Z_div_Zsol - log10( real(iso% data(iH,:),kind=sp) / Xsol)
+
+    num_cols = iso% nfil + 9
     
-    if(iso% has_phase) then
-       num_cols = iso% nfil + 10
-    else
-       num_cols = iso% nfil + 9
+    if(iso% has_phase) then !add extra column for phase
+       num_cols = num_cols + 1
     endif
+    
     write(io,'(a25,2i5)') '# number of EEPs, cols = ', iso% neep, num_cols
     write(io,'(a1,i4,7i32,299(17x,i3))') '#    ', (i,i=1,num_cols)
-
+ 
     if(iso% age_scale==age_scale_linear)then
        age_column_header='isochrone_age_yr'
        isochrone_age = pow10(iso% age)
@@ -619,7 +654,75 @@ contains
     enddo
   end subroutine write_cmd_to_file
 
-  
+  subroutine gravity_darkening(input, new_Teff, new_luminosity)
+    real(sp), intent(in) :: input(4) ! = [Teff, r_polar, r_equatorial, omega]
+    real(sp), intent(out) :: new_Teff, new_luminosity
+    integer, parameter :: n=10
+    real(sp), parameter :: sin_theta(n)=[0.0,0.1736482,0.3420201,0.5, 0.6427876,0.76604444,0.8660254,0.93969262,0.98480775,1.]
+    real(sp), parameter :: cos_theta(n)=[1.00,0.9848077,0.9396926,0.8660254,0.7660444,0.6427876,0.5,0.342020143,0.173648178,0.]
+   
+    real(sp) :: Teff, r_po, r_eq, omega, a, b, c, Ttmp, Ltmp, Rtmp2
+    integer :: i
+
+    Teff  = input(1)
+    r_po  = input(2)
+    r_eq  = input(3)
+    omega = input(4)
+
+    if(omega < 0.01) then
+       new_Teff = Teff
+       new_luminosity = const*pow2(r_eq)*pow4(Teff)
+       return
+    endif
+    
+    a=Teff_ratio(omega)
+
+    new_Teff=0.0; new_luminosity=0.0
+
+    do i=1,n
+       b=sin_theta(i)
+       c=cos_theta(i)
+       Ttmp = Teff*(a+b - a*b)
+       new_Teff = new_Teff + Ttmp
+       Rtmp2 = pow2(r_eq*c) + pow2(r_po*b)
+       Ltmp = const * Rtmp2 * pow4(Ttmp)
+       new_luminosity = new_luminosity + Ltmp
+    enddo
+    
+    new_luminosity = new_luminosity / real(n,kind=sp)
+    new_Teff = new_Teff / real(n,kind=sp)
+    
+  end subroutine gravity_darkening
+
+  function Teff_ratio(w) result(T)
+    real(sp), intent(in) :: w
+    real(sp) :: T
+    T = sqrt(2.0/(2.0+w*w)) * pow(1.0-w*w, 1.0/12.0) * exp(-(4.0*w*w)/(3.0*pow3(2.0+w*w)))
+  end function Teff_ratio
+
+  function pow(x,y) result(z) !z=x^y
+    real(sp), intent(in) :: x, y
+    real(sp) :: z
+    z=exp(log(x)*y)
+  end function pow
+
+  function pow3(x) result(z)
+    real(sp), intent(in) :: x
+    real(sp) :: z
+    z=x*x*x
+  end function pow3
+
+  function pow4(x) result(z)
+    real(sp), intent(in) :: x
+    real(sp) :: z
+    z=x*x*x*x
+  end function pow4
+
+  function pow2(x) result(z)
+    real(sp), intent(in) :: x
+    real(sp) :: z
+    z=x*x
+  end function pow2
 
   
 end module iso_eep_color

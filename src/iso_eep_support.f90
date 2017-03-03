@@ -626,7 +626,7 @@ contains
        isochrone_age = iso% age
        write(io,'(a5,299a32)') '# EEP', 'log10_isochrone_age_yr', adjustr(iso% cols(:)% name)
     elseif(iso% age_scale==age_scale_linear)then
-       isocrhone_age = pow10(iso% age)
+       isochrone_age = pow10(iso% age)
        write(io,'(a5,299a32)') '# EEP', 'isochrone_age_yr', adjustr(iso% cols(:)% name)
     endif
     do i=1,iso% neep
