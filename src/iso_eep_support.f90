@@ -111,6 +111,7 @@ module iso_eep_support
      real(dp), allocatable :: data(:,:) !(ncol,neep)
      real(sp), allocatable :: mags(:,:) !(num filters, neep)
      real(sp) :: Av, Rv
+     logical :: include_gravity_darkening = .false.
   end type isochrone
 
   !holds a set of isochrones
@@ -121,6 +122,7 @@ module iso_eep_support
      real(dp) :: initial_Y, initial_Z, Fe_div_H, v_div_vcrit, alpha_div_Fe
      character(len=file_path) :: cmd_suffix, filename
      character(len=8) :: version_string
+     logical :: include_gravity_darkening = .false.
   end type isochrone_set
 
 contains
@@ -616,16 +618,19 @@ contains
     integer, intent(in) :: io
     type(isochrone), intent(in) :: iso
     integer :: i, my_ncol
+    real(dp) :: isochrone_age
     my_ncol = iso% ncol + 2 !add two for eep and age
     write(io,'(a25,2i5)') '# number of EEPs, cols = ', iso% neep, my_ncol
     write(io,'(a1,i4,299i32)') '#    ', (i,i=1,my_ncol)
     if(iso% age_scale==age_scale_log10)then
+       isochrone_age = iso% age
        write(io,'(a5,299a32)') '# EEP', 'log10_isochrone_age_yr', adjustr(iso% cols(:)% name)
     elseif(iso% age_scale==age_scale_linear)then
+       isocrhone_age = pow10(iso% age)
        write(io,'(a5,299a32)') '# EEP', 'isochrone_age_yr', adjustr(iso% cols(:)% name)
     endif
     do i=1,iso% neep
-       write(io,'(i5,299(1pes32.16e3))') iso% eep(i), iso% age, iso% data(:,i)
+       write(io,'(i5,299(1pes32.16e3))') iso% eep(i), isochrone_age, iso% data(:,i)
     enddo
   end subroutine write_isochrone_to_file_orig
 
@@ -633,16 +638,19 @@ contains
     integer, intent(in) :: io
     type(isochrone), intent(in) :: iso
     integer :: i, my_ncol
+    real(dp) :: isochrone_age
     my_ncol = iso% ncol + 3 !add three for eep, phase, and age
     write(io,'(a25,2i5)') '# number of EEPs, cols = ', iso% neep, my_ncol
     write(io,'(a1,i4,299i32)') '#    ', (i,i=1,my_ncol)
     if(iso% age_scale==age_scale_log10)then
+       isochrone_age = iso% age
        write(io,'(a5,299a32)') '# EEP', 'log10_isochrone_age_yr', adjustr(iso% cols(:)% name), 'phase'
     elseif(iso% age_scale==age_scale_linear)then
+       isochrone_age = pow10(iso% age)
        write(io,'(a5,299a32)') '# EEP', 'isochrone_age_yr', adjustr(iso% cols(:)% name), 'phase'
     endif
     do i=1,iso% neep
-       write(io,'(i5,299(1pes32.16e3))') iso% eep(i), iso% age, iso% data(:,i), iso% phase(i)
+       write(io,'(i5,299(1pes32.16e3))') iso% eep(i), isochrone_age, iso% data(:,i), iso% phase(i)
     enddo
   end subroutine write_isochrone_to_file_phase
 
