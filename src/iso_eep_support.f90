@@ -111,7 +111,6 @@ module iso_eep_support
      real(dp), allocatable :: data(:,:) !(ncol,neep)
      real(sp), allocatable :: mags(:,:) !(num filters, neep)
      real(sp) :: Av, Rv
-     logical :: include_gravity_darkening = .false.
   end type isochrone
 
   !holds a set of isochrones
@@ -122,7 +121,6 @@ module iso_eep_support
      real(dp) :: initial_Y, initial_Z, Fe_div_H, v_div_vcrit, alpha_div_Fe
      character(len=file_path) :: cmd_suffix, filename
      character(len=8) :: version_string
-     logical :: include_gravity_darkening = .false.
   end type isochrone_set
 
 contains

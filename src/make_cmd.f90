@@ -16,13 +16,11 @@ program make_cmd
   character(len=file_path) :: BC_table_list = '', cmd_suffix = 'cmd'
   character(len=file_path) :: Cstar_table_list = ''
   logical :: set_fixed_Fe_div_H = .false.
-  logical :: include_gravity_darkening = .false.
   real(sp) :: extinction_Av=0.0, extinction_Rv=0.0, Fe_div_H = 0.0
   integer :: count_rate, time(4)
 
   namelist /cmd_controls/ BC_table_list, extinction_Av, extinction_Rv, &
-       Cstar_table_list, do_Cstars, cmd_suffix, Fe_div_H, set_fixed_Fe_div_H, &
-       include_gravity_darkening
+       Cstar_table_list, do_Cstars, cmd_suffix, Fe_div_H, set_fixed_Fe_div_H
   
 
   if(do_timing) call system_clock(time(1),count_rate)
@@ -81,11 +79,9 @@ contains
     
     s% Av = extinction_Av
     s% Rv = extinction_Rv
-    s% include_gravity_darkening = include_gravity_darkening
     do i=1,s% number_of_isochrones
        s% iso(i)% Av = s% Av
        s% iso(i)% Rv = s% Rv
-       s% iso(i)% include_gravity_darkening = s% include_gravity_darkening
     enddo
    
     call color_init(phot_string,BC_table_list,do_Cstars,Cstar_table_list, &

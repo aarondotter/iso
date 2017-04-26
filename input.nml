@@ -22,8 +22,6 @@ output_to_eep_dir = .false.
    set_fixed_Fe_div_H = .false.
    Fe_div_H = 0
 
-   include_gravity_darkening = .false.
-
 /
 
 
