@@ -402,7 +402,7 @@ contains
     allocate(res_tmp(n,3))
     x12 = t2% FeH - t1% FeH
     x23 = t3% FeH - t2% FeH
-    x0  =     FeH - t2% FeH
+    x0  =     FeH - t1% FeH
     call BC_interp_filters(t1, logg, logT, Av, res_tmp(:,1), ierr)
     call BC_interp_filters(t2, logg, logT, Av, res_tmp(:,2), ierr)
     call BC_interp_filters(t3, logg, logT, Av, res_tmp(:,3), ierr)
