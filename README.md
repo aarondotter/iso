@@ -38,7 +38,9 @@ The theory is described in [this ApJS paper](http://adsabs.harvard.edu/abs/2016A
 
 6. The `history_columns.list` file that was used in generating the MESA history files. By default it resides in `$MESA_DIR/star/defaults/history_columns.list`. Note that the "official" MIST my_history\_columns\_[basic|full].list are included in the repository.
 
-7. Synthetic color-magnitude diagrams require a set of bolometric correction tables. These are available on the [MIST project webpage](http://waps.cfa.harvard.edu/MIST/model_grids.html).
+7. Set the environment variable ISO_DIR to the location where you have installed this repository.
+
+8. Synthetic color-magnitude diagrams require a set of bolometric correction tables. These are available on the [MIST project webpage](http://waps.cfa.harvard.edu/MIST/model_grids.html).
 
 ## Installation
 
@@ -96,7 +98,7 @@ If all goes well, then you'll have a fresh set of isochrones to explore.
 
 ## Plotting
 
-Jieun Choi provides [python code](https://github.com/jieunchoi/MIST_codes) for manipulating and plotting EEPs, isochrones, and CMDs.
+[Jieun Choi](https://github.com/jieunchoi) provides [python code](https://github.com/jieunchoi/MIST_codes) for manipulating and plotting EEPs, isochrones, and CMDs.
 
 ### NOTES 
 
