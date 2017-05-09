@@ -4,17 +4,17 @@
   2  150
   3  100
   4  150
-  5   25 
+  5   25
   6   75
   7  100
   8  600
-  9  300 
+  9  300
 
 
-This file tells make_eep how many secondary EEP intervals there are 
+This file tells make_eep how many secondary EEP intervals there are
 (1st line) and how many secondary EEPs to place in each interval.
 The number between each pair of primaries is specified on a line
-as 
+as
 
 XXXYYYYY
 
