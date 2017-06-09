@@ -19,6 +19,7 @@ program make_isochrone
 
   logical :: use_double_eep
   integer, parameter :: piecewise_monotonic = 4
+  logical, parameter :: top_down = .true.
 
   !default some namelist parameters
   logical :: set_max_eep_number = .false.
@@ -96,19 +97,25 @@ program make_isochrone
 
   !create isochrones 
   do i=1,set% number_of_isochrones
-     call do_isochrone_for_age(t,set% iso(i))
+     call do_isochrone_for_age(t,set% iso(i),ierr)
+     if (ierr/=0) exit
   enddo
-  call write_isochrones_to_file(set)
+  if(ierr==0)then
+     call write_isochrones_to_file(set)
+  else
+     write(0,*) ' problem in make_iso: no output written'
+  endif
 
   !all done.
   deallocate(s,t)
 
 contains
 
-  subroutine do_isochrone_for_age(s,iso)
+  subroutine do_isochrone_for_age(s,iso,ierr)
     type(track), intent(in) :: s(:)
     type(isochrone), intent(inout) :: iso
-    integer :: eep, hi, ierr, index, interp_method, j, k, l, lo, max_eep, n, pass
+    integer, intent(out) :: ierr
+    integer :: eep, hi, index, interp_method, j, k, l, lo, max_eep, n, pass
     integer :: max_neep_low, max_neep_high, loc, khi, klo
     character(len=col_width) :: mass_age_string = 'mass from age'
     real(dp) :: age, mass, min_age, max_age, y(2)
@@ -158,7 +165,6 @@ contains
     skip = .false.
     count = 0
 
-
     !determine the largest number of EEPs in tracks of different types
     max_neep_low = 0
     max_neep_high = 0
@@ -196,11 +202,6 @@ contains
        endif
     enddo
     
-    !allow more control over how many EEPs will appear in an isochrone, and 
-    !which tracks will be excluded because they have fewer EEPs
-    !if(set_max_eep .and. new_max_eep > 0) max_neep_low = min(max_neep_low,new_max_eep)
-    !if(set_max_eep .and. new_max_eep > 0) max_neep_high = min(max_neep_high,new_max_eep)
-
     !now check each track to make sure it is complete for its type
     do k=1,n
        if(s(k)% star_type == star_high_mass .and. s(k)% neep < max_neep_high) then
@@ -232,9 +233,7 @@ contains
        enddo
        
        !this loop attempts to pick out non-monotonic points
-
-
-       if(.true.)then
+       if(top_down)then
           if(.not.use_double_eep)then
              do k=n,2,-1
                 if(skip(k,eep)) cycle
@@ -311,8 +310,9 @@ contains
        !check to see if masses and ages are monotonic
        !if not, then interpolation will fail
        if(.not.monotonic(masses)) then
-          write(*,*) ' masses not monotonic in do_isochrone_for_age: ', age
-          stop 99
+          write(0,*) ' masses not monotonic in do_isochrone_for_age: ', age
+          ierr=-1
+          return
        endif
 
        if(iso_debug) then 
@@ -472,7 +472,8 @@ contains
                    pass = pass + 1
                    if(pass==1)then
 
-                      do index = 2, ncol
+                      do index = 1, ncol
+                         if(index==i_Minit) cycle
                          mass = result1(i_Minit,eep)
                          result1(index,eep) = iso_interpolate(eep, interp_method, n, &
                               s, skip(:,eep), count(eep), index, masses, mass, cols(index)% name, ierr)
@@ -487,7 +488,8 @@ contains
 
                    else if(pass==2)then
 
-                      do index = 2, ncol
+                      do index = 1, ncol
+                         if(index==i_Minit) cycle
                          mass = result2(i_Minit,eep)
                          result2(index,eep) = iso_interpolate(eep, interp_method, n, &
                               s, skip(:,eep), count(eep), index, masses, mass, cols(index)% name, ierr)
@@ -510,7 +512,9 @@ contains
 
        else ! single EEP case; this is the original method.
 
-          do index = 2, ncol
+          do index = 1, ncol
+             if(index==i_Minit) cycle
+             
              mass = result1(i_Minit,eep)
 
              y(1) = s(klo)% tr(index,eep)
@@ -808,7 +812,7 @@ contains
     ncol = size(cols)
 
     col_name = 'star_age'; i_age = locate_column(col_name)
-    col_name = 'star_mass'; i_mass= locate_column(col_name)
+    !col_name = 'star_mass'; i_mass= locate_column(col_name)
 
     ! hack: replace star_age column with initial_mass in isochrones
     i_Minit = i_age

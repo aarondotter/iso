@@ -482,7 +482,7 @@ contains
        eepfile = trim(eepfile)  // '.eep'
     endif
 
-    write(*,*) ' reading ', trim(eepfile)
+    if(verbose) write(*,*) ' reading ', trim(eepfile)
     
     binfile=trim(eepfile) // '.bin'
     inquire(file=trim(binfile),exist=binfile_exists)
