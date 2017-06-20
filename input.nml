@@ -8,9 +8,9 @@ output_to_eep_dir = .false.
 
 &cmd_controls
 
-   BC_table_list = 'bc_table.list'
+   BC_table_list = 'bc_table_afe_p04.list'
 
-   do_Cstars = .true.
+   do_Cstars = .false.
    cstar_table_list = 'cstar_table.list'
 
    cmd_suffix = 'cmd'
@@ -44,7 +44,9 @@ output_to_eep_dir = .false.
    !considered for age-mass and mass-etc. interpolation
    log_age_delta = 0.5
 
-   very_low_mass_limit=1.0
+   very_low_mass_limit=0.71
+
+   iso_debug = .false.
 
 / !end of iso_controls namelist
 
