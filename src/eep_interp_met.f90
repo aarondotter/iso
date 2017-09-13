@@ -34,6 +34,8 @@ program eep_interp_feh
 
   !set this to use linear interpolation in mass
   force_linear=.true.
+
+  call read_nml
   
   call process_command_args
 
@@ -42,7 +44,6 @@ program eep_interp_feh
 
   call read_input
   if(ierr/=0) stop 'make_track: failed in read_input'
-
 
   if(do_CMDs) then
      call color_init(phot_string, BC_table_list, &
@@ -79,12 +80,9 @@ program eep_interp_feh
 
 contains
 
-  subroutine read_input
-    integer :: io, i, j, k
-    character(len=file_path) :: data_line
-
+  subroutine read_nml
+    integer :: io
     io=alloc_iounit(ierr)
-
     open(unit=io,file='input.nml', action='read', status='old', iostat=ierr)
     if(ierr/=0) then
        write(0,*) ' make_track: problem reading input.nml '
@@ -94,7 +92,13 @@ contains
     rewind(io) !i've always wanted to use rewind!
     read(io, nml=cmd_controls, iostat=ierr)
     close(io)
+  end subroutine read_nml
+  
+  subroutine read_input
+    integer :: io, i, j, k
+    character(len=file_path) :: data_line
 
+    io=alloc_iounit(ierr)
     open(unit=io,file=trim(input_file),status='old',action='read',iostat=ierr)
     if(ierr/=0) then
        write(0,*) ' make_track: problem reading ', trim(input_file)
