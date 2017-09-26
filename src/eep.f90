@@ -83,7 +83,7 @@ contains
     real(dp) :: alpha, beta, dist, delta, new_dist, dx, a(3), x(4), y(4)
     real(dp), pointer :: vec(:)
     integer :: i, jj, j0, j1, n, num_eep
-    logical, parameter :: linear = .false.
+    logical, parameter :: linear = .true.
 
     if(t% eep(j) == t% eep(j+1)) return
 
@@ -105,9 +105,7 @@ contains
        deallocate(vec); nullify(vec)
        j1=j0+1
        if(linear)then
-          !alpha = (t% dist(j1) - new_dist)/(t% dist(j1)-t% dist(j0))
-        
-          alpha = (t% dist(t% eep(j+1)) - new_dist)/dist
+          alpha = (t% dist(j1) - new_dist)/(t% dist(j1)-t% dist(j0))
           beta = 1d0-alpha
           s% tr(:,k+i) = alpha*t% tr(:,j0) + beta*t% tr(:,j1)
        else
