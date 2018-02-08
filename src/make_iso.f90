@@ -849,19 +849,19 @@ contains
     monotonic = .true.
   end function monotonic
 
-  subroutine check_monotonic(array,ierr)
-    real(dp), intent(in) :: array(:)
-    integer, intent(out) :: ierr
-    integer :: i
-    ierr=0
-    if(.not.monotonic(array))then
-       ierr=-1
-       write(*,*) ' array not monotonic '
-       do i=1,size(array)
-          write(*,*) i, array(i)
-       enddo
-    endif
-  end subroutine check_monotonic
+!!$  subroutine check_monotonic(array,ierr)
+!!$    real(dp), intent(in) :: array(:)
+!!$    integer, intent(out) :: ierr
+!!$    integer :: i
+!!$    ierr=0
+!!$    if(.not.monotonic(array))then
+!!$       ierr=-1
+!!$       write(*,*) ' array not monotonic '
+!!$       do i=1,size(array)
+!!$          write(*,*) i, array(i)
+!!$       enddo
+!!$    endif
+!!$  end subroutine check_monotonic
 
   subroutine smooth(x,y)
     real(dp), intent(in) :: x(:)
