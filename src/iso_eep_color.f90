@@ -594,7 +594,11 @@ contains
     Zsurf = pow10_sg(log_Z_div_Zsol + log_Z_sol)
 
     allocate(Fe_div_H(size(log_Z_div_Zsol)))
-    Fe_div_H = log_Z_div_Zsol - log10( real(iso% data(iH,:),kind=sp) / Xsol)
+    if(iH==0)then
+       Fe_div_H = BC_Fe_div_H
+    else
+       Fe_div_H = log_Z_div_Zsol - log10( real(iso% data(iH,:),kind=sp) / Xsol)
+    endif
 
     num_cols = iso% nfil + 9
     
