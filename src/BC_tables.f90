@@ -80,7 +80,7 @@ contains
     inquire(file=trim(binfile),exist=binary_exists)
     if(binary_exists)then
        call read_one_bin(t,ierr)
-    else !read it the old-fashioned way and write a binary 
+    else !read it the old-fashioned way and write a binary
        call read_one_ascii(t,ierr)
        if(ierr==0) call write_one_bin(t,ierr)
     endif
@@ -168,14 +168,14 @@ contains
 
     do i=1,t% num_Av
        read(io,*) !skip the column numbers
-       read(io,'(31x,199a20)') t% labels(1:t% num_Filter)
+       read(io,'(37x,99a20)') t% labels(1:t% num_Filter)
 
        do k=1,t% num_filter
           allocate(t% bcs(k,i)% data(num_lines))
        enddo
 
        do j=1, num_lines
-          read(io,'(f8.0,f5.1,3f6.2,199f20.6)') Teff, logg, t% FeH, t% Av(i), t% Rv, BCdata
+          read(io,'(f8.0,f5.1,4f6.2,99f20.6)') Teff, logg, t% FeH, t% alphaFe, t% Av(i), t% Rv, BCdata
           grid(1,j) = log10(Teff)
           grid(2,j) = logg
           do k=1,t% num_filter
@@ -267,7 +267,7 @@ contains
     if(ig==0.or.ig==ng) then
 
        if(ig==0) ig=1
-       
+
        if(iT==0)then
           res = t% bcs(iflt,iAv)% data(1)
        elseif(iT==nT)then
@@ -291,7 +291,7 @@ contains
        endif
 
     else
-       
+
        if(iT==0)then
           res1 = t% bcs(iflt,iAv)% data(ig)
           res2 = t% bcs(iflt,iAV)% data(ig+1)
@@ -326,7 +326,7 @@ contains
        endif
 
        res = ((g2-logg)*res1 + (logg-g1)*res2)/dg
-      
+
     endif
 
   end function BC_interp_filter_fixed_Av
@@ -370,7 +370,7 @@ contains
     enddo
     xnew(1)=Av
     call interpolate_vector_sg( t% num_Av, t% Av, 1, xnew, yold, ynew, &
-         interp_m3a_sg, nwork, work, str, ierr)  
+         interp_m3a_sg, nwork, work, str, ierr)
     if(ierr/=0) then
        write(*,*) trim(str)
     else

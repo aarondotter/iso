@@ -20,7 +20,7 @@ module iso_eep_support
   real(dp), parameter :: ln10=log(1.0d1)
   real(sp), parameter :: ln10_sp = log(10.0)
 
-  character(len=file_path) :: history_dir, eep_dir, iso_dir  
+  character(len=file_path) :: history_dir, eep_dir, iso_dir
 
   !stellar types for handling primary eeps
   integer, parameter :: unknown           =  1 !for initialization only
@@ -36,7 +36,7 @@ module iso_eep_support
   logical :: make_bin_eeps  =.false.
 
   ! central limits for high- / intermediate-mass stars, set these from input eep_controls nml
-  real(dp) :: center_gamma_limit=1d2 
+  real(dp) :: center_gamma_limit=1d2
   real(dp) :: center_carbon_limit=1d-4
   real(dp) :: log_center_T_limit=9d0
   real(dp) :: high_mass_limit = 1d1 !Msun
@@ -227,7 +227,7 @@ contains
     integer :: i
     locate_column = -1
     do i=1,size(cols)
-       if(trim(cols(i)% name)==trim(col_name)) then 
+       if(trim(cols(i)% name)==trim(col_name)) then
           locate_column = i
           return
        endif
@@ -244,7 +244,7 @@ contains
     t% ncol = ncol
     t% neep = primary
     t% filename = trim(filename)
-    allocate(t% eep(t% neep)) 
+    allocate(t% eep(t% neep))
   end subroutine alloc_track
 
   subroutine write_track(x)
@@ -442,14 +442,14 @@ contains
     read(io) t% cols
     read(io) t% tr
     read(io) t% dist
-    close(io) 
+    close(io)
     t% eep_tr = 0d0
     t% eep_dist = 0d0
     call free_iounit(io)
 
   end subroutine read_history_bin
 
-  
+
   subroutine read_eep(x,full_path,append_eep)
     type(track), intent(inout) :: x
     logical, optional :: full_path
@@ -473,7 +473,7 @@ contains
     endif
 
     if(use_full_path)then
-       eepfile = trim(x% filename) 
+       eepfile = trim(x% filename)
     else
        eepfile = trim(eep_dir) // '/' // trim(x% filename)
     endif
@@ -483,7 +483,7 @@ contains
     endif
 
     if(verbose) write(*,*) ' reading ', trim(eepfile)
-    
+
     binfile=trim(eepfile) // '.bin'
     inquire(file=trim(binfile),exist=binfile_exists)
     if(binfile_exists)then
@@ -541,13 +541,13 @@ contains
     endif
     close(io)
     call free_iounit(io)
-   
+
     if(make_bin_eeps)then
        x% filename = trim(eepfile)
        call write_eep_bin(x)
     endif
   end subroutine read_eep
-  
+
   subroutine read_eep_bin(eepfile,x)
     character(len=file_path) :: eepfile
     type(track), intent(inout) :: x
@@ -706,7 +706,7 @@ contains
     write(io) t% cols
     write(io) t% tr
     write(io) t% dist
-    close(io) 
+    close(io)
     call free_iounit(io)
   end subroutine write_history_bin
 
@@ -782,13 +782,13 @@ contains
        s% iso(i)% initial_Z = s% initial_Z
        if(i<n) read(io,*)
        if(i<n) read(io,*)
-    enddo    
+    enddo
     close(io)
     call free_iounit(io)
     if(make_bin_isos) call write_isochrone_bin(s)
   end subroutine read_isochrone_file
 
-  
+
   subroutine read_one_isochrone_from_file(io,iso)
     integer, intent(in) :: io
     type(isochrone), intent(out) :: iso
@@ -798,21 +798,21 @@ contains
     read(io,*) !skip column numbers
     allocate(cols(my_ncol))
     read(io,'(2x,a3,299a32)') cols(:)% name
-    
+
     if(index(cols(2)% name, 'log10')>0)then
        iso% age_scale = age_scale_log10
     else
        iso% age_scale = age_scale_linear
     endif
 
-    iso% has_phase = index(cols(my_ncol)% name, 'phase') > 0 
+    iso% has_phase = index(cols(my_ncol)% name, 'phase') > 0
 
     if(iso% has_phase)then
        iso% ncol = my_ncol - 3
     else
        iso% ncol = my_ncol - 2
     endif
-    
+
     allocate(iso% cols(iso% ncol))
     iso% cols(:)% name = cols(3:iso% ncol+2)% name
 
@@ -826,9 +826,9 @@ contains
           read(io,'(i5,299(1pes32.16e3))') iso% eep(i), iso% age, iso% data(:,i)
        endif
     enddo
-    
+
     if(iso% age_scale == age_scale_linear) iso% age = log10(iso% age)
-    
+
   end subroutine read_one_isochrone_from_file
 
   subroutine distance_along_track(t)
@@ -847,17 +847,17 @@ contains
     t% dist(1) = 0d0
     if(t% ntrack > 3)then
        do j = 2, t% ntrack
-          
+
           if(weight_center_rho_T_by_Xc)then
              weight = max(0d0, t% tr(i_Xc,j)/max_center_h1)
           endif
-          
+
           !build up the distance between EEPs piece by piece
           tmp_dist =            Teff_scale*sqdiff(t% tr(i_logTe,j) , t% tr(i_logTe,j-1))
           tmp_dist = tmp_dist + logL_scale*sqdiff(t% tr(i_logL, j) , t% tr(i_logL, j-1))
           tmp_dist = tmp_dist + weight * Rhoc_scale * sqdiff(t% tr(i_Rhoc, j) , t% tr(i_Rhoc, j-1))
           tmp_dist = tmp_dist + weight * Tc_scale*  sqdiff(t% tr(i_Tc,   j) , t% tr(i_Tc,   j-1))
-          tmp_dist = tmp_dist + age_scale* sqdiff(log10(t% tr(i_age,j)) , log10(t% tr(i_age,j-1))) 
+          tmp_dist = tmp_dist + age_scale* sqdiff(log10(t% tr(i_age,j)) , log10(t% tr(i_age,j-1)))
 
           t% dist(j) = t% dist(j-1) + sqrt(tmp_dist)
        enddo
@@ -928,7 +928,7 @@ contains
 
   subroutine setup_columns(history_columns_list,ierr)
     !reads a history_columns.list file to determine what columns to write
-    !to the .eep files; it identifies those important columns that are 
+    !to the .eep files; it identifies those important columns that are
     !required to identify eeps in the evolutionary tracks
     character(len=file_path) :: history_columns_list
     integer, intent(out) :: ierr
@@ -938,7 +938,7 @@ contains
        write(*,*) 'failed in process_history_columns'
        return
     endif
-    ncol = size(cols) 
+    ncol = size(cols)
     if(verbose) write(*,*) ' number of history columns = ', ncol
     col_name = 'star_age'; i_age = locate_column(col_name)
     col_name = 'star_mass'; i_mass= locate_column(col_name)
@@ -963,7 +963,7 @@ contains
     endif
     if(verbose)then
        write(*,*) ' star_age column = ', i_age
-       write(*,*) ' star_mass column= ', i_mass      
+       write(*,*) ' star_mass column= ', i_mass
     endif
   end subroutine setup_columns
 
@@ -1039,8 +1039,8 @@ contains
        lvls(start:last,1)=start
        lvls(start:last,2)=last
     enddo
-  end subroutine PAV  
-  
+  end subroutine PAV
+
   integer function locate(y)
     real(dp), intent(in) :: y(:)
     integer :: i, n
@@ -1053,5 +1053,5 @@ contains
     enddo
     locate=0
   end function locate
-   
+
 end module iso_eep_support

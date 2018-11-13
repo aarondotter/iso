@@ -30,7 +30,7 @@ CHA=charlies_angel
 EEP_CMD=eep_cmd
 
 basic: $(EEP) $(ISO) 
-all: $(EEP) $(ISO) $(BLEND) $(TRK) $(INTMET) $(INTAGE) $(CMD) $(CHA) $(INTEEP) $(EEP_CMD) 
+all: $(EEP) $(ISO) $(BLEND) $(TRK) $(INTMET) $(INTAGE) $(CMD) $(CHA) $(INTEEP) $(EEP_CMD)
 
 $(CMD): make_cmd.o iso_eep_color.o iso_eep_support.o BC_tables.o
 	$(FC) $(OMP) -o $(ISO_DIR)/$(CMD) $^ $(LOAD_MESA)
