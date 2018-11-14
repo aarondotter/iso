@@ -118,10 +118,10 @@ contains
   end subroutine cmd_init
 
   subroutine spotify(s,beta0,gamma)
-    !based on Chabrier et al. (2007) with minor extension*
+    !Chabrier et al. (2007) with minor extension
     !beta = fraction of surface covered by spots
-    !*gamma = temperature ratio, Tspot/Teff (Chabrier+2007 set gamma=0)
-    !Teff and radius are changed without modifying luminosity
+    !gamma = temperature ratio, Tspot/Teff (Chabrier+2007 set gamma=0)
+    !Teff and radius are changed while holding luminosity constant
     type(isochrone_set), intent(inout) :: s
     real(dp), intent(in) :: beta0, gamma
     real(dp) :: a, Tfac, alfa, beta, R, Teff, g, log_Teff
