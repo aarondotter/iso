@@ -1,6 +1,6 @@
 # in case format changes; header on line 1, data on line 2
-28
-32
+40
+40
 1
 7503 - ints and dbls default to 40
 28/32 is a good set of values for pre-73XX MESA
