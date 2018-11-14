@@ -567,9 +567,9 @@ contains
     type(isochrone), intent(inout) :: iso
     character(len=32) :: age_column_header
     real(dp) :: isochrone_age
-    integer :: i, iT, ig, iL, ierr, iH, iMi, iMc, num_cols
+    integer :: i, iT, ig, iR, iL, ierr, iH, iMi, iMc, num_cols
     real(sp), allocatable :: log_Z_div_Zsol(:), Zsurf(:), Fe_div_H(:)
-    ierr=0; iT=0; ig=0; iL=0; iMi=0; iMc=0; iH=0
+    ierr=0; iT=0; ig=0; iL=0; iMi=0; iMc=0; iH=0; iR=0
 
     do i=1, iso% ncol
        if(trim(adjustl(iso% cols(i)% name)) == 'log_Teff') then
@@ -578,6 +578,8 @@ contains
           ig=i
        else if(trim(adjustl(iso% cols(i)% name)) == 'log_L') then
           iL=i
+       else if(trim(adjustl(iso% cols(i)% name)) == 'log_R') then
+          iR=i
        else if(trim(adjustl(iso% cols(i)% name)) == 'initial_mass')then
           iMi=i
        else if(trim(adjustl(iso% cols(i)% name)) == 'star_mass')then
@@ -600,14 +602,14 @@ contains
        Fe_div_H = log_Z_div_Zsol - log10( real(iso% data(iH,:),kind=sp) / Xsol)
     endif
 
-    num_cols = iso% nfil + 9
+    num_cols = iso% nfil + 10
     
     if(iso% has_phase) then !add extra column for phase
        num_cols = num_cols + 1
     endif
     
     write(io,'(a25,2i5)') '# number of EEPs, cols = ', iso% neep, num_cols
-    write(io,'(a1,i4,7i32,299(17x,i3))') '#    ', (i,i=1,num_cols)
+    write(io,'(a1,i4,8i32,299(17x,i3))') '#    ', (i,i=1,num_cols)
  
     if(iso% age_scale==age_scale_linear)then
        age_column_header='isochrone_age_yr'
@@ -618,19 +620,19 @@ contains
     endif
 
     if(iso% has_phase)then
-       write(io,'(a5,7a32,299a20)') '# EEP', adjustr(age_column_header), 'initial_mass', 'star_mass', 'log_Teff', &
-            'log_g', 'log_L', '[Fe/H]_init','[Fe/H]', adjustr(iso% labels), 'phase'
+       write(io,'(a5,8a32,299a20)') '# EEP', adjustr(age_column_header), 'initial_mass', 'star_mass', 'log_Teff', &
+            'log_R', 'log_g', 'log_L', '[Fe/H]_init','[Fe/H]', adjustr(iso% labels), 'phase'
     else
-       write(io,'(a5,7a32,299a20)') '# EEP', adjustr(age_column_header), 'initial_mass', 'star_mass', 'log_Teff', &
-            'log_g', 'log_L', '[Fe/H]_init', '[Fe/H]', adjustr(iso% labels)
+       write(io,'(a5,8a32,299a20)') '# EEP', adjustr(age_column_header), 'initial_mass', 'star_mass', 'log_Teff', &
+            'log_R', 'log_g', 'log_L', '[Fe/H]_init', '[Fe/H]', adjustr(iso% labels)
     endif
     do i = 1,iso% neep
        if(iso% has_phase)then
-          write(io,'(i5,7(1pes32.16e3),299(0pf20.6))') iso% eep(i), isochrone_age, iso% data(iMi,i), iso% data(iMc,i), &
-               iso% data(iT,i), iso% data(ig,i), iso% data(iL,i), iso% Fe_div_H, Fe_div_H(i), iso% mags(:,i), &
+          write(io,'(i5,8(1pes32.16e3),299(0pf20.6))') iso% eep(i), isochrone_age, iso% data(iMi,i), iso% data(iMc,i), &
+               iso% data(iT,i), iso% data(iR,i), iso% data(ig,i), iso% data(iL,i), iso% Fe_div_H, Fe_div_H(i), iso% mags(:,i), &
                real(iso% phase(i), kind=sp)
        else
-          write(io,'(i5,7(1pes32.16e3),299(0pf20.6))') iso% eep(i), isochrone_age, iso% data(iMi,i), iso% data(iMc,i), &
+          write(io,'(i5,8(1pes32.16e3),299(0pf20.6))') iso% eep(i), isochrone_age, iso% data(iMi,i), iso% data(iMc,i), &
                iso% data(iT,i), iso% data(ig,i), iso% data(iL,i), iso% Fe_div_H, Fe_div_H(i), iso% mags(:,i)
        endif
     enddo
