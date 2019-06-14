@@ -87,9 +87,7 @@ contains
     integer :: io, i, j, k
     character(len=file_path) :: eep_file, data_line
 
-    io=alloc_iounit(ierr)
-
-    open(unit=io,file='input.nml', action='read', status='old', iostat=ierr)
+    open(newunit=io,file='input.nml', action='read', status='old', iostat=ierr)
     if(ierr/=0) then
        write(0,*) ' make_track: problem reading input.nml '
        return
@@ -99,7 +97,7 @@ contains
     read(io, nml=cmd_controls, iostat=ierr)
     close(io)
 
-    open(unit=io,file=trim(input_file),status='old',action='read',iostat=ierr)
+    open(newunit=io,file=trim(input_file),status='old',action='read',iostat=ierr)
     if(ierr/=0) then
        write(0,*) ' make_track: problem reading ', trim(input_file)
        return
@@ -121,7 +119,7 @@ contains
     enddo
     close(io)
 
-    open(unit=io,file=trim(eep_file),status='old',action='read',iostat=ierr)
+    open(newunit=io,file=trim(eep_file),status='old',action='read',iostat=ierr)
     if(ierr/=0) then
        write(0,*) ' make_track: problem reading ', trim(eep_file)
        return
@@ -145,8 +143,6 @@ contains
        if(ierr/=0) exit
     enddo
     close(io)
-
-    call free_iounit(io)
 
   end subroutine read_input
 

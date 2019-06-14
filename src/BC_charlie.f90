@@ -1,13 +1,9 @@
 module BC_tables
 
-  use const_def, only: sp
-  use interp_1d_def
-  use interp_1d_lib_sg
-
   implicit none
 
   type BC
-     real(sp), pointer :: data(:)
+     real, pointer :: data(:)
   end type BC
 
   type BC_table
@@ -16,11 +12,11 @@ module BC_tables
      character(len=256) :: filename
      character(len=20), allocatable :: labels(:)
      integer :: num_Av, num_Rv, num_filter, num_T, num_g, iling, ilinT
-     real(sp) :: Rv, FeH, alphaFe
-     real(sp), allocatable :: logT(:), logg(:), Av(:)
+     real :: Rv, FeH, alphaFe
+     real, allocatable :: logT(:), logg(:), Av(:)
      type(BC), allocatable :: bcs(:,:) !Av, filters
   end type BC_table
-
+  
 contains
 
   subroutine BC_table_init(phot_string,table_list,t,ierr)
@@ -144,9 +140,9 @@ contains
     type(BC_table), intent(inout) :: t
     integer, intent(out) :: ierr
     integer :: i, j, k, pass, ng, nT, num_lines, io
-    real(sp) :: Teff, logg, logT
+    real :: Teff, logg, logT
     !integer :: ibcTmin, ibcTmax, ibcgmin, ibcgmax
-    real(sp), allocatable :: grid(:,:), BCdata(:) !, bcTmin(:), bcTmax(:), bcgmin(:), bcgmax(:)
+    real, allocatable :: grid(:,:), BCdata(:) !, bcTmin(:), bcTmax(:), bcgmin(:), bcgmax(:)
 
     write(*,*) ' opening ', trim(t% filename)
     open(newunit=io,file=trim(t% filename),status='old',action='read',iostat=ierr)
@@ -167,17 +163,14 @@ contains
     
     do i=1,t% num_Av
        read(io,*) !skip the column numbers
-       read(io,'(37x,99a20)') t% labels(1:t% num_Filter)
+       read(io,'(31x,99a20)') t% labels(1:t% num_Filter)
 
        do k=1,t% num_filter
           allocate(t% bcs(k,i)% data(num_lines))
        enddo
 
        do j=1, num_lines
-          !MIST1 version
-          !read(io,'(f8.0,f5.1,3f6.2,99f20.6)') Teff, logg, t% FeH, t% Av(i), t% Rv, BCdata
-          !MIST2 version
-          read(io,'(f8.0,f5.1,4f6.2,99f20.6)') Teff, logg, t% FeH, t% alphaFe, t% Av(i), t% Rv, BCdata
+          read(io,'(f8.0,f5.1,3f6.2,99f20.6)') Teff, logg, t% FeH, t% Av(i), t% Rv, BCdata
           grid(1,j) = log10(Teff)
           grid(2,j) = logg
           do k=1,t% num_filter
@@ -229,15 +222,14 @@ contains
 
   end subroutine read_one_ascii
 
-  function BC_interp_filter_fixed_Av(t,logg,logT,iflt,iAv,ierr) result(res)
-    type(BC_table), intent(inout) :: t
-    real(sp), intent(in) :: logT, logg
+  function BC_interp_filter_fixed_Av(t,logg,logT,iflt,iAv) result(res)
+    type(BC_table), intent(in) :: t
+    real, intent(in) :: logT, logg
     integer, intent(in) :: iflt, iAv
-    integer, intent(out) :: ierr
-    real(sp) :: res, res1, res2
+    real :: res, res1, res2
     integer :: i, iT, ig, ng, nT
-    real(sp) :: dT, dg, T1, T2, g1, g2, x(4), y(4), a(3), dx
-    iT=0; ig=1; ierr=0
+    real :: dT, dg, T1, T2, g1, g2, x(4), y(4), a(3), dx
+    iT=0; ig=1
 
     ng=t% num_g
     nT=t% num_T
@@ -287,7 +279,7 @@ contains
           y(2) = t% bcs(iflt,iAv)% data((iT-1)*ng + ig)
           y(3) = t% bcs(iflt,iAv)% data((iT  )*ng + ig)
           y(4) = t% bcs(iflt,iAv)% data((iT+1)*ng + ig)
-          call interp_4pt_pm_sg(x,y,a)
+          a = interp_4pt_pm(x,y)
           res = y(2) + dx*(a(1) + dx*(a(2) + dx*a(3)))
        endif
 
@@ -315,90 +307,102 @@ contains
           y(2) = t% bcs(iflt,iAv)% data((iT-1)*ng + ig)
           y(3) = t% bcs(iflt,iAv)% data((iT  )*ng + ig)
           y(4) = t% bcs(iflt,iAv)% data((iT+1)*ng + ig)
-          call interp_4pt_pm_sg(x,y,a)
+          a = interp_4pt_pm(x,y)
           res1 = y(2) + dx*(a(1) + dx*(a(2) + dx*a(3)))
           !at g2
           y(1) = t% bcs(iflt,iAv)% data((iT-2)*ng + ig+1)
           y(2) = t% bcs(iflt,iAv)% data((iT-1)*ng + ig+1)
           y(3) = t% bcs(iflt,iAv)% data((iT  )*ng + ig+1)
           y(4) = t% bcs(iflt,iAv)% data((iT+1)*ng + ig+1)
-          call interp_4pt_pm_sg(x,y,a)
+          a = interp_4pt_pm(x,y)
           res2 = y(2) + dx*(a(1) + dx*(a(2) + dx*a(3)))
        endif
 
        res = ((g2-logg)*res1 + (logg-g1)*res2)/dg
-
     endif
-
   end function BC_interp_filter_fixed_Av
 
-  subroutine BC_interp_filters_fixed_Av(t,logg,logT,iAv,res,ierr)
-    type(BC_table), intent(inout) :: t
-    real(sp), intent(in) :: logT, logg
-    integer, intent(in) :: iAv
-    real(sp) :: res(:)
-    integer, intent(out) :: ierr
-    integer :: i
-    if(t% num_filter/=size(res)) then
-       ierr=-1
-       return
-    endif
-    do i=1,t% num_filter
-       res(i)=BC_interp_filter_fixed_Av(t,logg,logT,i,iAv,ierr)
-    enddo
-  end subroutine BC_interp_filters_fixed_Av
-
-  function BC_interp_filter(t,logg,logT,iflt,Av,ierr) result(res)
-    type(BC_table), intent(inout) :: t
-    real(sp), intent(in) :: logT, logg, Av
+  function BC_interp_filter(t,logg,logT,Av,FeH,iflt) result(res)
+    type(BC_table), intent(in) :: t(:)
+    real, intent(in) :: logT, logg, FeH, Av
     integer, intent(in) :: iflt
-    integer, intent(out) :: ierr
-    real(sp) :: res, xnew(1), ynew(1)
-    real(sp), allocatable :: yold(:)
-    integer :: i
-    integer, parameter :: nwork = max(mp_work_size,pm_work_size)
-    real(sp), pointer :: work(:)=>NULL()
-    character(len=256) :: str
-    ierr = 0
-    res = 0.
-    if(t% num_Av==1)then
-       res=BC_interp_filter_fixed_Av(t,logg,logT,iflt,1,ierr)
+    real :: res, alfa, beta, y(4), x(4), dx, a(3)
+    integer :: i, n, iZ=0
+
+    n=size(t)
+    if(n==1 .or. FeH < t(1)% FeH ) then
+       res=BC_interp_filter_fixed_metallicity(t(1),logg,logT,Av,iflt)
        return
+    elseif(FeH > t(n)% FeH)then
+       res=BC_interp_filter_fixed_metallicity(t(n),logg,logT,Av,iflt)
+       return       
     endif
-    allocate(yold(t% num_Av),work(nwork*t%num_Av))
-    do i=1, t% num_Av
-       yold(i) = BC_interp_filter_fixed_Av(t,logg,logT,iflt,i,ierr)
+
+    do i=1,n-1
+       if(FeH >= t(i)% FeH .and. FeH < t(i+1)% FeH)then
+          iZ=i
+          exit
+       endif
     enddo
-    xnew(1)=Av
-    call interpolate_vector_sg( t% num_Av, t% Av, 1, xnew, yold, ynew, &
-         interp_m3a_sg, nwork, work, str, ierr)
-    if(ierr/=0) then
-       write(*,*) trim(str)
-    else
-       res=ynew(1)
+
+    if(iZ==1 .or. iZ >= n-2)then !linear
+       alfa=(t(iZ+1)% FeH - FeH)/(t(iZ+1)% FeH-t(iZ)% FeH)
+       beta=1.0-alfa
+       res = alfa*BC_interp_filter_fixed_metallicity(t(iZ)  ,logg,logT,Av,iflt) &
+           + beta*BC_interp_filter_fixed_metallicity(t(iZ+1),logg,logT,Av,iflt)
+    else !cubic
+       x(1) = t(iZ-1)% FeH
+       x(2) = t(iZ  )% FeH
+       x(3) = t(iZ+1)% FeH
+       x(4) = t(iZ+2)% FeH
+       dx = FeH - x(2)
+       y(1) = BC_interp_filter_fixed_metallicity(t(iZ-1),logg,logT,Av,iflt)
+       y(2) = BC_interp_filter_fixed_metallicity(t(iZ  ),logg,logT,Av,iflt)
+       y(3) = BC_interp_filter_fixed_metallicity(t(iZ+1),logg,logT,Av,iflt)
+       y(4) = BC_interp_filter_fixed_metallicity(t(iZ+2),logg,logT,Av,iflt)
+       a = interp_4pt_pm(x,y)
+       res = y(2) + dx*(a(1) + dx*(a(2) + dx*a(3)))
     endif
-    deallocate(work)
   end function BC_interp_filter
-
-  subroutine BC_interp_filters(t,logg,logT,Av,res,ierr)
-    type(BC_table), intent(inout) :: t
-    real(sp), intent(in) :: logT, logg, Av
-    real(sp), intent(out) :: res(:)
-    integer, intent(out) :: ierr
-    integer :: i
-    real(sp) :: my_logT, my_logg, my_Av
-    if(t% num_filter /= size(res)) then
-       ierr=-1
+  
+  function BC_interp_filter_fixed_metallicity(t,logg,logT,Av,iflt) result(res)
+    type(BC_table), intent(in) :: t
+    real, intent(in) :: logT, logg, Av
+    integer, intent(in) :: iflt
+    real :: res, alfa, beta, y(4), x(4), dx, a(3)
+    integer :: i, iAv
+    res = 0.
+    if(t% num_Av==1 .or. Av < t% Av(1))then
+       res=BC_interp_filter_fixed_Av(t,logg,logT,iflt,1)
+       return
+    elseif(Av > t% Av(t% num_Av))then
+       res=BC_interp_filter_fixed_Av(t,logg,logT,iflt,t% num_Av)
        return
     endif
-    my_logT = min(max(logT, t% logT(1)), t% logT(t% num_T))
-    my_logg = min(max(logg, t% logg(1)), t% logg(t% num_g))
-    my_Av   = min(max(  Av, t%   Av(1)), t%   Av(t% num_Av))
-    do i=1,t% num_filter
-       res(i)=BC_interp_filter(t,my_logg,my_logT,i,my_Av,ierr)
+    !general case
+    do i=1,t% num_Av-1
+       if(Av>=t% Av(i).and. Av < t% Av(i+1)) then
+          iAv=i
+          exit
+       endif
     enddo
-  end subroutine BC_interp_filters
-
+    if(iAv==1 .or. iAv>=t% num_Av-2)then !linear
+       alfa=(t% Av(iAv+1)-Av)/(t% Av(iAv+1)-t% Av(iAv))
+       beta=1.0-alfa
+       res  = alfa*BC_interp_filter_fixed_Av(t,logg,logT,iflt,iAv  ) &
+            + beta*BC_interp_filter_fixed_Av(t,logg,logT,iflt,iAv+1)
+    else !cubic
+       x=t% Av(iAv-1:iAv+2)
+       dx=Av-x(2)
+       y(1) = BC_interp_filter_fixed_Av(t,logg,logT,iflt,iAv-1)
+       y(2) = BC_interp_filter_fixed_Av(t,logg,logT,iflt,iAv  )
+       y(3) = BC_interp_filter_fixed_Av(t,logg,logT,iflt,iAv+1)
+       y(4) = BC_interp_filter_fixed_Av(t,logg,logT,iflt,iAv+2)
+       a = interp_4pt_pm(x,y)
+       res = y(2) + dx*(a(1) + dx*(a(2) + dx*a(3)))
+    endif
+  end function BC_interp_filter_fixed_metallicity
+  
   subroutine unload_bcs(t)
     type(BC_table), intent(inout) :: t(:)
     integer :: i
@@ -412,5 +416,66 @@ contains
     deallocate(t% logT, t% logg, t% Av, t% bcs)
     t% is_loaded = .false.
   end subroutine unload_one_bc
-
+  
+  function interp_4pt_pm(x, y) result(a)
+    ! returns coefficients for monotonic cubic interpolation from x(2) to x(3)
+    real, intent(in)    :: x(4)    ! junction points, strictly monotonic
+    real, intent(in)    :: y(4)    ! data values at x's
+    real :: a(3), h1, h2, h3, s1, s2, s3, p2, p3, as2, ss2, yp2, yp3
+    ! for x(2) <= x <= x(3) and dx = x-x(2), 
+    ! y(x) = y(2) + dx*(a(1) + dx*(a(2) + dx*a(3)))
+    h1 = x(2)-x(1); h2 = x(3)-x(2); h3 = x(4)-x(3)
+    s1 = (y(2)-y(1))/h1; s2 = (y(3)-y(2))/h2; s3 = (y(4)-y(3))/h3
+    p2 = (s1*h2+s2*h1)/(h1+h2); p3 = (s2*h3+s3*h2)/(h2+h3)
+    as2 = abs(s2); ss2 = sign(1.0, s2)
+    yp2 = (sign(1.0, s1)+ss2)*min(abs(s1), as2, 0.5*abs(p2))
+    yp3 = (ss2+sign(1.0, s3))*min(as2, abs(s3), 0.5*abs(p3))
+    a(1) = yp2
+    a(2) = (3.0*s2-2.0*yp2-yp3)/h2
+    a(3) = (yp2+yp3-2.0*s2)/(h2*h2)
+  end function interp_4pt_pm
+  
 end module BC_tables
+
+
+program test
+  use BC_tables
+  implicit none
+  character(len=256) :: phot_string, table_list
+  integer :: ierr
+  type(BC_table), allocatable :: bcs(:)
+  integer, parameter :: nflt=57 !for WFC3
+  integer, parameter :: i275=4
+  integer, parameter :: i336=7
+  integer, parameter :: i438=15
+  integer, parameter :: i555=23
+  integer, parameter :: i606=25
+  integer, parameter :: i814=39
+  real :: logT, logg, FeH, Av, Mbol, mag
+
+  Mbol=4.74
+  phot_string='HST_WFC3'
+  table_list='/home/dotter/science/iso/bc_table.list'
+
+  call BC_table_init(phot_string, table_list, bcs, ierr)
+
+  logT=log10(5778.0)
+  logg=4.45
+  FeH = 0.0
+  Av = 0.0
+
+  !example of one call
+  mag = BC_interp_filter(bcs,logg,logT,Av,FeH,i275)
+
+  !various calls
+  write(*,*) trim(bcs(1)% photometric_system_string)
+  write(*,'(1x,a20,a13)') 'filter', 'magnitude'
+  write(*,*) bcs(1)% labels(i275), Mbol - BC_interp_filter(bcs,logg,logT,Av,FeH,i275)
+  write(*,*) bcs(1)% labels(i336), Mbol - BC_interp_filter(bcs,logg,logT,Av,FeH,i336)
+  write(*,*) bcs(1)% labels(i438), Mbol - BC_interp_filter(bcs,logg,logT,Av,FeH,i438)
+  write(*,*) bcs(1)% labels(i555), Mbol - BC_interp_filter(bcs,logg,logT,Av,FeH,i555)
+  write(*,*) bcs(1)% labels(i606), Mbol - BC_interp_filter(bcs,logg,logT,Av,FeH,i606)
+  write(*,*) bcs(1)% labels(i814), Mbol - BC_interp_filter(bcs,logg,logT,Av,FeH,i814)
+
+end program test
+

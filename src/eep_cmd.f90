@@ -1,9 +1,5 @@
 program eep_cmd
 
-  !MESA modules
-  use utils_lib
-
-  !local modules
   use iso_eep_support
   use iso_eep_color
   
@@ -52,8 +48,7 @@ contains
     call get_command_argument(1,phot_string)
     call get_command_argument(2,t% filename)
 
-    io=alloc_iounit(ierr)
-    open(unit=io,file='input.nml', action='read', status='old', iostat=ierr)
+    open(newunit=io,file='input.nml', action='read', status='old', iostat=ierr)
     if(ierr/=0) then
        write(0,*) ' make_track: problem reading input.nml '
        return

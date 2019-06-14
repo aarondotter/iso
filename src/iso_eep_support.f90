@@ -1,8 +1,8 @@
 module iso_eep_support
 
   !MESA modules
-  use const_def, only: dp, sp
-  use utils_lib, only: alloc_iounit, free_iounit
+  use utils_lib
+  use const_def, only: dp, sp, pi
 
   implicit none
 
@@ -16,9 +16,6 @@ module iso_eep_support
 
   logical, parameter ::check_initial_mass = .true.
   real(dp) :: mass_eps = 1d-6
-
-  real(dp), parameter :: ln10=log(1.0d1)
-  real(sp), parameter :: ln10_sp = log(10.0)
 
   character(len=file_path) :: history_dir, eep_dir, iso_dir
 
@@ -127,16 +124,30 @@ contains
 
   include 'num_binary_search.inc'
 
+  elemental function pow(x,a) result(y)
+    real(dp), intent(in) :: x, a
+    real(dp) :: y
+    y = exp(a*log(x))
+  end function pow
+
+  elemental function pow_sg(x,a) result(y)
+    real(sp), intent(in) :: x, a
+    real(sp) :: y
+    y = exp(a*log(x))
+  end function pow_sg
+  
   elemental function pow10_sg(x) result(y)
     real(sp), intent(in) :: x
     real(sp) :: y
-    y = exp(ln10_sp*x)
+    real(sp), parameter :: ln10=log(10.0)
+    y = exp(ln10*x)
   end function pow10_sg
 
   elemental function pow10(x) result(y)
     real(dp), intent(in) :: x
     real(dp) :: y
-    y = exp(ln10*x)
+    real(dp), parameter :: ln10=log(1.0d1)
+    y=exp(ln10*x)
   end function pow10
 
   subroutine process_history_columns(history_columns_list,ierr)
@@ -146,11 +157,9 @@ contains
     character(len=file_path) :: line, column_name
     logical :: is_int
     ierr=0
-    io=alloc_iounit(ierr)
-    open(io,file=trim(history_columns_list),action='read',status='old',iostat=ierr)
+    open(newunit=io,file=trim(history_columns_list),action='read',status='old',iostat=ierr)
     if(ierr/=0) then
        write(*,*) 'failed to open history columns list: ', trim(history_columns_list)
-       call free_iounit(io)
        return
     endif
     ncols=0
@@ -216,7 +225,6 @@ contains
        ierr=0
        ncol=ncols(1)
     endif
-    call free_iounit(io)
 
     if(verbose) write(*,*) 'process_history_columns: ncol = ', ncol
 
@@ -249,10 +257,9 @@ contains
 
   subroutine write_track(x)
     type(track), intent(in) :: x
-    integer :: io, ierr, j, ncol
+    integer :: io, j, ncol
     character(len=8) :: have_phase
-    io=alloc_iounit(ierr)
-    open(io,file=trim(x% filename),action='write',status='unknown')
+    open(newunit=io,file=trim(x% filename),action='write',status='unknown')
     if(x% has_phase)then
        have_phase = 'YES'
        ncol = x% ncol + 1
@@ -288,16 +295,14 @@ contains
        enddo
     endif
     close(io)
-    call free_iounit(io)
   end subroutine write_track
 
   subroutine write_eep_bin(x)
     type(track), intent(in) :: x
     character(len=file_path) :: binfile
-    integer :: io, ierr
-    io=alloc_iounit(ierr)
+    integer :: io
     binfile=trim(x% filename) // '.bin'
-    open(io,file=trim(binfile),action='write',form='unformatted',status='unknown')
+    open(newunit=io,file=trim(binfile),action='write',form='unformatted',status='unknown')
     write(io) x% version_string, x% cmd_suffix
     write(io) x% MESA_revision_number, x% ncol, x% ntrack, x% neep, x% star_type
     write(io) x% initial_mass, x% initial_Y, x% initial_Z, x% Fe_div_H, x% alpha_div_Fe, x% v_div_vcrit
@@ -307,7 +312,6 @@ contains
     write(io) x% tr
     if(x% has_phase) write(io) x% phase
     close(io)
-    call free_iounit(io)
   end subroutine write_eep_bin
 
 
@@ -346,8 +350,7 @@ contains
 
     ! if the binfile does not exist, then we read the history files and write new
     ! .bins.  slow.
-    io=alloc_iounit(ierr)
-    open(unit=io,file=trim(trim(history_dir) // '/' // t% filename),status='old',action='read')
+    open(newunit=io,file=trim(trim(history_dir) // '/' // t% filename),status='old',action='read')
     !read first 3 lines of header
     !currently don't use all of this info, but could...
     imass=0
@@ -411,8 +414,6 @@ contains
     enddo
     close(io)
 
-    call free_iounit(io)
-
     !compute distance along track
     allocate(t% dist(t% ntrack))
     call distance_along_track(t)
@@ -429,11 +430,10 @@ contains
 
   subroutine read_history_bin(t)
     type(track), intent(inout) :: t
-    integer :: io, ierr
+    integer :: io
     character(len=file_path) :: binfile
-    io=alloc_iounit(ierr)
     binfile = trim(history_dir) // '/' // trim(t% filename) // '.bin'
-    open(io,file=trim(binfile),form='unformatted',status='old',action='read')
+    open(newunit=io,file=trim(binfile),form='unformatted',status='old',action='read')
     read(io) t% filename
     read(io) t% ncol, t% ntrack, t% neep, t% MESA_revision_number, t% star_type
     read(io) t% initial_mass
@@ -445,8 +445,6 @@ contains
     close(io)
     t% eep_tr = 0d0
     t% eep_dist = 0d0
-    call free_iounit(io)
-
   end subroutine read_history_bin
 
 
@@ -491,15 +489,13 @@ contains
        return
     endif
 
-    io=alloc_iounit(ierr)
-    open(io,file=trim(eepfile),status='old',action='read',iostat=ierr)
+    open(newunit=io,file=trim(eepfile),status='old',action='read',iostat=ierr)
 
     !check if the file was opened successfully; if not, then fail
     if(ierr/=0) then
        x% ignore=.true.
        write(*,*) '  PROBLEM OPENING EEP FILE: ', trim(eepfile)
        close(io)
-       call free_iounit(io)
        return
     endif
 
@@ -540,7 +536,6 @@ contains
        enddo
     endif
     close(io)
-    call free_iounit(io)
 
     if(make_bin_eeps)then
        x% filename = trim(eepfile)
@@ -551,12 +546,11 @@ contains
   subroutine read_eep_bin(eepfile,x)
     character(len=file_path) :: eepfile
     type(track), intent(inout) :: x
-    integer :: io, ierr
+    integer :: io
     character(len=file_path) :: binfile
-    io=alloc_iounit(ierr)
     x% filename = trim(eepfile)
     binfile=trim(x% filename) // '.bin'
-    open(io,file=trim(binfile),action='read',form='unformatted',status='old')
+    open(newunit=io,file=trim(binfile),action='read',form='unformatted',status='old')
     read(io) x% version_string, x% cmd_suffix
     read(io) x% MESA_revision_number, x% ncol, x% ntrack, x% neep, x% star_type
     read(io) x% initial_mass, x% initial_Y, x% initial_Z, x% Fe_div_H, x% alpha_div_Fe, x% v_div_vcrit
@@ -572,17 +566,15 @@ contains
        read(io) x% phase
     endif
     close(io)
-    call free_iounit(io)
   end subroutine read_eep_bin
 
   !writes a series of n isochrones to filename
   subroutine write_isochrones_to_file(set)
     type(isochrone_set), intent(in) :: set
     integer :: i, ierr, io, n
-    io=alloc_iounit(ierr)
     n=set% number_of_isochrones
     write(0,*) ' isochrone output file = ', trim(set% filename)
-    open(io,file=trim(set% filename),action='write',status='unknown',iostat=ierr)
+    open(newunit=io,file=trim(set% filename),action='write',status='unknown',iostat=ierr)
     write(io,'(a25,a8)') '# MIST version number  = ', set% version_string
     write(io,'(a25,i8)') '# MESA revision number = ', set% MESA_revision_number
     write(io,'(a88)') '# --------------------------------------------------------------------------------------'
@@ -598,7 +590,6 @@ contains
        if(i<n) write(io,*)
     enddo
     close(io)
-    call free_iounit(io)
   end subroutine write_isochrones_to_file
 
   !writes one age isochrone to the open io unit
@@ -616,19 +607,16 @@ contains
     integer, intent(in) :: io
     type(isochrone), intent(in) :: iso
     integer :: i, my_ncol
-    real(dp) :: isochrone_age
     my_ncol = iso% ncol + 2 !add two for eep and age
     write(io,'(a25,2i5)') '# number of EEPs, cols = ', iso% neep, my_ncol
     write(io,'(a1,i4,299i32)') '#    ', (i,i=1,my_ncol)
     if(iso% age_scale==age_scale_log10)then
-       isochrone_age = iso% age
        write(io,'(a5,299a32)') '# EEP', 'log10_isochrone_age_yr', adjustr(iso% cols(:)% name)
     elseif(iso% age_scale==age_scale_linear)then
-       isochrone_age = pow10(iso% age)
        write(io,'(a5,299a32)') '# EEP', 'isochrone_age_yr', adjustr(iso% cols(:)% name)
     endif
     do i=1,iso% neep
-       write(io,'(i5,299(1pes32.16e3))') iso% eep(i), isochrone_age, iso% data(:,i)
+       write(io,'(i5,299(1pes32.16e3))') iso% eep(i), iso% age, iso% data(:,i)
     enddo
   end subroutine write_isochrone_to_file_orig
 
@@ -636,29 +624,25 @@ contains
     integer, intent(in) :: io
     type(isochrone), intent(in) :: iso
     integer :: i, my_ncol
-    real(dp) :: isochrone_age
     my_ncol = iso% ncol + 3 !add three for eep, phase, and age
     write(io,'(a25,2i5)') '# number of EEPs, cols = ', iso% neep, my_ncol
     write(io,'(a1,i4,299i32)') '#    ', (i,i=1,my_ncol)
     if(iso% age_scale==age_scale_log10)then
-       isochrone_age = iso% age
        write(io,'(a5,299a32)') '# EEP', 'log10_isochrone_age_yr', adjustr(iso% cols(:)% name), 'phase'
     elseif(iso% age_scale==age_scale_linear)then
-       isochrone_age = pow10(iso% age)
        write(io,'(a5,299a32)') '# EEP', 'isochrone_age_yr', adjustr(iso% cols(:)% name), 'phase'
     endif
     do i=1,iso% neep
-       write(io,'(i5,299(1pes32.16e3))') iso% eep(i), isochrone_age, iso% data(:,i), iso% phase(i)
+       write(io,'(i5,299(1pes32.16e3))') iso% eep(i), iso% age, iso% data(:,i), iso% phase(i)
     enddo
   end subroutine write_isochrone_to_file_phase
 
   subroutine read_isochrone_bin(s)
     type(isochrone_set), intent(inout) :: s
-    integer :: i, ierr, io
+    integer :: i, io
     character(len=file_path) :: binfile
-    io=alloc_iounit(ierr)
     binfile=trim(s% filename) // '.bin'
-    open(io,file=trim(binfile),form='unformatted',action='read',status='old')
+    open(newunit=io,file=trim(binfile),form='unformatted',action='read',status='old')
     read(io) s% cmd_suffix
     read(io) s% MESA_revision_number, s% number_of_isochrones
     read(io) s% version_string
@@ -690,16 +674,14 @@ contains
        read(io) s% iso(i)% data
     enddo
     close(io)
-    call free_iounit(io)
   end subroutine read_isochrone_bin
 
   subroutine write_history_bin(t)
     type(track), intent(in) :: t
-    integer :: io, ierr
+    integer :: io
     character(len=file_path) :: binfile
-    io=alloc_iounit(ierr)
     binfile = trim(history_dir) // '/' // trim(t% filename) // '.bin'
-    open(io,file=trim(binfile),form='unformatted',action='write',status='unknown')
+    open(newunit=io,file=trim(binfile),form='unformatted',action='write',status='unknown')
     write(io) t% filename
     write(io) t% ncol, t% ntrack, t% neep, t% MESA_revision_number, t% star_type
     write(io) t% initial_mass
@@ -707,16 +689,14 @@ contains
     write(io) t% tr
     write(io) t% dist
     close(io)
-    call free_iounit(io)
   end subroutine write_history_bin
 
   subroutine write_isochrone_bin(s)
     type(isochrone_set), intent(in) :: s
-    integer :: i, ierr, io
+    integer :: i, io
     character(len=file_path) :: binfile
-    io=alloc_iounit(ierr)
     binfile=trim(s% filename) // '.bin'
-    open(io,file=trim(binfile),form='unformatted',action='write',status='unknown')
+    open(newunit=io,file=trim(binfile),form='unformatted',action='write',status='unknown')
     write(io) s% cmd_suffix
     write(io) s% MESA_revision_number, s% number_of_isochrones
     write(io) s% version_string
@@ -741,7 +721,6 @@ contains
        write(io) s% iso(i)% data
     enddo
     close(io)
-    call free_iounit(io)
     write(0,*) 'wrote isochrone bin file: ', trim(binfile)
   end subroutine write_isochrone_bin
 
@@ -752,7 +731,6 @@ contains
     character(len=file_path) :: binfile
     logical :: binfile_exists
     ierr=0
-    io=alloc_iounit(ierr)
 
     binfile=trim(s% filename) // '.bin'
     inquire(file=binfile,exist=binfile_exists)
@@ -761,7 +739,7 @@ contains
        return
     endif
 
-    open(io,file=trim(s% filename), action='read', status='old')
+    open(newunit=io,file=trim(s% filename), action='read', status='old')
     read(io,'(25x,a8)') s% version_string
     read(io,'(25x,i8)') s% MESA_revision_number
     read(io,*) !comment line
@@ -784,7 +762,6 @@ contains
        if(i<n) read(io,*)
     enddo
     close(io)
-    call free_iounit(io)
     if(make_bin_isos) call write_isochrone_bin(s)
   end subroutine read_isochrone_file
 
@@ -899,8 +876,7 @@ contains
   subroutine set_eep_interval(ierr)
     integer, intent(out) :: ierr
     integer :: i, j, io, my_eep_interval, my_num_eep
-    io=alloc_iounit(ierr)
-    open(unit=io,file='input.eep',status='old',action='read',iostat=ierr)
+    open(newunit=io,file='input.eep',status='old',action='read',iostat=ierr)
     if(ierr/=0) then
        call set_default_eep_interval
        return

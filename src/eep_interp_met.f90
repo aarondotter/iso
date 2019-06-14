@@ -82,8 +82,7 @@ contains
 
   subroutine read_nml
     integer :: io
-    io=alloc_iounit(ierr)
-    open(unit=io,file='input.nml', action='read', status='old', iostat=ierr)
+    open(newunit=io,file='input.nml', action='read', status='old', iostat=ierr)
     if(ierr/=0) then
        write(0,*) ' make_track: problem reading input.nml '
        return
@@ -98,8 +97,7 @@ contains
     integer :: io, i, j, k
     character(len=file_path) :: data_line
 
-    io=alloc_iounit(ierr)
-    open(unit=io,file=trim(input_file),status='old',action='read',iostat=ierr)
+    open(newunit=io,file=trim(input_file),status='old',action='read',iostat=ierr)
     if(ierr/=0) then
        write(0,*) ' make_track: problem reading ', trim(input_file)
        return
@@ -121,7 +119,6 @@ contains
        read(data_line(j+1:k),'(a)') t(i)% filename
     enddo
     close(io)
-    call free_iounit(io)
 
     lo=0; hi=0
     do_Z_interp=.false.
@@ -172,8 +169,7 @@ contains
     integer, intent(in) :: q
     integer, intent(out) :: num
     integer :: i, io
-    io=alloc_iounit(ierr)
-    open(unit=io,file=trim(input_grid(q)),status='old',action='read',iostat=ierr)
+    open(newunit=io,file=trim(input_grid(q)),status='old',action='read',iostat=ierr)
     if(ierr/=0) then
        write(0,*) ' make_track: problem reading ', trim(input_grid(q))
        return
@@ -199,8 +195,6 @@ contains
     enddo
     close(io)
 
-    call free_iounit(io)
-
   end subroutine read_eep_file
 
 
@@ -208,8 +202,7 @@ contains
     integer :: i, io
     real(dp) :: junk
     ierr=0
-    io=alloc_iounit(ierr)
-    open(io,file=trim(input_grids_file),action='read',status='old',iostat=ierr)
+    open(newunit=io,file=trim(input_grids_file),action='read',status='old',iostat=ierr)
     read(io,*) num_grids
     allocate(input_grid(num_grids),Fe_div_H(num_grids))
     if(debug) write(0,*) ' number of grids = ', num_grids
@@ -228,8 +221,6 @@ contains
        close(io)
        if(debug) write(0,*) trim(input_grid(i)), Fe_div_H(i)
     enddo
-
-    call free_iounit(io)
 
     if(debug) write(0,*) ' ierr = ', ierr
   end subroutine read_grid_lists

@@ -1,7 +1,6 @@
 program make_isochrone
 
   !MESA modules
-  use utils_lib
   use interp_1d_def
   use interp_1d_lib
 
@@ -696,15 +695,15 @@ contains
 
     call interp_value(x_array,count,f1,x,y,ierr)      
 
-    if(is_bad_num(x) .or. is_bad_num(y))then
-       write(0,*) ' eep = ', eep
-       write(0,*) ' x = ', x
-       write(0,*) ' y = ', y
-       do k=1,n
-          write(0,*) x_array(k), f(1,k), skip(k)
-       enddo
-       ierr=-1
-    endif
+!!$    if(is_bad(x) .or. is_bad(y))then
+!!$       write(0,*) ' eep = ', eep
+!!$       write(0,*) ' x = ', x
+!!$       write(0,*) ' y = ', y
+!!$       do k=1,n
+!!$          write(0,*) x_array(k), f(1,k), skip(k)
+!!$       enddo
+!!$       ierr=-1
+!!$    endif
     iso_interpolate = y
 
   end function iso_interpolate
@@ -719,8 +718,8 @@ contains
     real(dp) :: age_low, age_high, age_step
     ierr=0
     ntrk=0
-    io=alloc_iounit(ierr)
-    open(io, file='input.nml', action='read', status='old', iostat=ierr)
+
+    open(newunit=io, file='input.nml', action='read', status='old', iostat=ierr)
     read(io, nml=iso_controls, iostat=ierr)
     close(io)
 
@@ -732,7 +731,7 @@ contains
     call get_command_argument(1,input_file)
 
     !read info about into tracks
-    open(unit=io,file=trim(input_file),status='old',action='read',iostat=ierr)
+    open(newunit=io,file=trim(input_file),status='old',action='read',iostat=ierr)
     if(ierr/=0)then
        write(0,*) ' make_iso: problem reading ', trim(input_file)
        return
@@ -804,7 +803,6 @@ contains
        use_double_eep=.false.
     endif
     close(io)
-    call free_iounit(io)
 
     ! this section reads the column names to use from history_columns.list
     ! and locates those that need to be identified for isochrone construction
@@ -826,9 +824,7 @@ contains
     integer :: i, n
     monotonic = .false.
     n = size(array)
-    if(n<=2)then
-       write(*,*) ' Warning, monotonic: array of length <= 2'
-    else
+    if(n>2)then 
        ascending = array(1) <= array(n)
        if(ascending)then
           do i=1,n-1

@@ -72,9 +72,8 @@ contains
     integer, intent(out) :: ierr
 
     ierr=0
-    io=alloc_iounit(ierr)
 
-    open(unit=io,file='input.nml', action='read', status='old', iostat=ierr)
+    open(newunit=io,file='input.nml', action='read', status='old', iostat=ierr)
     if(ierr/=0) then
        write(0,*) ' make_eeps: problem reading input.nml '
        return
@@ -86,7 +85,7 @@ contains
 
     call get_command_argument(1,input_file)
 
-    open(unit=io,file=trim(input_file),status='old',action='read',iostat=ierr)
+    open(newunit=io,file=trim(input_file),status='old',action='read',iostat=ierr)
     if(ierr/=0) then
        write(0,*) ' make_eeps: problem reading ', trim(input_file)
        return
@@ -118,7 +117,7 @@ contains
     endif
     !read history file format specs
 
-    open(unit=io,file='input.format',status='old',action='read',iostat=ierr)
+    open(newunit=io,file='input.format',status='old',action='read',iostat=ierr)
     if(ierr/=0)then
        write(0,*) ' make_eeps: problem reading input.format'
        return
@@ -128,7 +127,6 @@ contains
     read(io,*) main
     read(io,*) xtra
     close(io)
-    call free_iounit(io)
     !set up columns to be used
     call setup_columns(history_columns_list,ierr)
   end subroutine read_input

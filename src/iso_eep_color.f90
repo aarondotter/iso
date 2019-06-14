@@ -15,9 +15,6 @@ module iso_eep_color
   real(sp), parameter :: Z_sol = 0.0134, Xsol = 0.7381
   real(sp), parameter :: Z_div_X_sol = 0.0181
   real(sp), parameter :: log_Z_sol = log10(Z_sol)
-  real(sp), parameter :: Rsun=6.957e10, Lsun=3.828e33 !cgs, IAU 2015 Resolution B3
-  real(sp), parameter :: const = 7.1256348e-4 !4 pi sigma (Stefan-Boltzmann constant, cgs)
-  real(sp), parameter :: pi = 3.1415926535
   real(sp) :: BC_Fe_div_H
   type(BC_table), allocatable :: b(:), c(:)
   logical :: BC_do_Cstars = .false., do_fixed_Z = .false.
@@ -452,9 +449,7 @@ contains
     ierr=0; iT=0; ig=0; iL=0; iA=0
     if(t% cmd_suffix/='') filename = trim(t% filename) // '.' // trim(t% cmd_suffix)
     write(*,*) ' writing ', trim(filename)
-    io = alloc_iounit(ierr)
-    if(ierr/=0) return
-    open(io,file=trim(filename),action='write',status='unknown',iostat=ierr)
+    open(newunit=io,file=trim(filename),action='write',status='unknown',iostat=ierr)
     if(ierr/=0) return
     if(t% has_phase)then
        have_phase = 'YES'
@@ -487,9 +482,9 @@ contains
     allocate(Zsurf(size(log_Z_div_Zsol)))
     Zsurf = pow10_sg(log_Z_div_Zsol + log_Z_sol)
 
-    write(io,'(a25,a8)') '# MIST version number  = ', t% version_string
-    write(io,'(a25,i8)') '# MESA revision number = ', t% MESA_revision_number
-    write(io,'(a25,a)') '# photometric system   = ', b(1)% photometric_system_string
+    write(io,'(a25,a8)') '# MIST version         : ', t% version_string
+    write(io,'(a25,i8)') '# MESA revision number : ', t% MESA_revision_number
+    write(io,'(a25,a)') '# photometric system    : ', b(1)% photometric_system_string
     write(io,'(a88)') '# --------------------------------------------------------------------------------------'
     write(io,'(a88)') '#  Yinit        Zinit   [Fe/H]   [a/Fe]  v/vcrit                                        '
     write(io,'(a2,f6.4,1p1e13.5,0p3f9.2)') '# ', t% initial_Y, t% initial_Z, t% Fe_div_H, t% alpha_div_Fe, t% v_div_vcrit
@@ -522,7 +517,6 @@ contains
        endif
     enddo
     close(io)
-    call free_iounit(io)
   end subroutine write_track_cmd_to_file
 
 
@@ -534,9 +528,7 @@ contains
     if(set% cmd_suffix/='') output = trim(set% filename) // '.' // trim(set% cmd_suffix)
     n=size(set% iso)
     write(0,*) ' cmd output file = ', trim(output)
-    io = alloc_iounit(ierr)
-    if(ierr/=0) return
-    open(io,file=trim(output),action='write',status='unknown',iostat=ierr)
+    open(newunit=io,file=trim(output),action='write',status='unknown',iostat=ierr)
     if(ierr/=0) return
 
     write(io,'(a25,a8)')  '# MIST version number  = ', set% version_string
@@ -558,7 +550,6 @@ contains
        if(i<n) write(io,*)
     enddo
     close(io)
-    call free_iounit(io)
   end subroutine write_cmds_to_file
 
 

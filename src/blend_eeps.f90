@@ -42,8 +42,7 @@ contains
 
   subroutine read_input
     call get_command_argument(1,input_file)
-    io=alloc_iounit(ierr)
-    open(unit=io,file=trim(input_file),status='old')
+    open(newunit=io,file=trim(input_file),status='old')
     read(io,*) !skip first line
     read(io,'(a)') eep_dir
     read(io,*) !skip comment line
@@ -66,7 +65,6 @@ contains
     read(io,*) !skip comment line
     read(io,'(a)') output
     close(io)
-    call free_iounit(io)
     write(*,*) ' blending ', num, ' tracks:'
     write(*,'(99a32)') eep_files
     write(*,*) weights, ' => ', sum(weights)

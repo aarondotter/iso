@@ -12,11 +12,11 @@ LOAD_MESA=-L$(MESA_LIB_DIR) $(LOAD_MESA_NUMERICS)
 SRC_DIR=$(ISO_DIR)/src
 
 FC=gfortran 
-DEBUG=-g -fbacktrace -fcheck=all 
-WARN=-Wall -Wextra -pedantic
+DEBUG= #-g -fbacktrace -fcheck=all 
+WARN= #-Wall -Wextra -pedantic
 OMP=-fopenmp
 OPT=-O3
-FFLAGS= -ffree-form -fimplicit-none $(OPT) $(WARN) $(DEBUG)
+FFLAGS= -fimplicit-none $(OPT) $(WARN) $(DEBUG)
 
 CMD=make_cmd
 ISO=make_iso
@@ -32,7 +32,7 @@ EEP_CMD=eep_cmd
 basic: $(EEP) $(ISO) 
 all: $(EEP) $(ISO) $(BLEND) $(TRK) $(INTMET) $(INTAGE) $(CMD) $(CHA) $(INTEEP) $(EEP_CMD)
 
-$(CMD): make_cmd.o iso_eep_color.o iso_eep_support.o BC_tables.o
+$(CMD): make_cmd.o spotify.o iso_eep_color.o iso_eep_support.o BC_tables.o
 	$(FC) $(OMP) -o $(ISO_DIR)/$(CMD) $^ $(LOAD_MESA)
 
 $(INTEEP): eep_interp_met.o iso_eep_support.o iso_eep_color.o BC_tables.o interp_support.o
@@ -76,7 +76,7 @@ iso_interp_age.o: $(SRC_DIR)/iso_interp_age.f90 iso_eep_support.o interp_support
 
 make_track.o: $(SRC_DIR)/make_track.f90 iso_eep_support.o iso_eep_color.o interp_support.o
 
-make_cmd.o: $(SRC_DIR)/make_cmd.f90 iso_eep_support.o iso_eep_color.o BC_tables.o
+make_cmd.o: $(SRC_DIR)/make_cmd.f90 spotify.o iso_eep_support.o iso_eep_color.o BC_tables.o
 
 make_iso.o: $(SRC_DIR)/make_iso.f90 iso_eep_support.o
 
@@ -87,6 +87,8 @@ blend_eeps.o: $(SRC_DIR)/blend_eeps.f90 iso_eep_support.o
 eep.o: $(SRC_DIR)/eep.f90 iso_eep_support.o
 
 phases.o: $(SRC_DIR)/phases.f90 iso_eep_support.o
+
+spotify.o: $(SRC_DIR)/spotify.f90 iso_eep_support.o
 
 iso_eep_support.o: $(SRC_DIR)/iso_eep_support.f90
 

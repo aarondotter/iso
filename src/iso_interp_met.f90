@@ -1,8 +1,5 @@
 program iso_interp_met
 
-  !MESA modules
-  use utils_lib
-
   !local modules
   use iso_eep_support
   use interp_support
@@ -80,15 +77,13 @@ contains
     read(arg,*) new_Z_div_H
     call get_command_argument(3,t% filename)
 
-    io=alloc_iounit(ierr)
-    open(io,file=trim(iso_list),action='read',status='old')
+    open(newunit=io,file=trim(iso_list),action='read',status='old')
     read(io,*) n
     allocate(s(n))
     do i=1,n
        read(io,'(a)') s(i)% filename
     enddo
     close(io)
-    call free_iounit(io)
   end subroutine read_interp_input
 
 
