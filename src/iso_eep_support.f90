@@ -738,8 +738,8 @@ contains
        call read_isochrone_bin(s)
        return
     endif
-
-    open(newunit=io,file=trim(s% filename), action='read', status='old')
+    io=99
+    open(unit=io,file=trim(s% filename), action='read', status='old')
     read(io,'(25x,a8)') s% version_string
     read(io,'(25x,i8)') s% MESA_revision_number
     read(io,*) !comment line
@@ -965,10 +965,12 @@ contains
        return
     endif
 
-    !only reach center_gamma_limit if the star evolves to a WD
-    if( t% tr(i_gamma,n) > center_gamma_limit) then
-       t% star_type = star_low_mass
-       return
+    if(i_gamma > 0)then
+       !only reach center_gamma_limit if the star evolves to a WD
+       if( t% tr(i_gamma,n) > center_gamma_limit) then
+          t% star_type = star_low_mass
+          return
+       endif
     endif
 
     !simple test for high-mass stars is that central C is depleted
@@ -977,12 +979,14 @@ contains
        return
     endif
 
-    !alternative test for high-mass stars is that they reach a
-    !central temperature threshhold
-    if(t% tr(i_Tc,n) > log_center_T_limit)then
-       t% star_type = star_high_mass
-    else
-       t% star_type = star_low_mass
+    if(i_Tc > 0) then
+       !alternative test for high-mass stars is that they reach a
+       !central temperature threshhold
+       if(t% tr(i_Tc,n) > log_center_T_limit)then
+          t% star_type = star_high_mass
+       else
+          t% star_type = star_low_mass
+       endif
     endif
 
     !last gasp test for high-mass stars is the initial mass...
