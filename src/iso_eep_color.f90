@@ -524,11 +524,11 @@ contains
     type(isochrone_set), intent(inout) :: set
     character(len=file_path) :: output
     integer :: i, io, n, ierr
-
+    io=98
     if(set% cmd_suffix/='') output = trim(set% filename) // '.' // trim(set% cmd_suffix)
-    n=size(set% iso)
+    n=set% number_of_isochrones
     write(0,*) ' cmd output file = ', trim(output)
-    open(newunit=io,file=trim(output),action='write',status='unknown',iostat=ierr)
+    open(unit=io,file=trim(output),action='write',status='unknown',iostat=ierr)
     if(ierr/=0) return
 
     write(io,'(a25,a8)')  '# MIST version number  = ', set% version_string
