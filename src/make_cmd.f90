@@ -9,14 +9,14 @@ program make_cmd
   integer :: ierr
   type(isochrone_set) :: s
   logical, parameter :: do_timing = .false.
-  logical :: do_Cstars = .false., do_spots=.false.
+  logical :: do_Cstars = .false.
   character(len=file_path) :: BC_table_list = 'bc_table.list', cmd_suffix = ''
   character(len=file_path) :: Cstar_table_list = 'cstar_table.list'
   logical :: set_fixed_Fe_div_H = .false.
   real(sp) :: extinction_Av, extinction_Rv, Fe_div_H
   integer :: count_rate, time(4)
-
-
+  ierr=0
+  
   if(do_timing) call system_clock(time(1),count_rate)
 
   call cmd_init(ierr)
@@ -25,8 +25,8 @@ program make_cmd
 
   if(do_timing) call system_clock(time(2),count_rate)
 
-  if(ierr==0.and.do_spots)then
-     call add_spots(s,spot_beta,spot_gamma)
+  if(ierr==0.and.spot_scaling_factor > 0.0d0)then
+     call add_spots(s)
   endif
 
   if(do_timing) call system_clock(time(3),count_rate)
@@ -52,15 +52,12 @@ contains
   subroutine cmd_init(ierr)
     integer, intent(out) :: ierr
     integer :: i, j, n_arg
-    character(len=32) :: phot_string, arg, option, result
+    character(len=file_path) :: phot_string, arg, option, result
     
     Fe_div_H = 0.0
     extinction_Av = 0.0
     extinction_Rv = 0.0
-    spot_beta = 0.0d0
-    spot_gamma = 0.0d0
-    Teff_spot_full_on = 5.0d3
-    Teff_spot_full_off= 7.0d3
+    spot_scaling_factor = 0.0d0
     
     if(command_argument_count()<1)then
        write(*,*) ' make_cmd:   '
@@ -69,8 +66,7 @@ contains
        write(*,*) '     isochrone_file = name of isochrone file to transform  '
        write(*,*) '     OPTIONAL -                                            '
        write(*,*) '     [Av] extinction in V band                             '
-       write(*,*) '     [beta] governs fraction of surface covered by spots   '
-       write(*,*) '     [gamma] governs ratio of T_spot to T_effective        '
+       write(*,*) '     [spot] overall spot coverage scaling factor           '
        ierr=-1
        return
     endif
@@ -79,6 +75,10 @@ contains
     call get_command_argument(2,s% filename)
 
     if(cmd_suffix == '') cmd_suffix=phot_string
+
+    do i=1, command_argument_count()
+       call get_command_argument(i,arg)
+    enddo
     
     !process command arguments
     n_arg = command_argument_count()
@@ -90,18 +90,16 @@ contains
           result=arg(j+1:)
           if(trim(option)=='Av')then
              read(result,*) extinction_Av
-          elseif(trim(option)=='beta')then
-             read(result,*) spot_beta
-          elseif(trim(option)=='gamma')then
-             read(result,*) spot_gamma 
+          elseif(trim(option)=='spot')then
+             read(result,*) spot_scaling_factor
           endif
        enddo
     endif
-
-    do_spots = (spot_beta > 0.0d0).and.(spot_gamma < 1.0d0)
     
     if(ierr==0) call read_isochrone_file(s,ierr)
 
+    if(ierr/=0) write(*,*) 'read_isochrone_file: ierr = ', ierr
+    
     s% Av = extinction_Av
     s% Rv = extinction_Rv
     do i=1,s% number_of_isochrones
