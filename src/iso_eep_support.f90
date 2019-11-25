@@ -80,6 +80,7 @@ module iso_eep_support
      character(len=8) :: version_string
      type(column), allocatable :: cols(:)
      logical :: has_phase = .false., ignore=.false.
+     logical :: merger = .false.
      integer :: ncol, ntrack, neep, MESA_revision_number
      integer :: star_type = unknown
      integer :: nfil !number of filters
@@ -149,6 +150,28 @@ contains
     real(dp), parameter :: ln10=log(1.0d1)
     y=exp(ln10*x)
   end function pow10
+
+  elemental function powi(x,n) result(y)
+    real(dp), intent(in) :: x
+    integer, intent(in) :: n
+    real(dp) :: y 
+    integer :: i
+    y = 1.0d0
+    do i=1,n
+       y = y * x
+    enddo
+  end function powi
+
+  elemental function powi_sg(x,n) result(y)
+    real(sp), intent(in) :: x
+    integer, intent(in) :: n
+    real(sp) :: y
+    integer :: i
+    y = 1.0d0
+    do i=1,n
+       y = y * x
+    enddo
+  end function powi_sg
 
   subroutine process_history_columns(history_columns_list,ierr)
     character(len=file_path), intent(in) :: history_columns_list
