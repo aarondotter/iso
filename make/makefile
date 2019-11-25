@@ -12,8 +12,8 @@ LOAD_MESA=-L$(MESA_LIB_DIR) $(LOAD_MESA_NUMERICS)
 SRC_DIR=$(ISO_DIR)/src
 
 FC=gfortran 
-DEBUG= #-g -fbacktrace -fcheck=all 
-WARN= #-Wall -Wextra -pedantic
+DEBUG= -g -fbacktrace -fcheck=all 
+WARN= -Wall -Wextra -pedantic
 OMP=-fopenmp
 OPT=-O3
 FFLAGS= -fimplicit-none $(OPT) $(WARN) $(DEBUG)
@@ -28,9 +28,10 @@ INTAGE=iso_interp_age
 INTEEP=eep_interp_met
 CHA=charlies_angel
 EEP_CMD=eep_cmd
+SPOT_EEP=spotify_eep
 
 basic: $(EEP) $(ISO) 
-all: $(EEP) $(ISO) $(BLEND) $(TRK) $(INTMET) $(INTAGE) $(CMD) $(CHA) $(INTEEP) $(EEP_CMD)
+all: $(EEP) $(ISO) $(BLEND) $(TRK) $(INTMET) $(INTAGE) $(CMD) $(CHA) $(INTEEP) $(EEP_CMD) $(SPOT_EEP)
 
 $(CMD): make_cmd.o spotify.o iso_eep_color.o iso_eep_support.o BC_tables.o
 	$(FC) $(OMP) -o $(ISO_DIR)/$(CMD) $^ $(LOAD_MESA)
@@ -61,6 +62,11 @@ $(CHA): charlies_angel.o iso_eep_support.o
 
 $(EEP_CMD): eep_cmd.o iso_eep_support.o iso_eep_color.o BC_tables.o
 	$(FC) $(OMP) -o $(ISO_DIR)/$(EEP_CMD) $^ $(LOAD_MESA)
+
+$(SPOT_EEP): spotify_eep.o iso_eep_support.o
+	$(FC) $(OMP) -o $(ISO_DIR)/$(SPOT_EEP) $^ $(LOAD_MESA)
+
+spotify_eep.o: $(SRC_DIR)/spotify_eep.f90 iso_eep_support.o
 
 eep_cmd.o: $(SRC_DIR)/eep_cmd.f90 iso_eep_support.o iso_eep_color.o BC_tables.o
 
