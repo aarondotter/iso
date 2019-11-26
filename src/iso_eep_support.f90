@@ -322,7 +322,7 @@ contains
        do j=x% eep(1),x% ntrack
           write(io,'(1x,299(1pes32.16e3))') x% tr(:,j), x% phase(j)
        enddo
-    elseif(x% has_phase .and. .not.x% write_distance)then
+    elseif(x% has_phase .and. x% write_distance)then
        write(io,'(a1,299(27x,i5))') '#', (j,j=1,ncol)
        write(io,'(a1,299a32)') '#', adjustr(x% cols(:)% name), 'phase', 'distance'
        do j=x% eep(1),x% ntrack
