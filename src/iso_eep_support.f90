@@ -79,8 +79,10 @@ module iso_eep_support
      character(len=file_path) :: filename, cmd_suffix
      character(len=8) :: version_string
      type(column), allocatable :: cols(:)
-     logical :: has_phase = .false., ignore=.false.
+     logical :: has_phase = .false.
+     logical :: ignore=.false.
      logical :: merger = .false.
+     logical :: write_distance = .false.
      integer :: ncol, ntrack, neep, MESA_revision_number
      integer :: star_type = unknown
      integer :: nfil !number of filters
@@ -283,17 +285,21 @@ contains
     integer :: io, j, ncol
     character(len=8) :: have_phase
     open(newunit=io,file=trim(x% filename),action='write',status='unknown')
+    ncol = x% ncol
+    
+    if(x% write_distance) then
+       ncol = ncol + 1
+    endif
+    
     if(x% has_phase)then
        have_phase = 'YES'
-       ncol = x% ncol + 1
-    else
-       have_phase = 'NO'
-       ncol = x% ncol
+       ncol = ncol + 1
     endif
+    
     have_phase = adjustr(have_phase)
     write(io,'(a25,a8)') '# MIST version number  = ', x% version_string
     write(io,'(a25,i8)') '# MESA revision number = ', x% MESA_revision_number
-!                      123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
+    !                  123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
     write(io,'(a88)') '# --------------------------------------------------------------------------------------'
     write(io,'(a88)') '#  Yinit        Zinit   [Fe/H]   [a/Fe]  v/vcrit                                        '
     write(io,'(a2,f6.4,1p1e13.5,0p3f9.2)') '# ', x% initial_Y, x% initial_Z, x% Fe_div_H, x% alpha_div_Fe, x% v_div_vcrit
@@ -304,11 +310,23 @@ contains
     write(io,'(a8,20i8)') '# EEPs: ', x% eep
     write(io,'(a88)') '# --------------------------------------------------------------------------------------'
 
-    if(x% has_phase)then
+    if(x% write_distance .and. .not.x% has_phase)then
+       write(io,'(a1,299(27x,i5))') '#', (j,j=1,ncol)
+       write(io,'(a1,299a32)') '#', adjustr(x% cols(:)% name), 'distance'
+       do j=x% eep(1),x% ntrack
+          write(io,'(1x,299(1pes32.16e3))') x% tr(:,j), x% dist(j)
+       enddo  
+    elseif(x% has_phase .and. .not.x% write_distance)then
        write(io,'(a1,299(27x,i5))') '#', (j,j=1,ncol)
        write(io,'(a1,299a32)') '#', adjustr(x% cols(:)% name), 'phase'
        do j=x% eep(1),x% ntrack
           write(io,'(1x,299(1pes32.16e3))') x% tr(:,j), x% phase(j)
+       enddo
+    elseif(x% has_phase .and. .not.x% write_distance)then
+       write(io,'(a1,299(27x,i5))') '#', (j,j=1,ncol)
+       write(io,'(a1,299a32)') '#', adjustr(x% cols(:)% name), 'phase', 'distance'
+       do j=x% eep(1),x% ntrack
+          write(io,'(1x,299(1pes32.16e3))') x% tr(:,j), x% phase(j), x% dist(j)
        enddo
     else
        write(io,'(a1, 299(27x,i5))') '#', (j,j=1,ncol)
