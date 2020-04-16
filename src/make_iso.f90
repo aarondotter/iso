@@ -809,8 +809,8 @@ contains
     call process_history_columns(history_columns_list,ierr)
     ncol = size(cols)
 
-    col_name = 'star_age'; i_age = locate_column(col_name)
-    !col_name = 'star_mass'; i_mass= locate_column(col_name)
+    col_name = 'star_age'; i_age = locate_column(col_name,ierr)
+    !col_name = 'star_mass'; i_mass= locate_column(col_name,ierr)
 
     ! hack: replace star_age column with initial_mass in isochrones
     i_Minit = i_age

@@ -24,6 +24,7 @@ EEP=make_eep
 TRK=make_track
 BLEND=blend_eeps
 INTMET=iso_interp_met
+INTALF=iso_interp_alpha
 INTAGE=iso_interp_age
 INTEEP=eep_interp_met
 CHA=charlies_angel
@@ -31,7 +32,7 @@ EEP_CMD=eep_cmd
 SPOT_EEP=spotify_eep
 
 basic: $(EEP) $(ISO) 
-all: $(EEP) $(ISO) $(BLEND) $(TRK) $(INTMET) $(INTAGE) $(CMD) $(CHA) $(INTEEP) $(EEP_CMD) $(SPOT_EEP)
+all: $(EEP) $(ISO) $(BLEND) $(TRK) $(INTMET) $(INTAGE) $(CMD) $(CHA) $(INTEEP) $(EEP_CMD) $(INTALF)
 
 $(CMD): make_cmd.o spotify.o iso_eep_color.o iso_eep_support.o BC_tables.o
 	$(FC) $(OMP) -o $(ISO_DIR)/$(CMD) $^ $(LOAD_MESA)
@@ -41,6 +42,9 @@ $(INTEEP): eep_interp_met.o iso_eep_support.o iso_eep_color.o BC_tables.o interp
 
 $(INTMET): iso_interp_met.o iso_eep_support.o interp_support.o
 	$(FC) $(OMP) -o $(ISO_DIR)/$(INTMET) $^ $(LOAD_MESA)
+
+$(INTALF): iso_interp_alpha.o iso_eep_support.o interp_support.o
+	$(FC) $(OMP) -o $(ISO_DIR)/$(INTALF) $^ $(LOAD_MESA)
 
 $(INTAGE): iso_interp_age.o iso_eep_support.o interp_support.o
 	$(FC) $(OMP) -o $(ISO_DIR)/$(INTAGE) $^ $(LOAD_MESA)

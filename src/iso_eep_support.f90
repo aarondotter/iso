@@ -15,6 +15,8 @@ module iso_eep_support
   integer, parameter :: age_scale_log10  = 1
 
   logical, parameter ::check_initial_mass = .true.
+  logical :: skip_preMS = .false.
+  
   real(dp) :: mass_eps = 1d-6
 
   character(len=file_path) :: history_dir, eep_dir, iso_dir
@@ -255,9 +257,11 @@ contains
 
   end subroutine process_history_columns
 
-  integer function locate_column(col_name)
+  integer function locate_column(col_name,ierr)
     character(len=col_width), intent(in) :: col_name
+    integer, intent(out) :: ierr
     integer :: i
+    ierr = 0
     locate_column = -1
     do i=1,size(cols)
        if(trim(cols(i)% name)==trim(col_name)) then
@@ -267,6 +271,7 @@ contains
     enddo
     if(locate_column<0) then
        write(0,*) ' locate_column, could not find column: ', trim(col_name)
+       ierr=-1
     endif
   end function locate_column
 
@@ -294,6 +299,8 @@ contains
     if(x% has_phase)then
        have_phase = 'YES'
        ncol = ncol + 1
+    else
+       have_phase = ' NO'
     endif
     
     have_phase = adjustr(have_phase)
@@ -957,26 +964,30 @@ contains
     endif
     ncol = size(cols)
     if(verbose) write(*,*) ' number of history columns = ', ncol
-    col_name = 'star_age'; i_age = locate_column(col_name)
-    col_name = 'star_mass'; i_mass= locate_column(col_name)
-    col_name='log_LH'; i_logLH=locate_column(col_name)
-    col_name='log_LHe'; i_logLHe=locate_column(col_name)
-    col_name='log_Teff'; i_logTe=locate_column(col_name)
-    col_name='log_L'; i_logL=locate_column(col_name)
-    col_name='log_g'; i_logg=locate_column(col_name)
-    col_name='log_center_T'; i_Tc=locate_column(col_name)
-    col_name='log_center_Rho'; i_Rhoc=locate_column(col_name)
-    col_name='center_h1'; i_Xc=locate_column(col_name)
-    col_name='center_he4'; i_Yc=locate_column(col_name)
-    col_name='center_c12'; i_Cc=locate_column(col_name)
-    col_name='center_gamma'; i_gamma=locate_column(col_name)
-    col_name='surface_h1'; i_surfH=locate_column(col_name)
+    col_name = 'star_age'; i_age = locate_column(col_name,ierr)
+    col_name = 'star_mass'; i_mass= locate_column(col_name,ierr)
+    if(ierr/=0)then
+       !could be binary? try star_1_mass
+       col_name = 'star_1_mass'; i_mass = locate_column(col_name,ierr)
+    endif
+    col_name='log_LH'; i_logLH=locate_column(col_name,ierr)
+    col_name='log_LHe'; i_logLHe=locate_column(col_name,ierr)
+    col_name='log_Teff'; i_logTe=locate_column(col_name,ierr)
+    col_name='log_L'; i_logL=locate_column(col_name,ierr)
+    col_name='log_g'; i_logg=locate_column(col_name,ierr)
+    col_name='log_center_T'; i_Tc=locate_column(col_name,ierr)
+    col_name='log_center_Rho'; i_Rhoc=locate_column(col_name,ierr)
+    col_name='center_h1'; i_Xc=locate_column(col_name,ierr)
+    col_name='center_he4'; i_Yc=locate_column(col_name,ierr)
+    col_name='center_c12'; i_Cc=locate_column(col_name,ierr)
+    col_name='center_gamma'; i_gamma=locate_column(col_name,ierr)
+    col_name='surface_h1'; i_surfH=locate_column(col_name,ierr)
     if(old_core_mass_names)then
-       col_name='h1_boundary_mass'; i_he_core = locate_column(col_name)
-       col_name='he4_boundary_mass'; i_co_core = locate_column(col_name)
+       col_name='h1_boundary_mass'; i_he_core = locate_column(col_name,ierr)
+       col_name='he4_boundary_mass'; i_co_core = locate_column(col_name,ierr)
     else
-       col_name='he_core_mass'; i_he_core = locate_column(col_name)
-       col_name='c_core_mass'; i_co_core = locate_column(col_name)
+       col_name='he_core_mass'; i_he_core = locate_column(col_name,ierr)
+       col_name='c_core_mass'; i_co_core = locate_column(col_name,ierr)
     endif
     if(verbose)then
        write(*,*) ' star_age column = ', i_age

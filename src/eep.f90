@@ -133,9 +133,10 @@ contains
     integer :: ieep, inc
     t% EEP = 0 !initialize
     ieep=1
-    inc=2
-    t% EEP(ieep) = PreMS_Tc(t,5.0d0,1); if(check(t,ieep)) return; ieep=ieep+1
-    t% EEP(ieep) = ZAMS(t,10); if(check(t,ieep)) return; ieep=ieep+1
+    inc=1
+    !t% EEP(ieep) = PreMS_Tc(t,5.0d0,1); if(check(t,ieep)) return; ieep=ieep+1
+    t% EEP(ieep) = PreMS_fudge(1); if(check(t,ieep)) return; ieep=ieep+1
+    t% EEP(ieep) = ZAMS(t,t% EEP(ieep-1)+inc); if(check(t,ieep)) return; ieep=ieep+1
     t% EEP(ieep) = TAMS(t,3.5d-1,t% EEP(ieep-1)+inc); if(check(t,ieep)) return; ieep=ieep+1
     t% EEP(ieep) = TAMS(t,1d-12,t% EEP(ieep-1)+inc); if(check(t,ieep)) return; ieep=ieep+1
     t% EEP(ieep) = RGBTip(t,t% EEP(ieep-1)+inc); if(check(t,ieep)) return; ieep=ieep+1
@@ -172,9 +173,9 @@ contains
 
     ! check for high mass stars, which may
     ! have hotter Tc than the input logTc
-    ! in that case try the first value + 0.05
+    ! in that case try the first value + 0.01
     if(t% tr(i_Tc,1) > logTc) then
-       my_logTc = t% tr(i_Tc,1) + 0.05d0
+       my_logTc = t% tr(i_Tc,1) + 0.01d0
     else
        my_logTc = logTc
     endif
@@ -215,6 +216,11 @@ contains
     enddo
   end function PreMS_age
 
+  integer function preMS_fudge(guess)
+    integer, intent(in) :: guess
+    preMS_fudge = guess
+  end function preMS_fudge
+  
   integer function ZAMS(t,guess)
     type(track), intent(in) :: t
     real(dp) :: Xmax, Xmin, Xc, LH, Lmin !g_max, 
@@ -222,7 +228,8 @@ contains
     integer, intent(in) :: guess
     integer :: i, my_guess, ZAMS1, ZAMS2, ZAMS3
 
-    ZAMS = 0
+    ZAMS = 0; ZAMS1 = 0; ZAMS2 = 0; ZAMS3 = 0
+
     Xmax = t% tr(i_Xc,1)
     Xmin = Xmax - 1.0d-3
     if(guess < 1 .or. guess > t% ntrack) then 
@@ -241,16 +248,16 @@ contains
 
     ZAMS1 = i
 
-    !test of L_H/L_tot > some fraction
-    LH = pow10(t% tr(i_logLH,i))
-    Lmin = Lfac * pow10(t% tr(i_logL,i))
-    do while(LH > Lmin)
-       i = i-1
-       LH = pow10(t% tr(i_logLH,i))
-       Lmin = Lfac * pow10(t% tr(i_logL,i))
-    enddo
-
-    ZAMS2 = i
+!!$    !test of L_H/L_tot > some fraction
+!!$    LH = pow10(t% tr(i_logLH,i))
+!!$    Lmin = Lfac * pow10(t% tr(i_logL,i))
+!!$    do while(LH > Lmin)
+!!$       i = i-1
+!!$       LH = pow10(t% tr(i_logLH,i))
+!!$       Lmin = Lfac * pow10(t% tr(i_logL,i))
+!!$    enddo
+!!$
+!!$    ZAMS2 = i
 
     ZAMS3=maxloc(t% tr(i_logg,1:ZAMS1),dim=1)
 
@@ -287,6 +294,7 @@ contains
     ! Xc test fails so consider instead the age for low mass tracks
     ! if the age of the last point > Max_Age, accept it
     if(t% initial_mass <= very_low_mass_limit .and. t% tr(i_age,t% ntrack) >= max_age) TAMS = t% ntrack
+    if(t% merger) TAMS = t% ntrack
   end function TAMS
 
   integer function RGBTip(t,guess)

@@ -16,10 +16,9 @@ program make_eeps
   real(dp) :: initial_Y, initial_Z, Fe_div_H, v_div_vcrit, alpha_div_Fe
 
   namelist /eep_controls/ do_phases, center_gamma_limit, &
-       center_carbon_limit, log_center_T_limit, &
-       high_mass_limit, very_low_mass_limit, weight_center_rho_T_by_Xc, &
-       Teff_scale, logL_scale, age_scale, Tc_scale, Rhoc_scale, &
-       make_bin_tracks
+       center_carbon_limit, log_center_T_limit, high_mass_limit, &
+       very_low_mass_limit, weight_center_rho_T_by_Xc, Teff_scale, &
+       logL_scale, age_scale, Tc_scale, Rhoc_scale, make_bin_tracks, skip_preMS
 
   ierr=0
 
@@ -45,6 +44,9 @@ program make_eeps
      t% alpha_div_Fe = alpha_div_Fe
      t% v_div_vcrit = v_div_vcrit
      t% version_string = version_string
+     !hack!
+     t% merger = .false.
+     !hack!
      if(ierr/=0) then
         write(0,*) 'make_eep: problem reading!'
         cycle
