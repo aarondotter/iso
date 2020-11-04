@@ -15,11 +15,10 @@ module iso_eep_support
   integer, parameter :: age_scale_log10  = 1
 
   logical, parameter ::check_initial_mass = .true.
-  logical :: skip_preMS = .false.
   
-  real(dp) :: mass_eps = 1d-6
+  real(dp) :: mass_eps = 1.0d-6
 
-  character(len=file_path) :: history_dir, eep_dir, iso_dir
+  character(len=file_path) :: history_dir, eep_dir, iso_dir, eep_input_file
 
   !stellar types for handling primary eeps
   integer, parameter :: unknown           =  1 !for initialization only
@@ -71,9 +70,9 @@ module iso_eep_support
   type(column), allocatable :: cols(:) !(ncol)
 
   !EEP arrays
-  integer, parameter :: primary = 10 ! number of primary EEPs
+  integer :: primary ! number of primary EEPs
   ! as set by primary_eep
-  integer :: eep_interval(primary-1) ! number of secondary EEPs
+  integer, allocatable :: eep_interval(:) ! number of secondary EEPs
   ! between the primaries
 
   !holds an evolutionary track, use an array of these for multiple tracks
@@ -85,6 +84,7 @@ module iso_eep_support
      logical :: ignore=.false.
      logical :: merger = .false.
      logical :: write_distance = .false.
+     logical :: he_star = .false.
      integer :: ncol, ntrack, neep, MESA_revision_number
      integer :: star_type = unknown
      integer :: nfil !number of filters
@@ -923,32 +923,17 @@ contains
 
   subroutine set_eep_interval(ierr)
     integer, intent(out) :: ierr
-    integer :: i, j, io, my_eep_interval, my_num_eep
-    open(newunit=io,file='input.eep',status='old',action='read',iostat=ierr)
-    if(ierr/=0) then
-       call set_default_eep_interval
-       return
-    endif
+    integer :: i, j, io, my_eep_interval
+    open(newunit=io,file=trim(eep_input_file),status='old',action='read',iostat=ierr)
     read(io,*) !comments
-    read(io,'(i3)') my_num_eep
-    if(my_num_eep /= (primary-1)) then
-       write(0,*) 'incorrect number of eep intervals in input.eep'
-       call set_default_eep_interval
-       return
-    endif
+    read(io,'(i3)') primary
+    allocate(eep_interval(primary-1))
     do i=1,primary-1
        read(io,'(i3,i5)') j, my_eep_interval
        eep_interval(j) = my_eep_interval
     enddo
     close(io)
   end subroutine set_eep_interval
-
-  subroutine set_default_eep_interval
-    !determines total number and relative density of EEPs
-    !along an evolutionary track. Total number of EEPs
-    !will be sum(eep_interval) + primary.
-    eep_interval = 50
-  end subroutine set_default_eep_interval
 
   subroutine setup_columns(history_columns_list,ierr)
     !reads a history_columns.list file to determine what columns to write
