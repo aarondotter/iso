@@ -16,14 +16,13 @@ program make_track
   type(track), allocatable :: s(:), t(:) !existing set
   integer :: i, ierr=0, num_tracks_t=0, num_tracks_s=0
   logical, parameter :: debug=.false.
-  logical :: output_to_eep_dir = .false., do_Cstars = .false.
+  logical :: output_to_eep_dir = .false.
   logical :: set_fixed_Fe_div_H = .false., do_CMDs = .false.
   character(len=file_path) :: BC_table_list = '', cmd_suffix = 'cmd'
-  character(len=file_path) :: Cstar_table_list = ''
   real(sp) :: extinction_Av=0.0, extinction_Rv=0.0, Fe_div_H = 0.0
 
   namelist /cmd_controls/ BC_table_list, extinction_Av, extinction_Rv, &
-  Cstar_table_list, do_Cstars, cmd_suffix, Fe_div_H, set_fixed_Fe_div_H
+  cmd_suffix, Fe_div_H, set_fixed_Fe_div_H
 
   namelist /track_controls/ output_to_eep_dir
 
@@ -47,8 +46,7 @@ program make_track
 
   if(command_argument_count()>1) then
      call get_command_argument(2,phot_string)
-     call color_init(phot_string, BC_table_list, do_Cstars, Cstar_table_list, &
-          set_fixed_Fe_div_H, Fe_div_H, ierr)
+     call color_init(phot_string, BC_table_list, set_fixed_Fe_div_H, Fe_div_H, ierr)
      do_CMDs = ierr==0
   endif
 

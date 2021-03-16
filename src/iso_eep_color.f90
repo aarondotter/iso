@@ -16,26 +16,23 @@ module iso_eep_color
   real(sp), parameter :: Z_div_X_sol = 0.0181
   real(sp), parameter :: log_Z_sol = log10(Z_sol)
   real(sp) :: BC_Fe_div_H
-  type(BC_table), allocatable :: b(:), c(:)
-  logical :: BC_do_Cstars = .false., do_fixed_Z = .false.
+  type(BC_table), allocatable :: b(:)
+  logical ::do_fixed_Z = .false.
   public color_init, write_cmds_to_file, write_track_cmd_to_file
 
 contains
 
-  subroutine color_init(phot_string,bc_table_list,do_Cstars,cstar_table_list,set_fixed_Fe_div_H,Fe_div_H,ierr)
+  subroutine color_init(phot_string,bc_table_list,set_fixed_Fe_div_H,Fe_div_H,ierr)
     character(len=32) :: phot_string
-    character(len=file_path), intent(in) :: bc_table_list, cstar_table_list
-    logical, intent(in) :: do_Cstars
+    character(len=file_path), intent(in) :: bc_table_list
     logical, intent(in) :: set_fixed_Fe_div_H
     real(sp), intent(in) :: Fe_div_H
     integer, intent(out) :: ierr
-    BC_do_Cstars = do_Cstars
     call BC_table_init(phot_string,bc_table_list,b,ierr)
     if(set_fixed_Fe_div_H)then
        BC_Fe_div_H = Fe_div_H
        do_fixed_Z = .true.
     endif
-    if(BC_do_Cstars) call BC_table_init(phot_string,cstar_table_list,c,ierr)
     if(ierr/=0) write(0,*) 'color_init: failed to initialize BC tables'
   end subroutine color_init
 
@@ -43,16 +40,13 @@ contains
     type(isochrone), intent(inout) :: iso
     real(sp), allocatable, intent(out) :: log_Z_div_Zsol(:)
     integer, intent(out) :: ierr
-    integer :: i, nb, nc, j, n, jZ
+    integer :: i, nb, j, n, jZ
     real(sp), allocatable :: res(:)
     real(sp) :: logT, logg, logL, X, Y, Z, FeH
-    real(sp) :: c_min_logT, c_max_logT, c_min_logg, c_max_logg
-    real(dp) :: C_div_O
-    logical :: Cstar_ok
-    integer :: iT, ig, iL, iH, iHe3, iHe4, iC, iO, isurfZ, iCdivO, ilogR, ire, irp, iw
+    integer :: iT, ig, iL, iH, iHe3, iHe4, isurfZ, ilogR, ire, irp, iw
     !a few initializations
-    c_min_logT=0; c_max_logT=0; c_min_logg=0; c_max_logg=0; ilogR=0; ire=0; irp=0
-    iT=0; ig=0; iL=0; iH=0; iHe3=0; iHe4=0; iC=0; iO=0; jZ=0; isurfZ=0; iCdivO=0; iw=0
+    ilogR=0; ire=0; irp=0
+    iT=0; ig=0; iL=0; iH=0; iHe3=0; iHe4=0; jZ=0; isurfZ=0; iw=0
     
     !locate columns
     do i = 1, iso% ncol
@@ -68,14 +62,8 @@ contains
           iHe3=i   
        else if(trim(adjustl(iso% cols(i)% name))=='surface_he4')then
           iHe4=i   
-       else if(trim(adjustl(iso% cols(i)% name))=='surface_c12')then
-          iC=i
-       else if(trim(adjustl(iso% cols(i)% name))=='surface_o16')then
-          iO=i
        else if(trim(adjustl(iso% cols(i)% name))=='log_surf_z')then
           isurfZ=i
-       else if(trim(adjustl(iso% cols(i)% name))=='surf_num_c12_div_num_o16')then
-          iCdivO=i
        else if(trim(adjustl(iso% cols(i)% name))=='r_equatorial_div_r')then
           ire=i
        else if(trim(adjustl(iso% cols(i)% name))=='r_polar_div_r')then
@@ -87,11 +75,6 @@ contains
        endif
     enddo
     
-    if(BC_do_Cstars)then
-       c_min_logT = minval(c(1)% logT); c_min_logg = minval(c(1)% logg)
-       c_max_logT = maxval(c(1)% logT); c_max_logg = maxval(c(1)% logg)
-    endif
-
     iso% nfil = b(1)% num_filter
     allocate(iso% mags(iso% nfil, iso% neep),res(iso% nfil))
     allocate(iso% labels(iso% nfil))
@@ -99,11 +82,6 @@ contains
     res = 0.
     iso% mags = 0.
     nb=size(b)
-    if(BC_do_Cstars)then
-       nc=size(c)
-    else
-       nc=0
-    endif
 
     allocate(log_Z_div_Zsol(iso% neep))
 
@@ -130,81 +108,31 @@ contains
 
        log_Z_div_Zsol(i) = FeH
 
-       if(BC_do_Cstars)then
+       n=nb
+       !interpolation is either linear, quadratic, or cubic
+       if(FeH < b(1)% FeH .or. n==1) then
+          call BC_interp_filters(b(1),logg,logT,iso% Av, iso% Rv, res,ierr)
+       else if(FeH >= b(n)% FeH) then
+          call BC_interp_filters(b(n),logg,logT,iso% Av, iso% Rv, res,ierr)
 
-          if(iCdivO>0)then
-             C_div_O  =log10(iso% data(iCdivO,i))
+       else if(n==2) then
+          call linear(b(1), b(2), logg, logT, iso% Av, iso% Rv, FeH, res, ierr)
+
+       else if(n==3)then
+          call quadratic(b(1), b(2), b(3), logg, logT, iso% Av, iso% Rv, FeH, res, ierr)
+
+       else 
+          do j=1,n-1
+             if(FeH >= b(j)% FeH .and. FeH < b(j+1)% FeH) jZ=j
+          enddo
+
+          if(jZ==1) then
+             call quadratic(b(1), b(2), b(3), logg, logT, iso% Av, iso% Rv, FeH, res, ierr)
+          else if(jZ==n-1) then
+             call quadratic(b(n-2), b(n-1), b(n), logg, logT, iso% Av, iso% Rv, FeH, res, ierr)
           else
-             C_div_O = log10((16d0/12d0) * iso% data(iC,i) / iso% data(iO,i))
+             call cubic(b(jZ-1),b(jZ),b(jZ+1),b(jZ+2), logg, logT, iso% Av, iso% Rv, FeH, res, ierr)
           endif
-
-          Cstar_OK = (C_div_O > 0d0) .and. (logT > c_min_logT) .and. &
-               (logT < c_max_logT) .and. (logg > c_min_logg) .and. &
-               (logg < c_max_logg)
-       else
-          Cstar_OK = .false.
-       endif
-
-       if( Cstar_OK )then !use Cstar grid
-          n=nc
-          !interpolation is either linear, quadratic, or cubic
-          if(FeH < c(1)% FeH .or. n==1) then
-             call BC_interp_filters(c(1),logg,logT,iso% Av, res,ierr)
-          else if(FeH >= c(n)% FeH) then
-             call BC_interp_filters(c(n),logg,logT,iso% Av, res,ierr)
-
-          else if(n==2) then
-             call linear(c(1), c(2), logg, logT, iso% Av, FeH, res, ierr)
-
-          else if(n==3)then
-             call quadratic(c(1), c(2), c(3), logg, logT, iso% Av, FeH, res, ierr)
-
-          else 
-
-             do j=1,n-1
-                if(FeH >= c(j)% FeH .and. FeH < c(j+1)% FeH) jZ=j
-             enddo
-
-             if(jZ==1) then
-                call quadratic(c(1), c(2), c(3), logg, logT, iso% Av, FeH, res, ierr)
-             else if(jZ==n-1) then
-                call quadratic(c(n-2), c(n-1), c(n), logg, logT, iso% Av, FeH, res, ierr)
-             else
-                call cubic(c(jZ-1),c(jZ),c(jZ+1),c(jZ+2), logg, logT, iso% Av, FeH, res, ierr)
-             endif
-
-          endif
-
-       else !use standard grid
-
-          n=nb
-          !interpolation is either linear, quadratic, or cubic
-          if(FeH < b(1)% FeH .or. n==1) then
-             call BC_interp_filters(b(1),logg,logT,iso% Av, res,ierr)
-          else if(FeH >= b(n)% FeH) then
-             call BC_interp_filters(b(n),logg,logT,iso% Av, res,ierr)
-
-          else if(n==2) then
-             call linear(b(1), b(2), logg, logT, iso% Av, FeH, res, ierr)
-
-          else if(n==3)then
-             call quadratic(b(1), b(2), b(3), logg, logT, iso% Av, FeH, res, ierr)
-
-          else 
-             do j=1,n-1
-                if(FeH >= b(j)% FeH .and. FeH < b(j+1)% FeH) jZ=j
-             enddo
-
-             if(jZ==1) then
-                call quadratic(b(1), b(2), b(3), logg, logT, iso% Av, FeH, res, ierr)
-             else if(jZ==n-1) then
-                call quadratic(b(n-2), b(n-1), b(n), logg, logT, iso% Av, FeH, res, ierr)
-             else
-                call cubic(b(jZ-1),b(jZ),b(jZ+1),b(jZ+2), logg, logT, iso% Av, FeH, res, ierr)
-             endif
-
-          endif
-
        endif
 
        iso% mags(:,i) = SolBol - 2.5*logL - res
@@ -217,16 +145,12 @@ contains
     type(track), intent(inout) :: t
     real(sp), allocatable, intent(out) :: log_Z_div_Zsol(:)
     integer, intent(out) :: ierr
-    integer :: i, nb, nc, j, n, jZ
+    integer :: i, nb, j, n, jZ
     real(sp), allocatable :: res(:)
     real(sp) :: logT, logg, logL, X, Y, Z, FeH
-    real(sp) :: c_min_logT, c_max_logT, c_min_logg, c_max_logg
-    real(dp) :: C_div_O
-    logical :: Cstar_ok
-    integer :: iT, ig, iL, iH, iHe3, iHe4, iC, iO, isurfZ, iCdivO
+    integer :: iT, ig, iL, iH, iHe3, iHe4, isurfZ
     !a few initializations
-    c_min_logT=0; c_max_logT=0; c_min_logg=0; c_max_logg=0
-    iT=0; ig=0; iL=0; iH=0; iHe3=0; iHe4=0; iC=0; iO=0; jZ=0; isurfZ=0; iCdivO=0
+    iT=0; ig=0; iL=0; iH=0; iHe3=0; iHe4=0; jZ=0; isurfZ=0
 
     !locate columns
     do i = 1, t% ncol
@@ -242,21 +166,10 @@ contains
           iHe3=i   
        else if(trim(adjustl(t% cols(i)% name))=='surface_he4')then
           iHe4=i   
-       else if(trim(adjustl(t% cols(i)% name))=='surface_c12')then
-          iC=i
-       else if(trim(adjustl(t% cols(i)% name))=='surface_o16')then
-          iO=i
        else if(trim(adjustl(t% cols(i)% name))=='log_surf_z')then
           isurfZ=i
-       else if(trim(adjustl(t% cols(i)% name))=='surf_num_c12_div_num_o16')then
-          iCdivO=i
        endif
     enddo
-
-    if(BC_do_Cstars)then
-       c_min_logT = minval(c(1)% logT); c_min_logg = minval(c(1)% logg)
-       c_max_logT = maxval(c(1)% logT); c_max_logg = maxval(c(1)% logg)
-    endif
 
     t% nfil = b(1)% num_filter
     allocate(t% mags(t% nfil, t% ntrack),res(t% nfil))
@@ -265,11 +178,6 @@ contains
     res = 0.
     t% mags = 0.
     nb=size(b)
-    if(BC_do_Cstars)then
-       nc=size(c)
-    else
-       nc=0
-    endif
 
     allocate(log_Z_div_Zsol(t% ntrack))
 
@@ -294,72 +202,31 @@ contains
        FeH = min(FeH,real(t% Fe_div_H,kind=sp) + 0.1)
 
        log_Z_div_Zsol(i) = FeH
+       
+       n=nb
+       !interpolation is either linear, quadratic, or cubic
+       if(FeH < b(1)% FeH .or. n==1) then
+          call BC_interp_filters(b(1),logg,logT,t% Av, t% Rv, res,ierr)
+       else if(FeH >= b(n)% FeH) then
+          call BC_interp_filters(b(n),logg,logT,t% Av, t% Rv, res,ierr)
 
-       if(iCdivO>0)then
-          C_div_O  =log10(t% tr(iCdivO,i))
-       else
-          C_div_O = log10((16d0/12d0) * t% tr(iC,i) / t% tr(iO,i))
-       endif
+       else if(n==2) then
+          call linear(b(1), b(2), logg, logT, t% Av, t% Rv, FeH, res, ierr)
 
-       Cstar_OK = BC_do_Cstars .and. (C_div_O > 0d0) .and. (logT > c_min_logT) .and. &
-            (logT < c_max_logT) .and. (logg > c_min_logg) .and. (logg < c_max_logg)
+       else if(n==3)then
+          call quadratic(b(1), b(2), b(3), logg, logT, t% Av, t% Rv, FeH, res, ierr)
 
-       if( Cstar_OK )then !use Cstar grid
-          n=nc
-          !interpolation is either linear, quadratic, or cubic
-          if(FeH < c(1)% FeH .or. n==1) then
-             call BC_interp_filters(c(1),logg,logT,t% Av, res,ierr)
-          else if(FeH >= c(n)% FeH) then
-             call BC_interp_filters(c(n),logg,logT,t% Av, res,ierr)
+       else 
+          do j=1,n-1
+             if(FeH >= b(j)% FeH .and. FeH < b(j+1)% FeH) jZ=j
+          enddo
 
-          else if(n==2) then
-             call linear(c(1), c(2), logg, logT, t% Av, FeH, res, ierr)
-
-          else if(n==3)then
-             call quadratic(c(1), c(2), c(3), logg, logT, t% Av, FeH, res, ierr)
-
-          else 
-
-             do j=1,n-1
-                if(FeH >= c(j)% FeH .and. FeH < c(j+1)% FeH) jZ=j
-             enddo
-
-             if(jZ==1) then
-                call quadratic(c(1), c(2), c(3), logg, logT, t% Av, FeH, res, ierr)
-             else if(jZ==n-1) then
-                call quadratic(c(n-2), c(n-1), c(n), logg, logT, t% Av, FeH, res, ierr)
-             else
-                call cubic(c(jZ-1),c(jZ),c(jZ+1),c(jZ+2), logg, logT, t% Av, FeH, res, ierr)
-             endif
-          endif
-
-       else !use standard grid
-
-          n=nb
-          !interpolation is either linear, quadratic, or cubic
-          if(FeH < b(1)% FeH .or. n==1) then
-             call BC_interp_filters(b(1),logg,logT,t% Av, res,ierr)
-          else if(FeH >= b(n)% FeH) then
-             call BC_interp_filters(b(n),logg,logT,t% Av, res,ierr)
-
-          else if(n==2) then
-             call linear(b(1), b(2), logg, logT, t% Av, FeH, res, ierr)
-
-          else if(n==3)then
-             call quadratic(b(1), b(2), b(3), logg, logT, t% Av, FeH, res, ierr)
-
-          else 
-             do j=1,n-1
-                if(FeH >= b(j)% FeH .and. FeH < b(j+1)% FeH) jZ=j
-             enddo
-
-             if(jZ==1) then
-                call quadratic(b(1), b(2), b(3), logg, logT, t% Av, FeH, res, ierr)
-             else if(jZ==n-1) then
-                call quadratic(b(n-2), b(n-1), b(n), logg, logT, t% Av, FeH, res, ierr)
-             else
-                call cubic(b(jZ-1),b(jZ),b(jZ+1),b(jZ+2), logg, logT, t% Av, FeH, res, ierr)
-             endif
+          if(jZ==1) then
+             call quadratic(b(1), b(2), b(3), logg, logT, t% Av, t% Rv,  FeH, res, ierr)
+          else if(jZ==n-1) then
+             call quadratic(b(n-2), b(n-1), b(n), logg, logT, t% Av, t% Rv, FeH, res, ierr)
+          else
+             call cubic(b(jZ-1),b(jZ),b(jZ+1),b(jZ+2), logg, logT, t% Av, t% Rv, FeH, res, ierr)
           endif
        endif
 
@@ -369,26 +236,26 @@ contains
   end subroutine get_eep_mags
 
 
-  subroutine linear(t1,t2,logg,logT,Av,FeH,res,ierr)
+  subroutine linear(t1,t2,logg,logT,Av,Rv,FeH,res,ierr)
     type(bc_table), intent(inout) :: t1, t2
-    real(sp), intent(in) :: logg, logT, Av, FeH
+    real(sp), intent(in) :: logg, logT, Av, Rv, FeH
     real(sp), intent(out) :: res(:) !iso% nfil
     integer, intent(out) :: ierr
     real(sp), allocatable :: res_tmp(:,:), slope(:), intercept(:)
     integer :: n
     n=size(res)
     allocate(res_tmp(n,2),slope(n),intercept(n))
-    call BC_interp_filters(t1, logg, logT, Av, res_tmp(:,1), ierr)
-    call BC_interp_filters(t2, logg, logT, Av, res_tmp(:,2), ierr)
+    call BC_interp_filters(t1, logg, logT, Av, Rv, res_tmp(:,1), ierr)
+    call BC_interp_filters(t2, logg, logT, Av, Rv, res_tmp(:,2), ierr)
     !linear interpolation
     slope = (res_tmp(:,2)-res_tmp(:,1))/(b(2)% FeH-b(1)% FeH)
     intercept = (res_tmp(:,1)*b(2)% FeH-res_tmp(:,2)*b(1)% FeH)/(b(2)% FeH-b(1)% FeH)
     res = slope*FeH + intercept
   end subroutine linear
 
-  subroutine quadratic(t1,t2,t3,logg,logT,Av,FeH,res,ierr)
+  subroutine quadratic(t1,t2,t3,logg,logT,Av,Rv,FeH,res,ierr)
     type(bc_table), intent(inout) :: t1,t2,t3
-    real(sp), intent(in) :: logg, logT, Av, FeH
+    real(sp), intent(in) :: logg, logT, Av, Rv, FeH
     real(sp), intent(out) :: res(:) !iso% nfil
     integer, intent(out) :: ierr
     real(sp), allocatable :: res_tmp(:,:)
@@ -400,9 +267,9 @@ contains
     x12 = t2% FeH - t1% FeH
     x23 = t3% FeH - t2% FeH
     x0  =     FeH - t1% FeH
-    call BC_interp_filters(t1, logg, logT, Av, res_tmp(:,1), ierr)
-    call BC_interp_filters(t2, logg, logT, Av, res_tmp(:,2), ierr)
-    call BC_interp_filters(t3, logg, logT, Av, res_tmp(:,3), ierr)
+    call BC_interp_filters(t1, logg, logT, Av, Rv, res_tmp(:,1), ierr)
+    call BC_interp_filters(t2, logg, logT, Av, Rv, res_tmp(:,2), ierr)
+    call BC_interp_filters(t3, logg, logT, Av, Rv, res_tmp(:,3), ierr)
     do k = 1, n
        call interp_3_to_1_sg(x12,x23,x0,res_tmp(k,1),res_tmp(k,2),res_tmp(k,3),res(k),str,ierr)
        if(ierr/=0) then
@@ -412,9 +279,9 @@ contains
     enddo
   end subroutine quadratic
 
-  subroutine cubic(t1,t2,t3,t4,logg,logT,Av,FeH,res,ierr)
+  subroutine cubic(t1,t2,t3,t4,logg,logT,Av,Rv,FeH,res,ierr)
     type(bc_table), intent(inout) :: t1,t2,t3,t4
-    real(sp), intent(in) :: logg, logT, Av, FeH
+    real(sp), intent(in) :: logg, logT, Av, Rv, FeH
     real(sp), intent(out) :: res(:) !iso% nfil
     integer, intent(out) :: ierr
     real(sp), allocatable :: res_tmp(:,:)
@@ -427,10 +294,10 @@ contains
     x23 = t3% FeH - t2% FeH
     x34 = t4% FeH - t3% FeH
     x0  =     FeH - t1% FeH
-    call BC_interp_filters(t1, logg, logT, Av, res_tmp(:,1), ierr)
-    call BC_interp_filters(t2, logg, logT, Av, res_tmp(:,2), ierr)
-    call BC_interp_filters(t3, logg, logT, Av, res_tmp(:,3), ierr)
-    call BC_interp_filters(t4, logg, logT, Av, res_tmp(:,4), ierr)
+    call BC_interp_filters(t1, logg, logT, Av, Rv, res_tmp(:,1), ierr)
+    call BC_interp_filters(t2, logg, logT, Av, Rv, res_tmp(:,2), ierr)
+    call BC_interp_filters(t3, logg, logT, Av, Rv, res_tmp(:,3), ierr)
+    call BC_interp_filters(t4, logg, logT, Av, Rv, res_tmp(:,4), ierr)
     do k = 1, n
        call interp_4_to_1_sg(x12,x23,x34,x0,res_tmp(k,1),res_tmp(k,2),res_tmp(k,3),res_tmp(k,4),res(k),str,ierr)
        if(ierr/=0) then
@@ -494,7 +361,7 @@ contains
          star_label(t% star_type)
     write(io,'(a8,20i8)') '# EEPs: ', t% eep
     write(io,'(a88)') '# --------------------------------------------------------------------------------------'
-    write(io,'(a25,f6.3)') '# CCM89 extinction: Av = ', t% Av
+    write(io,'(a25,f6.3)') '# extinction:   Av, Rv = ', t% Av, t% Rv
     write(io,'(a88)') '# --------------------------------------------------------------------------------------'
 
 
@@ -540,7 +407,7 @@ contains
          set% v_div_vcrit
     write(io,'(a88)') '# --------------------------------------------------------------------------------------'
     write(io,'(a25,i5)')   '# number of isochrones = ', n
-    write(io,'(a25,f6.3)') '# CCM89 extinction: Av = ', set% Av
+    write(io,'(a25,f6.3)') '# extinction:   Av, Rv = ', set% Av, set% Rv
     write(io,'(a88)') '# --------------------------------------------------------------------------------------'
 
     do i=1,n

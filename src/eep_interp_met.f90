@@ -18,14 +18,13 @@ program eep_interp_feh
   real(dp) :: new_Fe_div_H
   integer :: i, ierr, num_grids, num_tracks_s1, num_tracks_s2, num_tracks_t, lo, hi
   logical, parameter :: debug=.false.
-  logical :: output_to_eep_dir = .false., do_Cstars = .false., do_Z_interp
+  logical :: output_to_eep_dir = .false., do_Z_interp
   logical :: set_fixed_Fe_div_H = .false., do_CMDs = .false.
   character(len=file_path) :: BC_table_list = '', cmd_suffix = 'cmd'
-  character(len=file_path) :: Cstar_table_list = ''
   real(sp) :: extinction_Av=0.0, extinction_Rv=0.0, fixed_Fe_div_H=0.0
 
   namelist /cmd_controls/ BC_table_list, extinction_Av, extinction_Rv, &
-       Cstar_table_list, do_Cstars, cmd_suffix, fixed_Fe_div_H, set_fixed_Fe_div_H
+       cmd_suffix, fixed_Fe_div_H, set_fixed_Fe_div_H
 
   namelist /track_controls/ output_to_eep_dir
 
@@ -46,9 +45,7 @@ program eep_interp_feh
   if(ierr/=0) stop 'make_track: failed in read_input'
 
   if(do_CMDs) then
-     call color_init(phot_string, BC_table_list, &
-          do_Cstars, Cstar_table_list, &
-          set_fixed_Fe_div_H, fixed_Fe_div_H, ierr)
+     call color_init(phot_string, BC_table_list, set_fixed_Fe_div_H, fixed_Fe_div_H, ierr)
      if(ierr/=0) then
         write(0,*) 'failed to initialize BC tables'
         do_CMDs = .false.

@@ -8,18 +8,17 @@ program eep_cmd
   integer :: ierr = 0
   type(track) :: t
   character(len=file_path) :: BC_table_list = '', cmd_suffix = 'cmd'
-  character(len=file_path) :: Cstar_table_list = '', phot_string
-  logical :: set_fixed_Fe_div_H = .false., do_Cstars=.false.
+  character(len=file_path) :: phot_string
+  logical :: set_fixed_Fe_div_H = .false.
   real(sp) :: extinction_Av=0.0, extinction_Rv=3.1, Fe_div_H = 0.0
   
   namelist /cmd_controls/ BC_table_list, extinction_Av, extinction_Rv, &
-  Cstar_table_list, do_Cstars, cmd_suffix, Fe_div_H, set_fixed_Fe_div_H
+       cmd_suffix, Fe_div_H, set_fixed_Fe_div_H
 
   
   call cmd_init(ierr)
 
-  if(ierr==0) call color_init(phot_string, BC_table_list, do_Cstars, Cstar_table_list, &
-       set_fixed_Fe_div_H, Fe_div_H, ierr)
+  if(ierr==0) call color_init(phot_string, BC_table_list, set_fixed_Fe_div_H, Fe_div_H, ierr)
  
   if(ierr==0) call read_eep(t,full_path=.true.,append_eep=.false.)
 

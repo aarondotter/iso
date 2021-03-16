@@ -8,9 +8,7 @@ program make_cmd
   integer :: ierr
   type(isochrone_set) :: s
   logical, parameter :: do_timing = .false.
-  logical :: do_Cstars = .false.
   character(len=file_path) :: BC_table_list = 'bc_table.list', cmd_suffix = ''
-  character(len=file_path) :: Cstar_table_list = 'cstar_table.list'
   logical :: set_fixed_Fe_div_H = .false.
   real(sp) :: extinction_Av, extinction_Rv, Fe_div_H
   integer :: count_rate, time(3)
@@ -49,15 +47,16 @@ contains
     
     Fe_div_H = 0.0
     extinction_Av = 0.0
-    extinction_Rv = 0.0
+    extinction_Rv = 3.1
     
     if(command_argument_count()<1)then
        write(*,*) ' make_cmd:   '
-       write(*,*) '   usage: ./make_cmd phot_string isochrone_file [Av] '
+       write(*,*) '   usage: ./make_cmd phot_string isochrone_file [Av] [Rv]  '
        write(*,*) '     phot_string = UBVRIplus, etc.                         '
        write(*,*) '     isochrone_file = name of isochrone file to transform  '
        write(*,*) '     OPTIONAL -                                            '
        write(*,*) '     [Av] extinction in V band                             '
+       write(*,*) '     [Rv] selective extinction Rv = Av/E(B-V)              '
        ierr=-1
        return
     endif
@@ -81,6 +80,8 @@ contains
           result=arg(j+1:)
           if(trim(option)=='Av')then
              read(result,*) extinction_Av
+          elseif(trim(option)=='Rv')then
+             read(result,*) extinction_Rv
           endif
        enddo
     endif
@@ -96,8 +97,7 @@ contains
        s% iso(i)% Rv = s% Rv
     enddo
 
-    call color_init(phot_string,BC_table_list,do_Cstars,Cstar_table_list, &
-         set_fixed_Fe_div_H,Fe_div_H,ierr)
+    call color_init(phot_string,BC_table_list,set_fixed_Fe_div_H,Fe_div_H,ierr)
 
   end subroutine cmd_init
 
