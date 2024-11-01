@@ -14,7 +14,7 @@ module iso_eep_color
   real(sp), parameter :: SolBol=4.74
   real(sp), parameter :: Z_sol = 0.0134, Xsol = 0.7381
   real(sp), parameter :: Z_div_X_sol = 0.0181
-  real(sp), parameter :: log_Z_sol = log10(Z_sol)
+  real(sp), parameter :: log_Z_sol = -1.8728952016351923 ! log10(Z_sol)
   real(sp) :: BC_Fe_div_H
   type(BC_table), allocatable :: b(:)
   logical ::do_fixed_Z = .false.
