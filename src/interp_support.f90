@@ -15,7 +15,7 @@ module interp_support
   real(dp), parameter :: Y_proto=2.703d-1
   real(dp), parameter :: X_proto=7.155d-1
   real(dp), parameter :: Y_BBN=2.49d-1
-  real(dp), parameter :: Z_div_X_proto=log10(Z_proto/X_proto)
+  real(dp), parameter :: Z_div_X_proto=-1.7023212937127388 !log10(Z_proto/X_proto)
   real(dp), parameter :: dY_dZ = (Y_proto-Y_BBN)/Z_proto
 
 contains
