@@ -1,2 +1,2 @@
-TARGET=all
+TARGET=basic
 clear; cd make; make $TARGET
