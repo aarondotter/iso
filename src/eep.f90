@@ -234,8 +234,9 @@ contains
   
   integer function ZAMS(t,guess)
     type(track), intent(in) :: t
-    real(dp) :: Xmax, Xmin, Xc, LH, Lmin !g_max, 
-    real(dp), parameter :: Lfac = 9.99d-1 !Xfac = 9.8d-1
+    real(dp) :: Xmax, Xmin, Xc
+!!$ real(dp) :: LH, Lmin
+!!$ real(dp), parameter :: Lfac = 9.99d-1 !Xfac = 9.8d-1
     integer, intent(in) :: guess
     integer :: i, my_guess, ZAMS1, ZAMS2, ZAMS3
 

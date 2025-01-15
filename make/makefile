@@ -31,7 +31,7 @@ CHA=charlies_angel
 EEP_CMD=eep_cmd
 SPOT_EEP=spotify_eep
 
-basic: $(EEP) $(ISO) 
+basic: $(EEP) $(ISO) $(CMD)
 all: $(EEP) $(ISO) $(BLEND) $(TRK) $(INTMET) $(INTAGE) $(CMD) $(CHA) $(INTEEP) $(EEP_CMD) $(INTALF)
 
 $(CMD): make_cmd.o spotify.o iso_eep_color.o iso_eep_support.o BC_tables.o
